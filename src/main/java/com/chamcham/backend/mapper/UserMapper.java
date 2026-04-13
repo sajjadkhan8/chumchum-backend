@@ -1,6 +1,10 @@
 package com.chamcham.backend.mapper;
 
+import com.chamcham.backend.dto.user.BrandProfilePayload;
+import com.chamcham.backend.dto.user.CreatorProfilePayload;
 import com.chamcham.backend.dto.user.UserResponse;
+import com.chamcham.backend.entity.Brand;
+import com.chamcham.backend.entity.Creator;
 import com.chamcham.backend.entity.User;
 import org.springframework.stereotype.Component;
 
@@ -15,9 +19,44 @@ public class UserMapper {
                 user.getImage(),
                 user.getCity(),
                 user.getPhone(),
-                user.getDescription(),
-                user.isSeller(),
+                user.getRole(),
+                user.getRole().isCreator(),
+                user.isActive(),
+                toCreatorPayload(user.getCreator()),
+                toBrandPayload(user.getBrand()),
                 user.getCreatedAt()
+        );
+    }
+
+    private CreatorProfilePayload toCreatorPayload(Creator creator) {
+        if (creator == null) {
+            return null;
+        }
+
+        return new CreatorProfilePayload(
+                creator.getBio(),
+                creator.getCategory(),
+                creator.getTiktokUrl(),
+                creator.getInstagramUrl(),
+                creator.getYoutubeUrl(),
+                creator.getFollowers(),
+                creator.getAvgViews(),
+                creator.getEngagementRate(),
+                creator.getRating(),
+                creator.getTotalReviews()
+        );
+    }
+
+    private BrandProfilePayload toBrandPayload(Brand brand) {
+        if (brand == null) {
+            return null;
+        }
+
+        return new BrandProfilePayload(
+                brand.getCompanyName(),
+                brand.getWebsite(),
+                brand.getIndustry(),
+                brand.getDescription()
         );
     }
 }

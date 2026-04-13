@@ -5,6 +5,7 @@ import com.chamcham.backend.dto.review.ReviewResponse;
 import com.chamcham.backend.entity.Gig;
 import com.chamcham.backend.entity.Review;
 import com.chamcham.backend.entity.User;
+import com.chamcham.backend.entity.UserRole;
 import com.chamcham.backend.exception.ApiException;
 import com.chamcham.backend.mapper.ReviewMapper;
 import com.chamcham.backend.repository.GigRepository;
@@ -33,9 +34,9 @@ public class ReviewService {
     }
 
     @Transactional
-    public ReviewResponse createReview(UUID userId, boolean isSeller, ReviewCreateRequest request) {
-        if (isSeller) {
-            throw new ApiException(HttpStatus.FORBIDDEN, "Sellers can't create reviews!");
+    public ReviewResponse createReview(UUID userId, UserRole role, ReviewCreateRequest request) {
+        if (!role.isBrand()) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "Only brands can create reviews!");
         }
 
         Gig gig = gigRepository.findById(request.gigId())

@@ -1,5 +1,7 @@
 package com.chamcham.backend.dto.user;
 
+import com.chamcham.backend.entity.UserRole;
+
 import java.time.Instant;
 import java.util.UUID;
 
@@ -10,8 +12,11 @@ public record UserResponse(
         String image,
         String city,
         String phone,
-        String description,
+        UserRole role,
         boolean isSeller,
+        boolean active,
+        CreatorProfilePayload creator,
+        BrandProfilePayload brand,
         Instant createdAt
 ) {
 }

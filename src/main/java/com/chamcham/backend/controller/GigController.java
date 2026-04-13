@@ -38,7 +38,7 @@ public class GigController {
             @Valid @RequestBody GigCreateRequest request
     ) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(gigService.createGig(authUser.userId(), authUser.seller(), request));
+                .body(gigService.createGig(authUser.userId(), authUser.role(), request));
     }
 
     @DeleteMapping("/{id}")

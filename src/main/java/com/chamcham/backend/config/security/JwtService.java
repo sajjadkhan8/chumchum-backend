@@ -1,5 +1,6 @@
 package com.chamcham.backend.config.security;
 
+import com.chamcham.backend.entity.UserRole;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
@@ -27,11 +28,14 @@ public class JwtService {
         this.expirationMillis = expirationMillis;
     }
 
-    public String generateToken(UUID userId, boolean isSeller) {
+    public String generateToken(UUID userId, UserRole role) {
         Instant now = Instant.now();
         return Jwts.builder()
                 .subject(userId.toString())
-                .claims(Map.of("isSeller", isSeller))
+                .claims(Map.of(
+                        "role", role.name(),
+                        "isSeller", role.isCreator()
+                ))
                 .issuedAt(Date.from(now))
                 .expiration(Date.from(now.plusMillis(expirationMillis)))
                 .signWith(secretKey)

@@ -5,6 +5,7 @@ import com.chamcham.backend.dto.message.MessageResponse;
 import com.chamcham.backend.entity.Conversation;
 import com.chamcham.backend.entity.Message;
 import com.chamcham.backend.entity.User;
+import com.chamcham.backend.entity.UserRole;
 import com.chamcham.backend.exception.ApiException;
 import com.chamcham.backend.mapper.MessageMapper;
 import com.chamcham.backend.repository.ConversationRepository;
@@ -31,7 +32,11 @@ public class MessageService {
         this.messageMapper = messageMapper;
     }
 
-    public MessageResponse createMessage(UUID userId, boolean isSeller, MessageCreateRequest request) {
+    public MessageResponse createMessage(UUID userId, UserRole role, MessageCreateRequest request) {
+        if (role.isAdmin()) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "Admin cannot send creator/brand messages");
+        }
+
         Conversation conversation = conversationRepository.findById(request.conversationId())
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Conversation not found"));
 
@@ -45,8 +50,8 @@ public class MessageService {
                 .description(request.description())
                 .build();
 
-        conversation.setReadBySeller(isSeller);
-        conversation.setReadByBuyer(!isSeller);
+        conversation.setReadBySeller(role.isCreator());
+        conversation.setReadByBuyer(role.isBrand());
         conversation.setLastMessage(request.description());
         conversationRepository.save(conversation);
 

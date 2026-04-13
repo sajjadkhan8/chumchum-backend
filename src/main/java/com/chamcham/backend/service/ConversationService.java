@@ -4,6 +4,7 @@ import com.chamcham.backend.dto.conversation.ConversationCreateRequest;
 import com.chamcham.backend.dto.conversation.ConversationResponse;
 import com.chamcham.backend.entity.Conversation;
 import com.chamcham.backend.entity.User;
+import com.chamcham.backend.entity.UserRole;
 import com.chamcham.backend.exception.ApiException;
 import com.chamcham.backend.mapper.ConversationMapper;
 import com.chamcham.backend.repository.ConversationRepository;
@@ -27,12 +28,17 @@ public class ConversationService {
         this.conversationMapper = conversationMapper;
     }
 
-    public ConversationResponse createConversation(UUID userId, boolean isSeller, ConversationCreateRequest request) {
+    public ConversationResponse createConversation(UUID userId, UserRole role, ConversationCreateRequest request) {
+        if (role.isAdmin()) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "Admin cannot start marketplace conversations");
+        }
+
         User currentUser = userRepository.findById(userId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "User not found"));
 
-        UUID sellerId = isSeller ? userId : request.to();
-        UUID buyerId = isSeller ? request.to() : userId;
+        boolean isCreator = role.isCreator();
+        UUID sellerId = isCreator ? userId : request.to();
+        UUID buyerId = isCreator ? request.to() : userId;
 
         if (sellerId.equals(buyerId)) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Seller and buyer cannot be the same user");
@@ -48,8 +54,8 @@ public class ConversationService {
                         .id(UUID.randomUUID())
                         .seller(seller)
                         .buyer(buyer)
-                        .readBySeller(isSeller)
-                        .readByBuyer(!isSeller)
+                        .readBySeller(isCreator)
+                        .readByBuyer(!isCreator)
                         .build());
 
         if (!conversation.getSeller().getId().equals(currentUser.getId())
@@ -60,8 +66,12 @@ public class ConversationService {
         return conversationMapper.toResponse(conversationRepository.save(conversation));
     }
 
-    public List<ConversationResponse> getConversations(UUID userId, boolean isSeller) {
-        List<Conversation> conversations = isSeller
+    public List<ConversationResponse> getConversations(UUID userId, UserRole role) {
+        if (role.isAdmin()) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "Admin does not have creator/brand conversations");
+        }
+
+        List<Conversation> conversations = role.isCreator()
                 ? conversationRepository.findBySellerIdOrderByUpdatedAtDesc(userId)
                 : conversationRepository.findByBuyerIdOrderByUpdatedAtDesc(userId);
 

@@ -4,6 +4,7 @@ import com.chamcham.backend.dto.gig.GigCreateRequest;
 import com.chamcham.backend.dto.gig.GigResponse;
 import com.chamcham.backend.entity.Gig;
 import com.chamcham.backend.entity.User;
+import com.chamcham.backend.entity.UserRole;
 import com.chamcham.backend.exception.ApiException;
 import com.chamcham.backend.mapper.GigMapper;
 import com.chamcham.backend.repository.GigRepository;
@@ -33,9 +34,9 @@ public class GigService {
         this.gigMapper = gigMapper;
     }
 
-    public GigResponse createGig(UUID userId, boolean isSeller, GigCreateRequest request) {
-        if (!isSeller) {
-            throw new ApiException(HttpStatus.FORBIDDEN, "Only sellers can create new Gigs!");
+    public GigResponse createGig(UUID userId, UserRole role, GigCreateRequest request) {
+        if (!role.isCreator() && !role.isAdmin()) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "Only creators can create gigs!");
         }
 
         User seller = userRepository.findById(userId)

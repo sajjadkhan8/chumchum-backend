@@ -1,5 +1,6 @@
 package com.chamcham.backend.config.security;
 
+import com.chamcham.backend.entity.UserRole;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -39,13 +40,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             try {
                 Claims claims = jwtService.parseClaims(token);
                 UUID userId = UUID.fromString(claims.getSubject());
-                boolean seller = Boolean.TRUE.equals(claims.get("isSeller", Boolean.class));
-                AuthenticatedUser principal = new AuthenticatedUser(userId, seller);
+                UserRole role = resolveRole(claims);
+                AuthenticatedUser principal = new AuthenticatedUser(userId, role);
 
                 UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
                         principal,
                         null,
-                        List.of(new SimpleGrantedAuthority(seller ? "ROLE_SELLER" : "ROLE_BUYER"))
+                        List.of(new SimpleGrantedAuthority("ROLE_" + role.name()))
                 );
                 authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 SecurityContextHolder.getContext().setAuthentication(authentication);
@@ -55,6 +56,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         filterChain.doFilter(request, response);
+    }
+
+    private UserRole resolveRole(Claims claims) {
+        String roleClaim = claims.get("role", String.class);
+        if (roleClaim != null && !roleClaim.isBlank()) {
+            return UserRole.valueOf(roleClaim);
+        }
+
+        boolean legacySeller = Boolean.TRUE.equals(claims.get("isSeller", Boolean.class));
+        return UserRole.fromLegacySellerFlag(legacySeller);
     }
 
     private String resolveToken(HttpServletRequest request) {
