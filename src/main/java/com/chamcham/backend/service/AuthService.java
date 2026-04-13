@@ -86,6 +86,9 @@ public class AuthService {
         if (!passwordEncoder.matches(request.password(), user.getPasswordHash())) {
             throw new ApiException(HttpStatus.NOT_FOUND, "Check username or password!");
         }
+        if (!user.isActive()) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "User account is inactive");
+        }
 
         String token = jwtService.generateToken(user.getId(), user.getRole());
         UserResponse userResponse = userMapper.toResponse(user);
@@ -101,8 +104,16 @@ public class AuthService {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Creator profile is required for creator signup");
         }
 
+        if (request.role() == UserRole.CREATOR && request.brand() != null) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Brand profile is not allowed for creator signup");
+        }
+
         if (request.role() == UserRole.BRAND && request.brand() == null) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Brand profile is required for brand signup");
+        }
+
+        if (request.role() == UserRole.BRAND && request.creator() != null) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Creator profile is not allowed for brand signup");
         }
     }
 

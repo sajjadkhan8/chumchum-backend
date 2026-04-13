@@ -41,7 +41,7 @@ public class OrderController {
             @PathVariable UUID gigId,
             @AuthenticationPrincipal AuthenticatedUser authUser
     ) {
-        return ResponseEntity.ok(orderService.createPaymentIntent(gigId, authUser.userId()));
+        return ResponseEntity.ok(orderService.createPaymentIntent(gigId, authUser.userId(), authUser.role()));
     }
 
     @PatchMapping

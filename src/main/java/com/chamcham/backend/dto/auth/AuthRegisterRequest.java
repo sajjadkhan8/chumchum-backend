@@ -3,6 +3,7 @@ package com.chamcham.backend.dto.auth;
 import com.chamcham.backend.dto.user.BrandProfilePayload;
 import com.chamcham.backend.dto.user.CreatorProfilePayload;
 import com.chamcham.backend.entity.UserRole;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -16,8 +17,8 @@ public record AuthRegisterRequest(
         String city,
         String phone,
         @NotNull UserRole role,
-        CreatorProfilePayload creator,
-        BrandProfilePayload brand
+        @Valid CreatorProfilePayload creator,
+        @Valid BrandProfilePayload brand
 ) {
 }
 

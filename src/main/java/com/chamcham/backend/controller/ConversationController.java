@@ -31,7 +31,7 @@ public class ConversationController {
 
     @GetMapping
     public ResponseEntity<List<ConversationResponse>> getConversations(@AuthenticationPrincipal AuthenticatedUser authUser) {
-        return ResponseEntity.ok(conversationService.getConversations(authUser.userId(), authUser.seller()));
+        return ResponseEntity.ok(conversationService.getConversations(authUser.userId(), authUser.role()));
     }
 
     @PostMapping
@@ -40,7 +40,7 @@ public class ConversationController {
             @Valid @RequestBody ConversationCreateRequest request
     ) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(conversationService.createConversation(authUser.userId(), authUser.seller(), request));
+                .body(conversationService.createConversation(authUser.userId(), authUser.role(), request));
     }
 
     @GetMapping("/single/{sellerId}/{buyerId}")

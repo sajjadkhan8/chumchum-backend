@@ -34,7 +34,7 @@ public class MessageController {
             @Valid @RequestBody MessageCreateRequest request
     ) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(messageService.createMessage(authUser.userId(), authUser.seller(), request));
+                .body(messageService.createMessage(authUser.userId(), authUser.role(), request));
     }
 
     @GetMapping("/{conversationId}")

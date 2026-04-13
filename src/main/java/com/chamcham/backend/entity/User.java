@@ -58,10 +58,10 @@ public class User extends BaseEntity {
     @Builder.Default
     private boolean active = true;
 
-    @OneToOne(mappedBy = "user", fetch = FetchType.LAZY)
+    @OneToOne(mappedBy = "user", fetch = FetchType.EAGER)
     private Creator creator;
 
-    @OneToOne(mappedBy = "user", fetch = FetchType.LAZY)
+    @OneToOne(mappedBy = "user", fetch = FetchType.EAGER)
     private Brand brand;
 
     @OneToMany(mappedBy = "seller", fetch = FetchType.LAZY)

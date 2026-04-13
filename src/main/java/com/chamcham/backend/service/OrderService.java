@@ -5,6 +5,7 @@ import com.chamcham.backend.dto.order.PaymentIntentResponse;
 import com.chamcham.backend.entity.Gig;
 import com.chamcham.backend.entity.Order;
 import com.chamcham.backend.entity.User;
+import com.chamcham.backend.entity.UserRole;
 import com.chamcham.backend.exception.ApiException;
 import com.chamcham.backend.mapper.OrderMapper;
 import com.chamcham.backend.repository.GigRepository;
@@ -38,7 +39,11 @@ public class OrderService {
                 .toList();
     }
 
-    public PaymentIntentResponse createPaymentIntent(UUID gigId, UUID buyerId) {
+    public PaymentIntentResponse createPaymentIntent(UUID gigId, UUID buyerId, UserRole role) {
+        if (!role.isBrand() && !role.isAdmin()) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "Only brands can place orders");
+        }
+
         Gig gig = gigRepository.findById(gigId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Gig not found"));
         User buyer = userRepository.findById(buyerId)

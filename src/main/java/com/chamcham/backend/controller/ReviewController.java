@@ -34,7 +34,7 @@ public class ReviewController {
             @AuthenticationPrincipal AuthenticatedUser authUser,
             @Valid @RequestBody ReviewCreateRequest request
     ) {
-        ReviewResponse review = reviewService.createReview(authUser.userId(), authUser.seller(), request);
+        ReviewResponse review = reviewService.createReview(authUser.userId(), authUser.role(), request);
         return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("error", false, "review", review));
     }
 
