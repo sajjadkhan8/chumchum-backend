@@ -38,28 +38,28 @@ public class ConversationService {
 
         boolean isCreator = role.isCreator();
         UUID sellerId = isCreator ? userId : request.to();
-        UUID buyerId = isCreator ? request.to() : userId;
+        UUID brandId = isCreator ? request.to() : userId;
 
-        if (sellerId.equals(buyerId)) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Seller and buyer cannot be the same user");
+        if (sellerId.equals(brandId)) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Creator and brand cannot be the same user");
         }
 
         User seller = userRepository.findById(sellerId)
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Seller not found"));
-        User buyer = userRepository.findById(buyerId)
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Buyer not found"));
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Creator not found"));
+        User brand = userRepository.findById(brandId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Brand not found"));
 
-        Conversation conversation = conversationRepository.findBySellerIdAndBuyerId(sellerId, buyerId)
+        Conversation conversation = conversationRepository.findBySellerIdAndBrandId(sellerId, brandId)
                 .orElse(Conversation.builder()
                         .id(UUID.randomUUID())
                         .seller(seller)
-                        .buyer(buyer)
+                        .brand(brand)
                         .readBySeller(isCreator)
-                        .readByBuyer(!isCreator)
+                        .readByBrand(!isCreator)
                         .build());
 
         if (!conversation.getSeller().getId().equals(currentUser.getId())
-                && !conversation.getBuyer().getId().equals(currentUser.getId())) {
+                && !conversation.getBrand().getId().equals(currentUser.getId())) {
             throw new ApiException(HttpStatus.FORBIDDEN, "Cannot create or access this conversation");
         }
 
@@ -73,13 +73,13 @@ public class ConversationService {
 
         List<Conversation> conversations = role.isCreator()
                 ? conversationRepository.findBySellerIdOrderByUpdatedAtDesc(userId)
-                : conversationRepository.findByBuyerIdOrderByUpdatedAtDesc(userId);
+                : conversationRepository.findByBrandIdOrderByUpdatedAtDesc(userId);
 
         return conversations.stream().map(conversationMapper::toResponse).toList();
     }
 
-    public ConversationResponse getSingleConversation(UUID sellerId, UUID buyerId) {
-        Conversation conversation = conversationRepository.findBySellerIdAndBuyerId(sellerId, buyerId)
+    public ConversationResponse getSingleConversation(UUID sellerId, UUID brandId) {
+        Conversation conversation = conversationRepository.findBySellerIdAndBrandId(sellerId, brandId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "No such conversation found!"));
         return conversationMapper.toResponse(conversation);
     }
@@ -89,7 +89,7 @@ public class ConversationService {
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Conversation not found"));
 
         conversation.setReadBySeller(true);
-        conversation.setReadByBuyer(true);
+        conversation.setReadByBrand(true);
 
         return conversationMapper.toResponse(conversationRepository.save(conversation));
     }

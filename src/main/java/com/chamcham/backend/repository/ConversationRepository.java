@@ -11,8 +11,8 @@ public interface ConversationRepository extends JpaRepository<Conversation, UUID
 
     List<Conversation> findBySellerIdOrderByUpdatedAtDesc(UUID sellerId);
 
-    List<Conversation> findByBuyerIdOrderByUpdatedAtDesc(UUID buyerId);
+    List<Conversation> findByBrandIdOrderByUpdatedAtDesc(UUID brandId);
 
-    Optional<Conversation> findBySellerIdAndBuyerId(UUID sellerId, UUID buyerId);
+    Optional<Conversation> findBySellerIdAndBrandId(UUID sellerId, UUID brandId);
 }
 

@@ -11,7 +11,7 @@ public record OrderResponse(
         String title,
         BigDecimal price,
         UUID sellerId,
-        UUID buyerId,
+        UUID brandId,
         boolean isCompleted,
         String paymentIntent,
         Instant createdAt

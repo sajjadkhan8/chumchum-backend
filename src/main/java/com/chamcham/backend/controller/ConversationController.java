@@ -43,12 +43,12 @@ public class ConversationController {
                 .body(conversationService.createConversation(authUser.userId(), authUser.role(), request));
     }
 
-    @GetMapping("/single/{sellerId}/{buyerId}")
+    @GetMapping("/single/{sellerId}/{brandId}")
     public ResponseEntity<ConversationResponse> getSingle(
             @PathVariable UUID sellerId,
-            @PathVariable UUID buyerId
+            @PathVariable UUID brandId
     ) {
-        return ResponseEntity.ok(conversationService.getSingleConversation(sellerId, buyerId));
+        return ResponseEntity.ok(conversationService.getSingleConversation(sellerId, brandId));
     }
 
     @PatchMapping("/{conversationId}")

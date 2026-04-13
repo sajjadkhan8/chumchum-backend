@@ -11,9 +11,9 @@ public class ConversationMapper {
         return new ConversationResponse(
                 conversation.getId(),
                 conversation.getSeller().getId(),
-                conversation.getBuyer().getId(),
+                conversation.getBrand().getId(),
                 conversation.isReadBySeller(),
-                conversation.isReadByBuyer(),
+                conversation.isReadByBrand(),
                 conversation.getLastMessage(),
                 conversation.getUpdatedAt()
         );

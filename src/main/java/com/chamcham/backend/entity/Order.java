@@ -37,8 +37,8 @@ public class Order extends BaseEntity {
     private User seller;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "buyer_id", nullable = false)
-    private User buyer;
+    @JoinColumn(name = "brand_id", nullable = false)
+    private User brand;
 
     private String image;
 

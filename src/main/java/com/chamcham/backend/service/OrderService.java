@@ -39,14 +39,14 @@ public class OrderService {
                 .toList();
     }
 
-    public PaymentIntentResponse createPaymentIntent(UUID gigId, UUID buyerId, UserRole role) {
+    public PaymentIntentResponse createPaymentIntent(UUID gigId, UUID brandId, UserRole role) {
         if (!role.isBrand() && !role.isAdmin()) {
             throw new ApiException(HttpStatus.FORBIDDEN, "Only brands can place orders");
         }
 
         Gig gig = gigRepository.findById(gigId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Gig not found"));
-        User buyer = userRepository.findById(buyerId)
+        User brand = userRepository.findById(brandId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "User not found"));
 
         String paymentIntent = "pi_" + UUID.randomUUID();
@@ -57,7 +57,7 @@ public class OrderService {
                 .gig(gig)
                 .image(gig.getCover())
                 .title(gig.getTitle())
-                .buyer(buyer)
+                .brand(brand)
                 .seller(gig.getSeller())
                 .price(gig.getPrice())
                 .paymentIntent(paymentIntent)

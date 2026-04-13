@@ -15,7 +15,7 @@ public class OrderMapper {
                 order.getTitle(),
                 order.getPrice(),
                 order.getSeller().getId(),
-                order.getBuyer().getId(),
+                order.getBrand().getId(),
                 order.isCompleted(),
                 order.getPaymentIntent(),
                 order.getCreatedAt()

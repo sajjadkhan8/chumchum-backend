@@ -89,7 +89,7 @@ create table orders (
     id uuid primary key,
     gig_id uuid not null references gigs(id) on delete restrict,
     seller_id uuid not null references users(id) on delete restrict,
-    buyer_id uuid not null references users(id) on delete restrict,
+    brand_id uuid not null references users(id) on delete restrict,
     image varchar(500),
     title varchar(255) not null,
     price numeric(10,2) not null,
@@ -102,13 +102,13 @@ create table orders (
 create table conversations (
     id uuid primary key,
     seller_id uuid not null references users(id) on delete cascade,
-    buyer_id uuid not null references users(id) on delete cascade,
+    brand_id uuid not null references users(id) on delete cascade,
     read_by_seller boolean not null,
-    read_by_buyer boolean not null,
+    read_by_brand boolean not null,
     last_message varchar(2000),
     created_at timestamptz not null,
     updated_at timestamptz not null,
-    constraint uk_conversation_pair unique (seller_id, buyer_id)
+    constraint uk_conversation_pair unique (seller_id, brand_id)
 );
 
 create table messages (
@@ -125,8 +125,8 @@ create index idx_gigs_category_title on gigs (category, title);
 create index idx_creators_user_id on creators (user_id);
 create index idx_brands_user_id on brands (user_id);
 create index idx_orders_seller_completed on orders (seller_id, completed);
-create index idx_orders_buyer_completed on orders (buyer_id, completed);
+create index idx_orders_brand_completed on orders (brand_id, completed);
 create index idx_conversations_seller on conversations (seller_id, updated_at desc);
-create index idx_conversations_buyer on conversations (buyer_id, updated_at desc);
+create index idx_conversations_brand on conversations (brand_id, updated_at desc);
 create index idx_messages_conversation_created on messages (conversation_id, created_at);
 
