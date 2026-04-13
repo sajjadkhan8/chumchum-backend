@@ -32,9 +32,7 @@ public class CreatorService {
     }
 
     @Transactional
-    public CreatorResponse create(UUID actorUserId, UserRole actorRole, CreatorCreateRequest request) {
-        validateOwnerOrAdmin(actorUserId, actorRole, request.userId());
-
+    public CreatorResponse create(CreatorCreateRequest request) {
         User user = userRepository.findById(request.userId())
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "User not found"));
 

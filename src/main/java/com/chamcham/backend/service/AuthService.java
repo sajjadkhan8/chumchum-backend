@@ -53,7 +53,7 @@ public class AuthService {
     }
 
     @Transactional
-    public void register(AuthRegisterRequest request) {
+    public UserResponse register(AuthRegisterRequest request) {
         if (userRepository.existsByUsername(request.username())) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Choose a unique username!");
         }
@@ -77,6 +77,7 @@ public class AuthService {
         User savedUser = userRepository.save(user);
         createRoleProfile(savedUser, request);
         log.info("Created user {} with role {}", savedUser.getId(), savedUser.getRole());
+        return userMapper.toResponse(savedUser);
     }
 
     public AuthSession login(AuthLoginRequest request) {

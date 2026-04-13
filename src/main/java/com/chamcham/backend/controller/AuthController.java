@@ -3,6 +3,8 @@ package com.chamcham.backend.controller;
 import com.chamcham.backend.config.security.AuthenticatedUser;
 import com.chamcham.backend.dto.auth.AuthLoginRequest;
 import com.chamcham.backend.dto.auth.AuthRegisterRequest;
+import com.chamcham.backend.dto.auth.AuthRegisterResponse;
+import com.chamcham.backend.dto.auth.AuthRegisterUserResponse;
 import com.chamcham.backend.dto.auth.AuthResponse;
 import com.chamcham.backend.dto.user.UserResponse;
 import com.chamcham.backend.service.AuthService;
@@ -42,10 +44,20 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<Map<String, Object>> register(@Valid @RequestBody AuthRegisterRequest request) {
-        authService.register(request);
+    public ResponseEntity<AuthRegisterResponse> register(@Valid @RequestBody AuthRegisterRequest request) {
+        UserResponse registeredUser = authService.register(request);
+        AuthRegisterUserResponse user = new AuthRegisterUserResponse(
+                registeredUser.id(),
+                registeredUser.username(),
+                registeredUser.email(),
+                registeredUser.role(),
+                registeredUser.image(),
+                registeredUser.city(),
+                registeredUser.phone()
+        );
+
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(Map.of("error", false, "message", "New user created!"));
+                .body(new AuthRegisterResponse(user, "Registration successful"));
     }
 
     @PostMapping("/login")

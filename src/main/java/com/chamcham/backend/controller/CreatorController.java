@@ -32,11 +32,10 @@ public class CreatorController {
 
     @PostMapping
     public ResponseEntity<CreatorResponse> create(
-            @AuthenticationPrincipal AuthenticatedUser authUser,
             @Valid @RequestBody CreatorCreateRequest request
     ) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(creatorService.create(authUser.userId(), authUser.role(), request));
+                .body(creatorService.create(request));
     }
 
     @GetMapping

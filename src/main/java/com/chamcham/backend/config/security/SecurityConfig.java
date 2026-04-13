@@ -37,8 +37,11 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/auth/register").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/creators", "/api/brands").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/gigs/**", "/api/reviews/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/creators", "/api/creators/*", "/api/brands", "/api/brands/*").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/creators", "/api/creators/*", "/api/brands",
+                                "/api/brands/*")
+                        .permitAll()
                         .requestMatchers("/actuator/health", "/").permitAll()
                         .requestMatchers(
                                 "/swagger-ui.html",
@@ -47,8 +50,8 @@ public class SecurityConfig {
                                 "/v3/api-docs/**",
                                 "/swagger-resources",
                                 "/swagger-resources/**",
-                                "/webjars/**"
-                        ).permitAll()
+                                "/webjars/**")
+                        .permitAll()
                         .anyRequest().authenticated())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
@@ -57,15 +60,31 @@ public class SecurityConfig {
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(allowedOrigins);
-        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(List.of("*"));
-        configuration.setExposedHeaders(List.of("Set-Cookie", "Authorization"));
-        configuration.setAllowCredentials(true);
+        CorsConfiguration config = new CorsConfiguration();
 
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", configuration);
+//        // 👇 allowed origins (use exact domains in prod)
+//        config.setAllowedOrigins(List.of(
+//                "http://localhost:3000",
+//                "http://localhost:4200"
+//        ));
+
+        config.setAllowedOriginPatterns(List.of("*"));
+
+        // 👇 allowed HTTP methods
+        config.setAllowedMethods(List.of(
+                "GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"
+        ));
+
+        // 👇 allowed headers
+        config.setAllowedHeaders(List.of("*"));
+
+        // 👇 allow JWT / Authorization header
+        config.setAllowCredentials(true);
+
+        UrlBasedCorsConfigurationSource source =
+                new UrlBasedCorsConfigurationSource();
+
+        source.registerCorsConfiguration("/**", config);
         return source;
     }
 }
