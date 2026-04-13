@@ -1,3 +1,6 @@
+create schema if not exists core;
+set search_path to core;
+
 create table users (
     id uuid primary key,
     username varchar(40) not null unique,

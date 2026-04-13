@@ -2,7 +2,7 @@ spring:
   application:
     name: chamcham-backend
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5432/chamcham}
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/chamcham?currentSchema=core}
     username: ${DB_USERNAME:postgres}
     password: ${DB_PASSWORD:postgres}
   jpa:
@@ -12,8 +12,12 @@ spring:
     properties:
       hibernate:
         format_sql: true
+        default_schema: core
   flyway:
     enabled: true
+    create-schemas: true
+    default-schema: core
+    schemas: core
     locations: classpath:db/migration
 
 server:

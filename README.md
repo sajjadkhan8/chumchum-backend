@@ -41,7 +41,7 @@ The original MongoDB models rely on globally unique identifiers and frontend-fac
 - Embedded arrays (`images`, `features`) normalized into `gig_images` and `gig_features`
 - Auditing fields (`created_at`, `updated_at`) added to all tables
 
-Schema is managed by Flyway in `src/main/resources/db/migration/V1__init_schema.sql`.
+Schema is managed by Flyway in `src/main/resources/db/migration/V1__init_schema.sql` and created under PostgreSQL schema `core`.
 
 ## Example Endpoints
 
