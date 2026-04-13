@@ -100,16 +100,8 @@ public class AuthService {
             throw new ApiException(HttpStatus.FORBIDDEN, "Admin cannot be created from public signup");
         }
 
-        if (request.role() == UserRole.CREATOR && request.creator() == null) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Creator profile is required for creator signup");
-        }
-
         if (request.role() == UserRole.CREATOR && request.brand() != null) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Brand profile is not allowed for creator signup");
-        }
-
-        if (request.role() == UserRole.BRAND && request.brand() == null) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Brand profile is required for brand signup");
         }
 
         if (request.role() == UserRole.BRAND && request.creator() != null) {
@@ -118,11 +110,11 @@ public class AuthService {
     }
 
     private void createRoleProfile(User user, AuthRegisterRequest request) {
-        if (request.role() == UserRole.CREATOR) {
+        if (request.role() == UserRole.CREATOR && request.creator() != null) {
             creatorRepository.save(toCreator(user, request.creator()));
             return;
         }
-        if (request.role() == UserRole.BRAND) {
+        if (request.role() == UserRole.BRAND && request.brand() != null) {
             brandRepository.save(toBrand(user, request.brand()));
         }
     }
