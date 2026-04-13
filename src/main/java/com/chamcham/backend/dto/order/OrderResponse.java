@@ -10,7 +10,7 @@ public record OrderResponse(
         String image,
         String title,
         BigDecimal price,
-        UUID sellerId,
+        UUID creatorId,
         UUID brandId,
         boolean isCompleted,
         String paymentIntent,

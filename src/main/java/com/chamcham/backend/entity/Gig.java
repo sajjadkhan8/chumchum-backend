@@ -33,8 +33,8 @@ public class Gig extends BaseEntity {
     private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "seller_id", nullable = false)
-    private User seller;
+    @JoinColumn(name = "creator_id", nullable = false)
+    private User creator;
 
     @Column(nullable = false, length = 120)
     private String title;

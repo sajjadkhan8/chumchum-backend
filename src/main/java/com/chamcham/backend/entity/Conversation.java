@@ -22,22 +22,22 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "conversations", uniqueConstraints = @UniqueConstraint(name = "uk_conversation_pair", columnNames = {"seller_id", "brand_id"}))
+@Table(name = "conversations", uniqueConstraints = @UniqueConstraint(name = "uk_conversation_pair", columnNames = {"creator_id", "brand_id"}))
 public class Conversation extends BaseEntity {
 
     @Id
     private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "seller_id", nullable = false)
-    private User seller;
+    @JoinColumn(name = "creator_id", nullable = false)
+    private User creator;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "brand_id", nullable = false)
     private User brand;
 
     @Column(nullable = false)
-    private boolean readBySeller;
+    private boolean readByCreator;
 
     @Column(nullable = false)
     private boolean readByBrand;

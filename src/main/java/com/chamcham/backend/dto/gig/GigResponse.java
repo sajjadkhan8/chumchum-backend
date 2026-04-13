@@ -9,7 +9,7 @@ import java.util.UUID;
 
 public record GigResponse(
         UUID id,
-        UserResponse seller,
+        UserResponse creator,
         String title,
         String description,
         int totalStars,

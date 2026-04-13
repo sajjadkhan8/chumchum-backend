@@ -16,7 +16,7 @@ public class GigMapper {
     public GigResponse toResponse(Gig gig) {
         return new GigResponse(
                 gig.getId(),
-                userMapper.toResponse(gig.getSeller()),
+                userMapper.toResponse(gig.getCreator()),
                 gig.getTitle(),
                 gig.getDescription(),
                 gig.getTotalStars(),

@@ -47,7 +47,7 @@ create table brands (
 
 create table gigs (
     id uuid primary key,
-    seller_id uuid not null references users(id) on delete cascade,
+    creator_id uuid not null references users(id) on delete cascade,
     title varchar(120) not null,
     description varchar(2500) not null,
     total_stars integer not null default 0,
@@ -88,7 +88,7 @@ create table reviews (
 create table orders (
     id uuid primary key,
     gig_id uuid not null references gigs(id) on delete restrict,
-    seller_id uuid not null references users(id) on delete restrict,
+    creator_id uuid not null references users(id) on delete restrict,
     brand_id uuid not null references users(id) on delete restrict,
     image varchar(500),
     title varchar(255) not null,
@@ -101,14 +101,14 @@ create table orders (
 
 create table conversations (
     id uuid primary key,
-    seller_id uuid not null references users(id) on delete cascade,
+    creator_id uuid not null references users(id) on delete cascade,
     brand_id uuid not null references users(id) on delete cascade,
-    read_by_seller boolean not null,
+    read_by_creator boolean not null,
     read_by_brand boolean not null,
     last_message varchar(2000),
     created_at timestamptz not null,
     updated_at timestamptz not null,
-    constraint uk_conversation_pair unique (seller_id, brand_id)
+    constraint uk_conversation_pair unique (creator_id, brand_id)
 );
 
 create table messages (
@@ -120,13 +120,13 @@ create table messages (
     updated_at timestamptz not null
 );
 
-create index idx_gigs_seller_id on gigs (seller_id);
+create index idx_gigs_creator_id on gigs (creator_id);
 create index idx_gigs_category_title on gigs (category, title);
 create index idx_creators_user_id on creators (user_id);
 create index idx_brands_user_id on brands (user_id);
-create index idx_orders_seller_completed on orders (seller_id, completed);
+create index idx_orders_creator_completed on orders (creator_id, completed);
 create index idx_orders_brand_completed on orders (brand_id, completed);
-create index idx_conversations_seller on conversations (seller_id, updated_at desc);
+create index idx_conversations_creator on conversations (creator_id, updated_at desc);
 create index idx_conversations_brand on conversations (brand_id, updated_at desc);
 create index idx_messages_conversation_created on messages (conversation_id, created_at);
 

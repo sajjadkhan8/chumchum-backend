@@ -11,7 +11,7 @@ import java.util.UUID;
 
 public interface GigRepository extends JpaRepository<Gig, UUID> {
 
-    Page<Gig> findBySeller(User seller, Pageable pageable);
+    Page<Gig> findByCreator(User creator, Pageable pageable);
 
     Page<Gig> findByCategoryContainingIgnoreCaseAndTitleContainingIgnoreCaseAndPriceBetween(
             String category,

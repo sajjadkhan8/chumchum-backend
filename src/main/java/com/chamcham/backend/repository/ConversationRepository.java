@@ -9,10 +9,10 @@ import java.util.UUID;
 
 public interface ConversationRepository extends JpaRepository<Conversation, UUID> {
 
-    List<Conversation> findBySellerIdOrderByUpdatedAtDesc(UUID sellerId);
+    List<Conversation> findByCreatorIdOrderByUpdatedAtDesc(UUID creatorId);
 
     List<Conversation> findByBrandIdOrderByUpdatedAtDesc(UUID brandId);
 
-    Optional<Conversation> findBySellerIdAndBrandId(UUID sellerId, UUID brandId);
+    Optional<Conversation> findByCreatorIdAndBrandId(UUID creatorId, UUID brandId);
 }
 

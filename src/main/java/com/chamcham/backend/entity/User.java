@@ -64,7 +64,7 @@ public class User extends BaseEntity {
     @OneToOne(mappedBy = "user", fetch = FetchType.EAGER)
     private Brand brand;
 
-    @OneToMany(mappedBy = "seller", fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "creator", fetch = FetchType.LAZY)
     @Builder.Default
     private List<Gig> gigs = new ArrayList<>();
 }

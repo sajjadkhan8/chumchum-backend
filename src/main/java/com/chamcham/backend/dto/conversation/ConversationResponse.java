@@ -5,9 +5,9 @@ import java.util.UUID;
 
 public record ConversationResponse(
         UUID id,
-        UUID sellerId,
+        UUID creatorId,
         UUID brandId,
-        boolean readBySeller,
+        boolean readByCreator,
         boolean readByBrand,
         String lastMessage,
         Instant updatedAt

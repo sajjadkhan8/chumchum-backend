@@ -50,7 +50,7 @@ public class MessageService {
                 .description(request.description())
                 .build();
 
-        conversation.setReadBySeller(role.isCreator());
+        conversation.setReadByCreator(role.isCreator());
         conversation.setReadByBrand(role.isBrand());
         conversation.setLastMessage(request.description());
         conversationRepository.save(conversation);

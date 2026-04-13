@@ -58,7 +58,7 @@ public class OrderService {
                 .image(gig.getCover())
                 .title(gig.getTitle())
                 .brand(brand)
-                .seller(gig.getSeller())
+                .creator(gig.getCreator())
                 .price(gig.getPrice())
                 .paymentIntent(paymentIntent)
                 .completed(false)

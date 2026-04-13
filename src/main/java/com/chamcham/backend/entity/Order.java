@@ -33,8 +33,9 @@ public class Order extends BaseEntity {
     private Gig gig;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "seller_id", nullable = false)
-    private User seller;
+
+    @JoinColumn(name = "creator_id", nullable = false)
+    private User creator;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "brand_id", nullable = false)

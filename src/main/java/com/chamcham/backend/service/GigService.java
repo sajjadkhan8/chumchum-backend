@@ -39,12 +39,12 @@ public class GigService {
             throw new ApiException(HttpStatus.FORBIDDEN, "Only creators can create gigs!");
         }
 
-        User seller = userRepository.findById(userId)
+        User creator = userRepository.findById(userId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "User not found"));
 
         Gig gig = Gig.builder()
                 .id(UUID.randomUUID())
-                .seller(seller)
+                .creator(creator)
                 .title(request.title())
                 .description(request.description())
                 .totalStars(0)
@@ -68,7 +68,7 @@ public class GigService {
         Gig gig = gigRepository.findById(gigId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Gig not found"));
 
-        if (!gig.getSeller().getId().equals(userId)) {
+        if (!gig.getCreator().getId().equals(userId)) {
             throw new ApiException(HttpStatus.FORBIDDEN, "Invalid request! Cannot delete other user gigs!");
         }
 
@@ -95,9 +95,9 @@ public class GigService {
         Page<Gig> gigs;
 
         if (userId != null) {
-            User seller = userRepository.findById(userId)
+            User creator = userRepository.findById(userId)
                     .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "User not found"));
-            gigs = gigRepository.findBySeller(seller, pageable);
+            gigs = gigRepository.findByCreator(creator, pageable);
         } else {
             gigs = gigRepository.findByCategoryContainingIgnoreCaseAndTitleContainingIgnoreCaseAndPriceBetween(
                     category == null ? "" : category,

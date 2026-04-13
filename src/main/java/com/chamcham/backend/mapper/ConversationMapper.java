@@ -10,9 +10,9 @@ public class ConversationMapper {
     public ConversationResponse toResponse(Conversation conversation) {
         return new ConversationResponse(
                 conversation.getId(),
-                conversation.getSeller().getId(),
+                conversation.getCreator().getId(),
                 conversation.getBrand().getId(),
-                conversation.isReadBySeller(),
+                conversation.isReadByCreator(),
                 conversation.isReadByBrand(),
                 conversation.getLastMessage(),
                 conversation.getUpdatedAt()

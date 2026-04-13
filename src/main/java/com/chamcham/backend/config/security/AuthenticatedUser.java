@@ -9,7 +9,7 @@ public record AuthenticatedUser(
         UserRole role
 ) {
 
-    public boolean seller() {
+    public boolean creator() {
         return role.isCreator();
     }
 
