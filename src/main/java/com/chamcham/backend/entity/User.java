@@ -40,7 +40,7 @@ public class User extends BaseEntity {
     private String image;
 
     @Column(nullable = false, length = 80)
-    private String country;
+    private String city;
 
     @Column(nullable = false, length = 30)
     private String phone;

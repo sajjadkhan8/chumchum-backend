@@ -9,7 +9,7 @@ public record AuthRegisterRequest(
         @NotBlank @Email String email,
         @NotBlank @Size(min = 8, max = 120) String password,
         String image,
-        @NotBlank String country,
+        @NotBlank String city,
         @NotBlank String phone,
         @NotBlank @Size(max = 1000) String description,
         boolean isSeller

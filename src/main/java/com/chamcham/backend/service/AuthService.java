@@ -47,7 +47,7 @@ public class AuthService {
                 .email(request.email())
                 .passwordHash(passwordEncoder.encode(request.password()))
                 .image(request.image())
-                .country(request.country())
+                .city(request.city())
                 .phone(request.phone())
                 .description(request.description())
                 .seller(request.isSeller())

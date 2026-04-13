@@ -13,7 +13,7 @@ public class UserMapper {
                 user.getUsername(),
                 user.getEmail(),
                 user.getImage(),
-                user.getCountry(),
+                user.getCity(),
                 user.getPhone(),
                 user.getDescription(),
                 user.isSeller(),

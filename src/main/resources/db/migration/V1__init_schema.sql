@@ -4,7 +4,7 @@ create table users (
     email varchar(120) not null unique,
     password_hash varchar(255) not null,
     image varchar(500),
-    country varchar(80) not null,
+    city varchar(80) not null,
     phone varchar(30) not null,
     description varchar(1000) not null,
     seller boolean not null default false,

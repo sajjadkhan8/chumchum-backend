@@ -8,7 +8,7 @@ public record UserResponse(
         String username,
         String email,
         String image,
-        String country,
+        String city,
         String phone,
         String description,
         boolean isSeller,
