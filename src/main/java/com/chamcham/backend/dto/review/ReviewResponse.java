@@ -7,7 +7,7 @@ import java.util.UUID;
 
 public record ReviewResponse(
         UUID id,
-        UUID gigId,
+        UUID packageId,
         UserResponse reviewer,
         int star,
         String description,

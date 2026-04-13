@@ -1,6 +1,7 @@
 package com.chamcham.backend.entity;
 
 @Deprecated
-public class Gig {
+public class Collaboration {
 }
+
 

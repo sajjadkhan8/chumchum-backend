@@ -6,7 +6,7 @@ import java.util.UUID;
 
 public record OrderResponse(
         UUID id,
-        UUID gigId,
+        UUID packageId,
         String image,
         String title,
         BigDecimal price,

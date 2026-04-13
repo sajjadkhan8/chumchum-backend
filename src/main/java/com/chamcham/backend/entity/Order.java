@@ -29,13 +29,12 @@ public class Order extends BaseEntity {
     private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "gig_id", nullable = false)
-    private Gig gig;
+    @JoinColumn(name = "package_id", nullable = false)
+    private ServicePackage servicePackage;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-
     @JoinColumn(name = "creator_id", nullable = false)
-    private User creator;
+    private Creator creator;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "brand_id", nullable = false)

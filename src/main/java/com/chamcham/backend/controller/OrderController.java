@@ -36,12 +36,12 @@ public class OrderController {
         return ResponseEntity.ok(orderService.getOrders(authUser.userId()));
     }
 
-    @PostMapping("/create-payment-intent/{gigId}")
+    @PostMapping("/create-payment-intent/{packageId}")
     public ResponseEntity<PaymentIntentResponse> createPaymentIntent(
-            @PathVariable UUID gigId,
+            @PathVariable UUID packageId,
             @AuthenticationPrincipal AuthenticatedUser authUser
     ) {
-        return ResponseEntity.ok(orderService.createPaymentIntent(gigId, authUser.userId(), authUser.role()));
+        return ResponseEntity.ok(orderService.createPaymentIntent(packageId, authUser.userId(), authUser.role()));
     }
 
     @PatchMapping

@@ -7,7 +7,6 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
-import jakarta.persistence.OneToMany;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
@@ -16,8 +15,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.UUID;
 
 @Getter
@@ -63,9 +60,5 @@ public class User extends BaseEntity {
 
     @OneToOne(mappedBy = "user", fetch = FetchType.EAGER)
     private Brand brand;
-
-    @OneToMany(mappedBy = "creator", fetch = FetchType.LAZY)
-    @Builder.Default
-    private List<Gig> gigs = new ArrayList<>();
 }
 

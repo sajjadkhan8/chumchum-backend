@@ -1,6 +1,7 @@
 package com.chamcham.backend.mapper;
 
 @Deprecated
-public class GigMapper {
+public class CollaborationMapper {
 }
+
 

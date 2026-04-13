@@ -33,12 +33,11 @@ The original MongoDB models rely on globally unique identifiers and frontend-fac
 ## Mongo -> PostgreSQL Mapping
 
 - `User` -> `users`
-- `Gig` -> `gigs`
-- `Review` -> `reviews` (unique `(gig_id, reviewer_id)`)
+- `ServicePackage` -> `packages`
+- `Review` -> `reviews` (unique `(package_id, reviewer_id)`)
 - `Order` -> `orders`
 - `Conversation` -> `conversations` (unique `(seller_id, buyer_id)`)
 - `Message` -> `messages`
-- Embedded arrays (`images`, `features`) normalized into `gig_images` and `gig_features`
 - Auditing fields (`created_at`, `updated_at`) added to all tables
 
 Schema is managed by Flyway in `src/main/resources/db/migration/V1__init_schema.sql` and created under PostgreSQL schema `core`.
@@ -48,12 +47,12 @@ Schema is managed by Flyway in `src/main/resources/db/migration/V1__init_schema.
 - `POST /api/auth/register`
 - `POST /api/auth/login`
 - `GET /api/auth/me`
-- `POST /api/gigs`
-- `GET /api/gigs/single/{id}`
-- `GET /api/gigs?page=0&size=10&sort=createdAt`
+- `POST /api/packages`
+- `GET /api/packages/single/{id}`
+- `GET /api/packages?page=0&size=10&sort=createdAt`
 - `POST /api/reviews`
 - `GET /api/orders`
-- `POST /api/orders/create-payment-intent/{gigId}`
+- `POST /api/orders/create-payment-intent/{packageId}`
 - `PATCH /api/orders`
 - `GET /api/conversations`
 - `POST /api/messages`
@@ -87,6 +86,6 @@ cd /Users/sajjadkhan/Documents/chamcham/clone/springboot
 - DTO boundaries introduced to avoid exposing entities
 - Global exception handling with consistent API error payloads
 - Input validation on request DTOs
-- Pagination and sorting for gigs list
+- Pagination and sorting for packages list
 - JWT authentication integrated with stateless Spring Security
 

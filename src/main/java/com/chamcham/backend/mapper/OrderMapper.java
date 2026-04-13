@@ -10,7 +10,7 @@ public class OrderMapper {
     public OrderResponse toResponse(Order order) {
         return new OrderResponse(
                 order.getId(),
-                order.getGig().getId(),
+                order.getServicePackage().getId(),
                 order.getImage(),
                 order.getTitle(),
                 order.getPrice(),

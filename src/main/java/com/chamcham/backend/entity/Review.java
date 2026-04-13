@@ -22,15 +22,15 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "reviews", uniqueConstraints = @UniqueConstraint(name = "uk_review_user_gig", columnNames = {"gig_id", "reviewer_id"}))
+@Table(name = "reviews", uniqueConstraints = @UniqueConstraint(name = "uk_review_user_package", columnNames = {"package_id", "reviewer_id"}))
 public class Review extends BaseEntity {
 
     @Id
     private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "gig_id", nullable = false)
-    private Gig gig;
+    @JoinColumn(name = "package_id", nullable = false)
+    private ServicePackage servicePackage;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "reviewer_id", nullable = false)

@@ -16,7 +16,7 @@ public class ReviewMapper {
     public ReviewResponse toResponse(Review review) {
         return new ReviewResponse(
                 review.getId(),
-                review.getGig().getId(),
+                review.getServicePackage().getId(),
                 userMapper.toResponse(review.getReviewer()),
                 review.getStar(),
                 review.getDescription(),

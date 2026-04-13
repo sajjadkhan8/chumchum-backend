@@ -45,50 +45,57 @@ create table brands (
     updated_at timestamptz not null default now()
 );
 
-create table gigs (
-    id uuid primary key,
-    creator_id uuid not null references users(id) on delete cascade,
-    title varchar(120) not null,
-    description varchar(2500) not null,
-    total_stars integer not null default 0,
-    star_number integer not null default 0,
-    category varchar(80) not null,
+create table packages (
+    id uuid primary key default gen_random_uuid(),
+    creator_id uuid not null references creators(id) on delete cascade,
+    title varchar(150) not null,
+    description varchar(2000),
+    platform varchar(50) not null,
+    category varchar(80),
+    type varchar(30) not null, -- ONE_TIME / SUBSCRIPTION
+    pricing_type varchar(30) not null default 'PAID', -- PAID / DEAL
+    barter_details varchar(1000),    -- e.g. "Free meal for 2 worth PKR 5000"
     price numeric(10,2) not null,
-    cover varchar(500) not null,
-    short_title varchar(120) not null,
-    short_description varchar(600) not null,
-    delivery_time varchar(20) not null,
-    revision_number integer not null,
-    sales integer not null default 0,
-    created_at timestamptz not null,
-    updated_at timestamptz not null
+    currency varchar(10) default 'PKR',
+    deliverables varchar(1000) not null,
+    delivery_days int not null,
+    duration_days int,
+    revisions int default 1,
+    cover_image varchar(500),
+    media_urls text[],
+    tags text[],
+    is_active boolean default true,
+    is_featured boolean default false,
+    created_at timestamptz not null default now(),
+    updated_at timestamptz not null default now()
 );
 
-create table gig_images (
-    gig_id uuid not null references gigs(id) on delete cascade,
-    image_url varchar(500)
-);
-
-create table gig_features (
-    gig_id uuid not null references gigs(id) on delete cascade,
-    feature varchar(255)
+create table package_tiers (
+    id uuid primary key default gen_random_uuid(),
+    package_id uuid references packages(id) on delete cascade,
+    name varchar(50) not null, -- BASIC / STANDARD / PREMIUM
+    price numeric(10,2),
+    deliverables varchar(1000),
+    delivery_days int,
+    revisions int default 1,
+    created_at timestamptz default now()
 );
 
 create table reviews (
     id uuid primary key,
-    gig_id uuid not null references gigs(id) on delete cascade,
+    package_id uuid not null references packages(id) on delete cascade,
     reviewer_id uuid not null references users(id) on delete cascade,
     star integer not null check (star between 1 and 5),
     description varchar(1000) not null,
     created_at timestamptz not null,
     updated_at timestamptz not null,
-    constraint uk_review_user_gig unique (gig_id, reviewer_id)
+    constraint uk_review_user_package unique (package_id, reviewer_id)
 );
 
 create table orders (
     id uuid primary key,
-    gig_id uuid not null references gigs(id) on delete restrict,
-    creator_id uuid not null references users(id) on delete restrict,
+    package_id uuid not null references packages(id) on delete restrict,
+    creator_id uuid not null references creators(id) on delete restrict,
     brand_id uuid not null references users(id) on delete restrict,
     image varchar(500),
     title varchar(255) not null,
@@ -120,8 +127,9 @@ create table messages (
     updated_at timestamptz not null
 );
 
-create index idx_gigs_creator_id on gigs (creator_id);
-create index idx_gigs_category_title on gigs (category, title);
+create index idx_packages_creator_id on packages (creator_id);
+create index idx_packages_category_title on packages (category, title);
+create index idx_package_tiers_package_id on package_tiers (package_id);
 create index idx_creators_user_id on creators (user_id);
 create index idx_brands_user_id on brands (user_id);
 create index idx_orders_creator_completed on orders (creator_id, completed);

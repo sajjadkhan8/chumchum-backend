@@ -38,9 +38,9 @@ public class ReviewController {
         return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("error", false, "review", review));
     }
 
-    @GetMapping("/{gigId}")
-    public ResponseEntity<List<ReviewResponse>> getReviews(@PathVariable UUID gigId) {
-        return ResponseEntity.ok(reviewService.getReviews(gigId));
+    @GetMapping("/{packageId}")
+    public ResponseEntity<List<ReviewResponse>> getReviews(@PathVariable UUID packageId) {
+        return ResponseEntity.ok(reviewService.getReviews(packageId));
     }
 }
 

@@ -6,6 +6,7 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
@@ -15,6 +16,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Getter
@@ -67,4 +70,8 @@ public class Creator extends BaseEntity {
     @Builder.Default
     @Column(nullable = false)
     private int totalReviews = 0;
+
+    @OneToMany(mappedBy = "creator", fetch = FetchType.LAZY)
+    @Builder.Default
+    private List<ServicePackage> packages = new ArrayList<>();
 }

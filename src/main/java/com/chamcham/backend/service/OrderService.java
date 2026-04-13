@@ -2,14 +2,14 @@ package com.chamcham.backend.service;
 
 import com.chamcham.backend.dto.order.OrderResponse;
 import com.chamcham.backend.dto.order.PaymentIntentResponse;
-import com.chamcham.backend.entity.Gig;
 import com.chamcham.backend.entity.Order;
+import com.chamcham.backend.entity.ServicePackage;
 import com.chamcham.backend.entity.User;
 import com.chamcham.backend.entity.UserRole;
 import com.chamcham.backend.exception.ApiException;
 import com.chamcham.backend.mapper.OrderMapper;
-import com.chamcham.backend.repository.GigRepository;
 import com.chamcham.backend.repository.OrderRepository;
+import com.chamcham.backend.repository.ServicePackageRepository;
 import com.chamcham.backend.repository.UserRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -21,13 +21,18 @@ import java.util.UUID;
 public class OrderService {
 
     private final OrderRepository orderRepository;
-    private final GigRepository gigRepository;
+    private final ServicePackageRepository servicePackageRepository;
     private final UserRepository userRepository;
     private final OrderMapper orderMapper;
 
-    public OrderService(OrderRepository orderRepository, GigRepository gigRepository, UserRepository userRepository, OrderMapper orderMapper) {
+    public OrderService(
+            OrderRepository orderRepository,
+            ServicePackageRepository servicePackageRepository,
+            UserRepository userRepository,
+            OrderMapper orderMapper
+    ) {
         this.orderRepository = orderRepository;
-        this.gigRepository = gigRepository;
+        this.servicePackageRepository = servicePackageRepository;
         this.userRepository = userRepository;
         this.orderMapper = orderMapper;
     }
@@ -39,13 +44,13 @@ public class OrderService {
                 .toList();
     }
 
-    public PaymentIntentResponse createPaymentIntent(UUID gigId, UUID brandId, UserRole role) {
+    public PaymentIntentResponse createPaymentIntent(UUID packageId, UUID brandId, UserRole role) {
         if (!role.isBrand() && !role.isAdmin()) {
             throw new ApiException(HttpStatus.FORBIDDEN, "Only brands can place orders");
         }
 
-        Gig gig = gigRepository.findById(gigId)
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Gig not found"));
+        ServicePackage servicePackage = servicePackageRepository.findById(packageId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Package not found"));
         User brand = userRepository.findById(brandId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "User not found"));
 
@@ -54,12 +59,12 @@ public class OrderService {
 
         Order order = Order.builder()
                 .id(UUID.randomUUID())
-                .gig(gig)
-                .image(gig.getCover())
-                .title(gig.getTitle())
+                .servicePackage(servicePackage)
+                .image(servicePackage.getCoverImage())
+                .title(servicePackage.getTitle())
                 .brand(brand)
-                .creator(gig.getCreator())
-                .price(gig.getPrice())
+                .creator(servicePackage.getCreator())
+                .price(servicePackage.getPrice())
                 .paymentIntent(paymentIntent)
                 .completed(false)
                 .build();

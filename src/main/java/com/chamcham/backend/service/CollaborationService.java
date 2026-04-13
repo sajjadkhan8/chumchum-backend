@@ -1,6 +1,7 @@
 package com.chamcham.backend.service;
 
 @Deprecated
-public class GigService {
+public class CollaborationService {
 }
+
 

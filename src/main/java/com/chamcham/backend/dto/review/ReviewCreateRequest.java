@@ -8,7 +8,7 @@ import jakarta.validation.constraints.NotNull;
 import java.util.UUID;
 
 public record ReviewCreateRequest(
-        @NotNull UUID gigId,
+        @NotNull UUID packageId,
         @Min(1) @Max(5) int star,
         @NotBlank String description
 ) {
