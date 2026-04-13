@@ -1,6 +1,6 @@
 package com.chamcham.backend.config.security;
 
-import com.chamcham.backend.entity.UserRole;
+import com.chamcham.backend.entity.enums.UserRole;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;

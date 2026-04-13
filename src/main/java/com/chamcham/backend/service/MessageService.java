@@ -5,7 +5,7 @@ import com.chamcham.backend.dto.message.MessageResponse;
 import com.chamcham.backend.entity.Conversation;
 import com.chamcham.backend.entity.Message;
 import com.chamcham.backend.entity.User;
-import com.chamcham.backend.entity.UserRole;
+import com.chamcham.backend.entity.enums.UserRole;
 import com.chamcham.backend.exception.ApiException;
 import com.chamcham.backend.mapper.MessageMapper;
 import com.chamcham.backend.repository.ConversationRepository;

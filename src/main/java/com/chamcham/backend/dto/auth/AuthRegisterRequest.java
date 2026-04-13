@@ -2,7 +2,7 @@ package com.chamcham.backend.dto.auth;
 
 import com.chamcham.backend.dto.user.BrandProfilePayload;
 import com.chamcham.backend.dto.user.CreatorProfilePayload;
-import com.chamcham.backend.entity.UserRole;
+import com.chamcham.backend.entity.enums.UserRole;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;

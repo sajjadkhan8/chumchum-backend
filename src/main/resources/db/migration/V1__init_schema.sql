@@ -53,7 +53,7 @@ create table packages (
     platform varchar(50) not null,
     category varchar(80),
     type varchar(30) not null, -- ONE_TIME / SUBSCRIPTION
-    pricing_type varchar(30) not null default 'PAID', -- PAID / DEAL
+    pricing_type varchar(30) not null default 'PAID', -- PAID / BARTER
     barter_details varchar(1000),    -- e.g. "Free meal for 2 worth PKR 5000"
     price numeric(10,2) not null,
     currency varchar(10) default 'PKR',

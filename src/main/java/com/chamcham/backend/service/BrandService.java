@@ -5,7 +5,7 @@ import com.chamcham.backend.dto.brand.BrandResponse;
 import com.chamcham.backend.dto.brand.BrandUpdateRequest;
 import com.chamcham.backend.entity.Brand;
 import com.chamcham.backend.entity.User;
-import com.chamcham.backend.entity.UserRole;
+import com.chamcham.backend.entity.enums.UserRole;
 import com.chamcham.backend.exception.ApiException;
 import com.chamcham.backend.mapper.BrandMapper;
 import com.chamcham.backend.repository.BrandRepository;

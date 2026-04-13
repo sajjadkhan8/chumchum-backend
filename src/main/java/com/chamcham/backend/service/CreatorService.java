@@ -5,7 +5,7 @@ import com.chamcham.backend.dto.creator.CreatorResponse;
 import com.chamcham.backend.dto.creator.CreatorUpdateRequest;
 import com.chamcham.backend.entity.Creator;
 import com.chamcham.backend.entity.User;
-import com.chamcham.backend.entity.UserRole;
+import com.chamcham.backend.entity.enums.UserRole;
 import com.chamcham.backend.exception.ApiException;
 import com.chamcham.backend.mapper.CreatorMapper;
 import com.chamcham.backend.repository.CreatorRepository;

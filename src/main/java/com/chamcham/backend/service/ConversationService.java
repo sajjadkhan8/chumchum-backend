@@ -4,7 +4,7 @@ import com.chamcham.backend.dto.conversation.ConversationCreateRequest;
 import com.chamcham.backend.dto.conversation.ConversationResponse;
 import com.chamcham.backend.entity.Conversation;
 import com.chamcham.backend.entity.User;
-import com.chamcham.backend.entity.UserRole;
+import com.chamcham.backend.entity.enums.UserRole;
 import com.chamcham.backend.exception.ApiException;
 import com.chamcham.backend.mapper.ConversationMapper;
 import com.chamcham.backend.repository.ConversationRepository;

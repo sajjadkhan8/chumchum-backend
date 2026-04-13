@@ -1,6 +1,6 @@
 package com.chamcham.backend.config.security;
 
-import com.chamcham.backend.entity.UserRole;
+import com.chamcham.backend.entity.enums.UserRole;
 
 import java.util.UUID;
 

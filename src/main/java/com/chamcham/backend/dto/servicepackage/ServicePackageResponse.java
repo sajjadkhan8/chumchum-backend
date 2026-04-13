@@ -1,9 +1,9 @@
 package com.chamcham.backend.dto.servicepackage;
 
 import com.chamcham.backend.dto.profile.ProfileUserResponse;
-import com.chamcham.backend.entity.PackagePlatform;
-import com.chamcham.backend.entity.PackagePricingType;
-import com.chamcham.backend.entity.PackageType;
+import com.chamcham.backend.entity.enums.PackagePlatform;
+import com.chamcham.backend.entity.enums.PackagePricingType;
+import com.chamcham.backend.entity.enums.PackageType;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 

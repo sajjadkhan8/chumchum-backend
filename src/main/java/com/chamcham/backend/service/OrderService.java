@@ -5,7 +5,7 @@ import com.chamcham.backend.dto.order.PaymentIntentResponse;
 import com.chamcham.backend.entity.Order;
 import com.chamcham.backend.entity.ServicePackage;
 import com.chamcham.backend.entity.User;
-import com.chamcham.backend.entity.UserRole;
+import com.chamcham.backend.entity.enums.UserRole;
 import com.chamcham.backend.exception.ApiException;
 import com.chamcham.backend.mapper.OrderMapper;
 import com.chamcham.backend.repository.OrderRepository;

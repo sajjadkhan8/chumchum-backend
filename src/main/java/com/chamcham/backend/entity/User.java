@@ -1,5 +1,6 @@
 package com.chamcham.backend.entity;
 
+import com.chamcham.backend.entity.enums.UserRole;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;

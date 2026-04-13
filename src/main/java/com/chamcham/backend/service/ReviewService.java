@@ -5,7 +5,7 @@ import com.chamcham.backend.dto.review.ReviewResponse;
 import com.chamcham.backend.entity.Review;
 import com.chamcham.backend.entity.ServicePackage;
 import com.chamcham.backend.entity.User;
-import com.chamcham.backend.entity.UserRole;
+import com.chamcham.backend.entity.enums.UserRole;
 import com.chamcham.backend.exception.ApiException;
 import com.chamcham.backend.mapper.ReviewMapper;
 import com.chamcham.backend.repository.ReviewRepository;

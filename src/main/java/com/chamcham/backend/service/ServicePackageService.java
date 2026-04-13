@@ -2,11 +2,11 @@ package com.chamcham.backend.service;
 
 import com.chamcham.backend.dto.servicepackage.ServicePackageCreateRequest;
 import com.chamcham.backend.entity.PackageTier;
-import com.chamcham.backend.entity.PackagePricingType;
 import com.chamcham.backend.dto.servicepackage.ServicePackageResponse;
 import com.chamcham.backend.entity.ServicePackage;
 import com.chamcham.backend.entity.Creator;
-import com.chamcham.backend.entity.UserRole;
+import com.chamcham.backend.entity.enums.PackagePricingType;
+import com.chamcham.backend.entity.enums.UserRole;
 import com.chamcham.backend.exception.ApiException;
 import com.chamcham.backend.mapper.ServicePackageMapper;
 import com.chamcham.backend.repository.CreatorRepository;

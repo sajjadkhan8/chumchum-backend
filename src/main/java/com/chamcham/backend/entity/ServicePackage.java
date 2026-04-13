@@ -1,5 +1,8 @@
 package com.chamcham.backend.entity;
 
+import com.chamcham.backend.entity.enums.PackagePlatform;
+import com.chamcham.backend.entity.enums.PackagePricingType;
+import com.chamcham.backend.entity.enums.PackageType;
 import jakarta.persistence.Column;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;

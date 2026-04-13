@@ -1,6 +1,6 @@
 package com.chamcham.backend.dto.user;
 
-import com.chamcham.backend.entity.UserRole;
+import com.chamcham.backend.entity.enums.UserRole;
 
 import java.time.Instant;
 import java.util.UUID;

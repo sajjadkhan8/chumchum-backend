@@ -9,7 +9,7 @@ import com.chamcham.backend.dto.user.UserResponse;
 import com.chamcham.backend.entity.Brand;
 import com.chamcham.backend.entity.Creator;
 import com.chamcham.backend.entity.User;
-import com.chamcham.backend.entity.UserRole;
+import com.chamcham.backend.entity.enums.UserRole;
 import com.chamcham.backend.exception.ApiException;
 import com.chamcham.backend.mapper.UserMapper;
 import com.chamcham.backend.repository.BrandRepository;
