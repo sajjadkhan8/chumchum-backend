@@ -32,11 +32,10 @@ public class BrandController {
 
     @PostMapping
     public ResponseEntity<BrandResponse> create(
-            @AuthenticationPrincipal AuthenticatedUser authUser,
             @Valid @RequestBody BrandCreateRequest request
     ) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(brandService.create(authUser.userId(), authUser.role(), request));
+                .body(brandService.create(request));
     }
 
     @GetMapping

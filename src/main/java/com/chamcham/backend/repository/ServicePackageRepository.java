@@ -11,6 +11,8 @@ import java.util.UUID;
 
 public interface ServicePackageRepository extends JpaRepository<ServicePackage, UUID> {
 
+    boolean existsByCreatorAndNameIgnoreCase(Creator creator, String name);
+
     Page<ServicePackage> findByCreator(Creator creator, Pageable pageable);
 
     Page<ServicePackage> findByActiveTrueAndCategoryContainingIgnoreCaseAndTitleContainingIgnoreCaseAndPriceBetween(

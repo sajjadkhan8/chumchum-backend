@@ -50,9 +50,14 @@ public class ServicePackageService {
         Creator creator = creatorRepository.findByUserId(userId)
                 .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST, "Creator profile not found for this user"));
 
+        String packageName = request.name().trim();
+        if (servicePackageRepository.existsByCreatorAndNameIgnoreCase(creator, packageName)) {
+            throw new ApiException(HttpStatus.CONFLICT, "You already have a package with this name");
+        }
+
         ServicePackage servicePackage = ServicePackage.builder()
                 .creator(creator)
-                .name(request.name())
+                .name(packageName)
                 .title(request.title())
                 .description(request.description())
                 .platform(request.platform())

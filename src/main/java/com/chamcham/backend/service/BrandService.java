@@ -32,8 +32,7 @@ public class BrandService {
     }
 
     @Transactional
-    public BrandResponse create(UUID actorUserId, UserRole actorRole, BrandCreateRequest request) {
-        validateOwnerOrAdmin(actorUserId, actorRole, request.userId());
+    public BrandResponse create(BrandCreateRequest request) {
 
         User user = userRepository.findById(request.userId())
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "User not found"));
