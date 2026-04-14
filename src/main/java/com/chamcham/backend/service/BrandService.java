@@ -33,6 +33,9 @@ public class BrandService {
 
     @Transactional
     public BrandResponse create(BrandCreateRequest request) {
+        if (request.userId() == null) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "userId is required");
+        }
 
         User user = userRepository.findById(request.userId())
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "User not found"));
@@ -41,20 +44,25 @@ public class BrandService {
             throw new ApiException(HttpStatus.BAD_REQUEST, "User role must be BRAND");
         }
 
-        brandRepository.findByUserId(user.getId()).ifPresent(existing -> {
+        if (brandRepository.findById(user.getId()).isPresent()) {
             throw new ApiException(HttpStatus.CONFLICT, "Brand profile already exists for this user");
-        });
+        }
 
-        Brand brand = Brand.builder()
-                .id(UUID.randomUUID())
-                .user(user)
-                .companyName(request.companyName())
-                .website(request.website())
-                .industry(request.industry())
-                .description(request.description())
-                .build();
+        int insertedRows = brandRepository.insertProfile(
+                user.getId(),
+                request.companyName(),
+                request.website(),
+                request.industry(),
+                request.description()
+        );
 
-        return brandMapper.toResponse(brandRepository.save(brand));
+        if (insertedRows != 1) {
+            throw new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to create brand profile");
+        }
+
+        Brand created = brandRepository.findById(user.getId())
+                .orElseThrow(() -> new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "Brand profile created but could not be loaded"));
+        return brandMapper.toResponse(created);
     }
 
     @Transactional
@@ -72,7 +80,7 @@ public class BrandService {
     @Transactional
     public BrandResponse getByUserId(UUID actorUserId, UserRole actorRole, UUID userId) {
         validateOwnerOrAdmin(actorUserId, actorRole, userId);
-        Brand brand = brandRepository.findByUserId(userId)
+        Brand brand = brandRepository.findById(userId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Brand profile not found"));
         return brandMapper.toResponse(brand);
     }
@@ -80,7 +88,7 @@ public class BrandService {
     @Transactional
     public BrandResponse update(UUID actorUserId, UserRole actorRole, UUID brandId, BrandUpdateRequest request) {
         Brand brand = findBrand(brandId);
-        validateOwnerOrAdmin(actorUserId, actorRole, brand.getUser().getId());
+        validateOwnerOrAdmin(actorUserId, actorRole, brand.getId());
 
         if (request.companyName() != null && !request.companyName().isBlank()) {
             brand.setCompanyName(request.companyName());
@@ -109,4 +117,3 @@ public class BrandService {
         }
     }
 }
-

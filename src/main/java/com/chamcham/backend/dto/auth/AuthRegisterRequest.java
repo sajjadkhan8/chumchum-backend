@@ -1,9 +1,6 @@
 package com.chamcham.backend.dto.auth;
 
-import com.chamcham.backend.dto.user.BrandProfilePayload;
-import com.chamcham.backend.dto.user.CreatorProfilePayload;
 import com.chamcham.backend.entity.enums.UserRole;
-import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -17,8 +14,18 @@ public record AuthRegisterRequest(
         String city,
         String phone,
         @NotNull UserRole role,
-        @Valid CreatorProfilePayload creator,
-        @Valid BrandProfilePayload brand
+
+        // Creator fields
+        @Size(max = 1000) String bio,
+        @Size(max = 100) String category,
+        @Size(max = 255) String tiktokUrl,
+        @Size(max = 255) String instagramUrl,
+        @Size(max = 255) String youtubeUrl,
+
+        // Brand fields
+        @NotBlank @Size(max = 150) String companyName,
+        @Size(max = 255) String website,
+        @Size(max = 100) String industry,
+        @Size(max = 1000) String description
 ) {
 }
-

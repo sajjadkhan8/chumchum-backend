@@ -3,17 +3,13 @@ package com.chamcham.backend.service;
 import com.chamcham.backend.config.security.JwtService;
 import com.chamcham.backend.dto.auth.AuthLoginRequest;
 import com.chamcham.backend.dto.auth.AuthRegisterRequest;
-import com.chamcham.backend.dto.user.BrandProfilePayload;
-import com.chamcham.backend.dto.user.CreatorProfilePayload;
+import com.chamcham.backend.dto.brand.BrandCreateRequest;
+import com.chamcham.backend.dto.creator.CreatorCreateRequest;
 import com.chamcham.backend.dto.user.UserResponse;
-import com.chamcham.backend.entity.Brand;
-import com.chamcham.backend.entity.Creator;
 import com.chamcham.backend.entity.User;
 import com.chamcham.backend.entity.enums.UserRole;
 import com.chamcham.backend.exception.ApiException;
 import com.chamcham.backend.mapper.UserMapper;
-import com.chamcham.backend.repository.BrandRepository;
-import com.chamcham.backend.repository.CreatorRepository;
 import com.chamcham.backend.repository.UserRepository;
 import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
@@ -31,23 +27,23 @@ public class AuthService {
 
     private final UserRepository userRepository;
     private final UserMapper userMapper;
-    private final CreatorRepository creatorRepository;
-    private final BrandRepository brandRepository;
+    private final CreatorService creatorService;
+    private final BrandService brandService;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
 
     public AuthService(
             UserRepository userRepository,
             UserMapper userMapper,
-            CreatorRepository creatorRepository,
-            BrandRepository brandRepository,
+            CreatorService creatorService,
+            BrandService brandService,
             PasswordEncoder passwordEncoder,
             JwtService jwtService
     ) {
         this.userRepository = userRepository;
         this.userMapper = userMapper;
-        this.creatorRepository = creatorRepository;
-        this.brandRepository = brandRepository;
+        this.creatorService = creatorService;
+        this.brandService = brandService;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
     }
@@ -101,55 +97,43 @@ public class AuthService {
             throw new ApiException(HttpStatus.FORBIDDEN, "Admin cannot be created from public signup");
         }
 
-        if (request.role() == UserRole.CREATOR && request.brand() != null) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Brand profile is not allowed for creator signup");
+        if (request.role() == UserRole.CREATOR) {
+            // Creator signup requires at least one creator field to be present
+            if (request.bio() == null && request.category() == null && request.tiktokUrl() == null
+                    && request.instagramUrl() == null && request.youtubeUrl() == null) {
+                throw new ApiException(HttpStatus.BAD_REQUEST, "Creator signup requires at least one profile field");
+            }
         }
 
-        if (request.role() == UserRole.BRAND && request.creator() != null) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Creator profile is not allowed for brand signup");
+        if (request.role() == UserRole.BRAND) {
+            // Brand signup requires company name
+            if (request.companyName() == null || request.companyName().isBlank()) {
+                throw new ApiException(HttpStatus.BAD_REQUEST, "Brand signup requires company name");
+            }
         }
     }
 
     private void createRoleProfile(User user, AuthRegisterRequest request) {
-        if (request.role() == UserRole.CREATOR && request.creator() != null) {
-            creatorRepository.save(toCreator(user, request.creator()));
-            return;
+        switch (request.role()) {
+            case CREATOR -> creatorService.create(new CreatorCreateRequest(
+                    user.getId(),
+                    request.bio(),
+                    request.category(),
+                    request.tiktokUrl(),
+                    request.instagramUrl(),
+                    request.youtubeUrl()
+            ));
+            case BRAND -> brandService.create(new BrandCreateRequest(
+                    user.getId(),
+                    request.companyName(),
+                    request.website(),
+                    request.industry(),
+                    request.description()
+            ));
+            case ADMIN -> {
+                // Guarded by validateRolePayload
+            }
         }
-        if (request.role() == UserRole.BRAND && request.brand() != null) {
-            brandRepository.save(toBrand(user, request.brand()));
-        }
-    }
-
-    private Creator toCreator(User user, CreatorProfilePayload payload) {
-        return Creator.builder()
-                .id(UUID.randomUUID())
-                .user(user)
-                .bio(payload.bio())
-                .category(payload.category())
-                .tiktokUrl(payload.tiktokUrl())
-                .instagramUrl(payload.instagramUrl())
-                .youtubeUrl(payload.youtubeUrl())
-                .followers(payload.followers() == null ? 0 : payload.followers())
-                .avgViews(payload.avgViews() == null ? 0 : payload.avgViews())
-                .engagementRate(payload.engagementRate())
-                .rating(payload.rating() == null ? java.math.BigDecimal.ZERO : payload.rating())
-                .totalReviews(payload.totalReviews() == null ? 0 : payload.totalReviews())
-                .build();
-    }
-
-    private Brand toBrand(User user, BrandProfilePayload payload) {
-        if (payload.companyName() == null || payload.companyName().isBlank()) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Brand companyName is required");
-        }
-
-        return Brand.builder()
-                .id(UUID.randomUUID())
-                .user(user)
-                .companyName(payload.companyName())
-                .website(payload.website())
-                .industry(payload.industry())
-                .description(payload.description())
-                .build();
     }
 
     public UserResponse me(UUID userId) {

@@ -47,7 +47,7 @@ public class ServicePackageService {
 
         validatePricing(request);
 
-        Creator creator = creatorRepository.findByUserId(userId)
+        Creator creator = creatorRepository.findById(userId)
                 .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST, "Creator profile not found for this user"));
 
         String packageName = request.name().trim();
@@ -99,7 +99,7 @@ public class ServicePackageService {
         ServicePackage servicePackage = servicePackageRepository.findById(packageId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Package not found"));
 
-        if (!role.isAdmin() && !servicePackage.getCreator().getUser().getId().equals(userId)) {
+        if (!role.isAdmin() && !servicePackage.getCreator().getId().equals(userId)) {
             throw new ApiException(HttpStatus.FORBIDDEN, "Invalid request! Cannot delete other creator packages!");
         }
 
@@ -127,11 +127,9 @@ public class ServicePackageService {
         Page<ServicePackage> packages;
 
         if (creatorId != null || creatorUserId != null) {
-            Creator creator = creatorId != null
-                    ? creatorRepository.findById(creatorId)
-                        .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Creator not found"))
-                    : creatorRepository.findByUserId(creatorUserId)
-                        .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Creator not found"));
+            UUID resolvedCreatorId = creatorId != null ? creatorId : creatorUserId;
+            Creator creator = creatorRepository.findById(resolvedCreatorId)
+                    .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Creator not found"));
             packages = servicePackageRepository.findByCreator(creator, pageable);
         } else {
             packages = servicePackageRepository.findByActiveTrueAndCategoryContainingIgnoreCaseAndTitleContainingIgnoreCaseAndPriceBetween(
@@ -159,6 +157,4 @@ public class ServicePackageService {
         }
     }
 }
-
-
 

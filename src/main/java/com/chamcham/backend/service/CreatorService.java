@@ -15,6 +15,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
@@ -33,6 +34,10 @@ public class CreatorService {
 
     @Transactional
     public CreatorResponse create(CreatorCreateRequest request) {
+        if (request.userId() == null) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "userId is required");
+        }
+
         User user = userRepository.findById(request.userId())
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "User not found"));
 
@@ -40,21 +45,31 @@ public class CreatorService {
             throw new ApiException(HttpStatus.BAD_REQUEST, "User role must be CREATOR");
         }
 
-        creatorRepository.findByUserId(user.getId()).ifPresent(existing -> {
+        if (creatorRepository.findById(user.getId()).isPresent()) {
             throw new ApiException(HttpStatus.CONFLICT, "Creator profile already exists for this user");
-        });
+        }
 
-        Creator creator = Creator.builder()
-                .id(UUID.randomUUID())
-                .user(user)
-                .bio(request.bio())
-                .category(request.category())
-                .tiktokUrl(request.tiktokUrl())
-                .instagramUrl(request.instagramUrl())
-                .youtubeUrl(request.youtubeUrl())
-                .build();
+        int insertedRows = creatorRepository.insertProfile(
+                user.getId(),
+                request.bio(),
+                request.category(),
+                request.tiktokUrl(),
+                request.instagramUrl(),
+                request.youtubeUrl(),
+                0,
+                0,
+                null,
+                BigDecimal.ZERO,
+                0
+        );
 
-        return creatorMapper.toResponse(creatorRepository.save(creator));
+        if (insertedRows != 1) {
+            throw new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to create creator profile");
+        }
+
+        Creator created = creatorRepository.findById(user.getId())
+                .orElseThrow(() -> new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "Creator profile created but could not be loaded"));
+        return creatorMapper.toResponse(created);
     }
 
     @Transactional
@@ -72,7 +87,7 @@ public class CreatorService {
     @Transactional
     public CreatorResponse getByUserId(UUID actorUserId, UserRole actorRole, UUID userId) {
         validateOwnerOrAdmin(actorUserId, actorRole, userId);
-        Creator creator = creatorRepository.findByUserId(userId)
+        Creator creator = creatorRepository.findById(userId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Creator profile not found"));
         return creatorMapper.toResponse(creator);
     }
@@ -80,7 +95,7 @@ public class CreatorService {
     @Transactional
     public CreatorResponse update(UUID actorUserId, UserRole actorRole, UUID creatorId, CreatorUpdateRequest request) {
         Creator creator = findCreator(creatorId);
-        validateOwnerOrAdmin(actorUserId, actorRole, creator.getUser().getId());
+        validateOwnerOrAdmin(actorUserId, actorRole, creator.getId());
         validateMetricsAccess(actorRole, request);
 
         if (request.bio() != null) {
@@ -140,4 +155,3 @@ public class CreatorService {
         }
     }
 }
-

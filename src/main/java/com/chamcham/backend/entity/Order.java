@@ -38,7 +38,7 @@ public class Order extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "brand_id", nullable = false)
-    private User brand;
+    private Brand brand;
 
     private String image;
 
@@ -54,4 +54,3 @@ public class Order extends BaseEntity {
     @Column(nullable = false, unique = true)
     private String paymentIntent;
 }
-

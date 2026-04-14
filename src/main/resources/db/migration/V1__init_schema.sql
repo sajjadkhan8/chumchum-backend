@@ -18,8 +18,7 @@ create table users (
 );
 
 create table creators (
-    id uuid primary key default gen_random_uuid(),
-    user_id uuid unique references users(id) on delete cascade,
+    id uuid primary key references users(id) on delete cascade,
     bio varchar(1000),
     category varchar(100),
     tiktok_url varchar(255),
@@ -29,20 +28,15 @@ create table creators (
     avg_views int not null default 0,
     engagement_rate numeric(5,2),
     rating numeric(3,2) not null default 0,
-    total_reviews int not null default 0,
-    created_at timestamptz not null default now(),
-    updated_at timestamptz not null default now()
+    total_reviews int not null default 0
 );
 
 create table brands (
-    id uuid primary key default gen_random_uuid(),
-    user_id uuid unique references users(id) on delete cascade,
+    id uuid primary key references users(id) on delete cascade,
     company_name varchar(150) not null,
     website varchar(255),
     industry varchar(100),
-    description varchar(1000),
-    created_at timestamptz not null default now(),
-    updated_at timestamptz not null default now()
+    description varchar(1000)
 );
 
 create table packages (
@@ -97,7 +91,7 @@ create table orders (
     id uuid primary key,
     package_id uuid not null references packages(id) on delete restrict,
     creator_id uuid not null references creators(id) on delete restrict,
-    brand_id uuid not null references users(id) on delete restrict,
+    brand_id uuid not null references brands(id) on delete restrict,
     image varchar(500),
     title varchar(255) not null,
     price numeric(10,2) not null,
@@ -109,8 +103,8 @@ create table orders (
 
 create table conversations (
     id uuid primary key,
-    creator_id uuid not null references users(id) on delete cascade,
-    brand_id uuid not null references users(id) on delete cascade,
+    creator_id uuid not null references creators(id) on delete cascade,
+    brand_id uuid not null references brands(id) on delete cascade,
     read_by_creator boolean not null,
     read_by_brand boolean not null,
     last_message varchar(2000),
@@ -131,8 +125,6 @@ create table messages (
 create index idx_packages_creator_id on packages (creator_id);
 create index idx_packages_category_title on packages (category, title);
 create index idx_package_tiers_package_id on package_tiers (package_id);
-create index idx_creators_user_id on creators (user_id);
-create index idx_brands_user_id on brands (user_id);
 create index idx_orders_creator_completed on orders (creator_id, completed);
 create index idx_orders_brand_completed on orders (brand_id, completed);
 create index idx_conversations_creator on conversations (creator_id, updated_at desc);

@@ -20,10 +20,9 @@ public class BrandMapper {
                 brand.getWebsite(),
                 brand.getIndustry(),
                 brand.getDescription(),
-                profileUserMapper.toResponse(brand.getUser()),
+                profileUserMapper.toResponse(brand),
                 brand.getCreatedAt(),
                 brand.getUpdatedAt()
         );
     }
 }
-

@@ -30,11 +30,11 @@ public class Conversation extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "creator_id", nullable = false)
-    private User creator;
+    private Creator creator;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "brand_id", nullable = false)
-    private User brand;
+    private Brand brand;
 
     @Column(nullable = false)
     private boolean readByCreator;
@@ -45,4 +45,3 @@ public class Conversation extends BaseEntity {
     @Column(length = 2000)
     private String lastMessage;
 }
-

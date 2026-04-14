@@ -2,13 +2,15 @@ package com.chamcham.backend.service;
 
 import com.chamcham.backend.dto.conversation.ConversationCreateRequest;
 import com.chamcham.backend.dto.conversation.ConversationResponse;
+import com.chamcham.backend.entity.Brand;
 import com.chamcham.backend.entity.Conversation;
-import com.chamcham.backend.entity.User;
+import com.chamcham.backend.entity.Creator;
 import com.chamcham.backend.entity.enums.UserRole;
 import com.chamcham.backend.exception.ApiException;
 import com.chamcham.backend.mapper.ConversationMapper;
+import com.chamcham.backend.repository.BrandRepository;
 import com.chamcham.backend.repository.ConversationRepository;
-import com.chamcham.backend.repository.UserRepository;
+import com.chamcham.backend.repository.CreatorRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
@@ -19,12 +21,19 @@ import java.util.UUID;
 public class ConversationService {
 
     private final ConversationRepository conversationRepository;
-    private final UserRepository userRepository;
+    private final CreatorRepository creatorRepository;
+    private final BrandRepository brandRepository;
     private final ConversationMapper conversationMapper;
 
-    public ConversationService(ConversationRepository conversationRepository, UserRepository userRepository, ConversationMapper conversationMapper) {
+    public ConversationService(
+            ConversationRepository conversationRepository,
+            CreatorRepository creatorRepository,
+            BrandRepository brandRepository,
+            ConversationMapper conversationMapper
+    ) {
         this.conversationRepository = conversationRepository;
-        this.userRepository = userRepository;
+        this.creatorRepository = creatorRepository;
+        this.brandRepository = brandRepository;
         this.conversationMapper = conversationMapper;
     }
 
@@ -32,9 +41,6 @@ public class ConversationService {
         if (role.isAdmin()) {
             throw new ApiException(HttpStatus.FORBIDDEN, "Admin cannot start marketplace conversations");
         }
-
-        User currentUser = userRepository.findById(userId)
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "User not found"));
 
         boolean isCreator = role.isCreator();
         UUID creatorId = isCreator ? userId : request.to();
@@ -44,9 +50,9 @@ public class ConversationService {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Creator and brand cannot be the same user");
         }
 
-        User creator = userRepository.findById(creatorId)
+        Creator creator = creatorRepository.findById(creatorId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Creator not found"));
-        User brand = userRepository.findById(brandId)
+        Brand brand = brandRepository.findById(brandId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Brand not found"));
 
         Conversation conversation = conversationRepository.findByCreatorIdAndBrandId(creatorId, brandId)
@@ -58,8 +64,8 @@ public class ConversationService {
                         .readByBrand(!isCreator)
                         .build());
 
-        if (!conversation.getCreator().getId().equals(currentUser.getId())
-                && !conversation.getBrand().getId().equals(currentUser.getId())) {
+        if (!conversation.getCreator().getId().equals(userId)
+                && !conversation.getBrand().getId().equals(userId)) {
             throw new ApiException(HttpStatus.FORBIDDEN, "Cannot create or access this conversation");
         }
 
@@ -94,4 +100,3 @@ public class ConversationService {
         return conversationMapper.toResponse(conversationRepository.save(conversation));
     }
 }
-

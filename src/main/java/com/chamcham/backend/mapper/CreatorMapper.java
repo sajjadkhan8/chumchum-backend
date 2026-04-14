@@ -26,10 +26,9 @@ public class CreatorMapper {
                 creator.getEngagementRate(),
                 creator.getRating(),
                 creator.getTotalReviews(),
-                profileUserMapper.toResponse(creator.getUser()),
+                profileUserMapper.toResponse(creator),
                 creator.getCreatedAt(),
                 creator.getUpdatedAt()
         );
     }
 }
-

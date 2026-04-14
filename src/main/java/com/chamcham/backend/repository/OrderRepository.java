@@ -10,9 +10,8 @@ import java.util.UUID;
 
 public interface OrderRepository extends JpaRepository<Order, UUID> {
 
-    @Query("select o from Order o where o.completed = true and (o.creator.user.id = :userId or o.brand.id = :userId)")
+    @Query("select o from Order o where o.completed = true and (o.creator.id = :userId or o.brand.id = :userId)")
     List<Order> findCompletedByParticipant(UUID userId);
 
     Optional<Order> findByPaymentIntent(String paymentIntent);
 }
-

@@ -3,12 +3,12 @@ package com.chamcham.backend.entity;
 import com.chamcham.backend.entity.enums.UserRole;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
-import jakarta.persistence.OneToOne;
+import jakarta.persistence.Inheritance;
+import jakarta.persistence.InheritanceType;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -25,6 +25,7 @@ import java.util.UUID;
 @AllArgsConstructor
 @Entity
 @Table(name = "users", schema = "core")
+@Inheritance(strategy = InheritanceType.JOINED)
 public class User extends BaseEntity {
 
     @Id
@@ -55,11 +56,4 @@ public class User extends BaseEntity {
     @Column(name = "is_active", nullable = false)
     @Builder.Default
     private boolean active = true;
-
-    @OneToOne(mappedBy = "user", fetch = FetchType.EAGER)
-    private Creator creator;
-
-    @OneToOne(mappedBy = "user", fetch = FetchType.EAGER)
-    private Brand brand;
 }
-

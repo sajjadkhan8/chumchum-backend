@@ -2,15 +2,15 @@ package com.chamcham.backend.service;
 
 import com.chamcham.backend.dto.order.OrderResponse;
 import com.chamcham.backend.dto.order.PaymentIntentResponse;
+import com.chamcham.backend.entity.Brand;
 import com.chamcham.backend.entity.Order;
 import com.chamcham.backend.entity.ServicePackage;
-import com.chamcham.backend.entity.User;
 import com.chamcham.backend.entity.enums.UserRole;
 import com.chamcham.backend.exception.ApiException;
 import com.chamcham.backend.mapper.OrderMapper;
+import com.chamcham.backend.repository.BrandRepository;
 import com.chamcham.backend.repository.OrderRepository;
 import com.chamcham.backend.repository.ServicePackageRepository;
-import com.chamcham.backend.repository.UserRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
@@ -22,18 +22,18 @@ public class OrderService {
 
     private final OrderRepository orderRepository;
     private final ServicePackageRepository servicePackageRepository;
-    private final UserRepository userRepository;
+    private final BrandRepository brandRepository;
     private final OrderMapper orderMapper;
 
     public OrderService(
             OrderRepository orderRepository,
             ServicePackageRepository servicePackageRepository,
-            UserRepository userRepository,
+            BrandRepository brandRepository,
             OrderMapper orderMapper
     ) {
         this.orderRepository = orderRepository;
         this.servicePackageRepository = servicePackageRepository;
-        this.userRepository = userRepository;
+        this.brandRepository = brandRepository;
         this.orderMapper = orderMapper;
     }
 
@@ -51,8 +51,8 @@ public class OrderService {
 
         ServicePackage servicePackage = servicePackageRepository.findById(packageId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Package not found"));
-        User brand = userRepository.findById(brandId)
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "User not found"));
+        Brand brand = brandRepository.findById(brandId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Brand profile not found"));
 
         String paymentIntent = "pi_" + UUID.randomUUID();
         String clientSecret = paymentIntent + "_secret";
@@ -81,4 +81,3 @@ public class OrderService {
         orderRepository.save(order);
     }
 }
-
