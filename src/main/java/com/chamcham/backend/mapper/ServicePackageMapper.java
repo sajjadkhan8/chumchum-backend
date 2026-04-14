@@ -11,17 +11,11 @@ import java.util.List;
 @Component
 public class ServicePackageMapper {
 
-    private final ProfileUserMapper profileUserMapper;
-
-    public ServicePackageMapper(ProfileUserMapper profileUserMapper) {
-        this.profileUserMapper = profileUserMapper;
-    }
-
     public ServicePackageResponse toResponse(ServicePackage servicePackage) {
         return new ServicePackageResponse(
                 servicePackage.getId(),
                 servicePackage.getCreator().getId(),
-                profileUserMapper.toResponse(servicePackage.getCreator().getUser()),
+                servicePackage.getName(),
                 servicePackage.getTitle(),
                 servicePackage.getDescription(),
                 servicePackage.getPlatform(),

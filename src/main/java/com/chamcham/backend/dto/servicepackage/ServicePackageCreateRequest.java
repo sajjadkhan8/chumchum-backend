@@ -17,6 +17,7 @@ import java.util.List;
 
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public record ServicePackageCreateRequest(
+        @NotBlank @Size(max = 100) String name,
         @NotBlank @Size(max = 150) String title,
         @Size(max = 2000) String description,
         @NotNull PackagePlatform platform,

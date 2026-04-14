@@ -43,6 +43,9 @@ public class ServicePackage extends BaseEntity {
     @JoinColumn(name = "creator_id", nullable = false)
     private Creator creator;
 
+    @Column(nullable = false, length = 100)
+    private String name;
+
     @Column(nullable = false, length = 150)
     private String title;
 

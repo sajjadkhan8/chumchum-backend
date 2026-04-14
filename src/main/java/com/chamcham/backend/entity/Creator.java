@@ -33,7 +33,7 @@ public class Creator extends BaseEntity {
     @GeneratedValue
     private UUID id;
 
-    @OneToOne(fetch = FetchType.LAZY, optional = false)
+    @OneToOne(fetch = FetchType.EAGER, optional = false)
     @JoinColumn(name = "user_id", nullable = false, unique = true)
     private User user;
 

@@ -16,7 +16,7 @@ import java.util.UUID;
 public record ServicePackageResponse(
         UUID id,
         UUID creatorId,
-        ProfileUserResponse creator,
+        String name,
         String title,
         String description,
         PackagePlatform platform,

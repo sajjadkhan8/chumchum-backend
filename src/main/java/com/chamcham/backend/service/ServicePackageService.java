@@ -52,6 +52,7 @@ public class ServicePackageService {
 
         ServicePackage servicePackage = ServicePackage.builder()
                 .creator(creator)
+                .name(request.name())
                 .title(request.title())
                 .description(request.description())
                 .platform(request.platform())
