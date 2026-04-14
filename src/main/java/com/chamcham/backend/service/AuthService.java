@@ -81,7 +81,7 @@ public class AuthService {
     }
 
     public AuthSession login(AuthLoginRequest request) {
-        User user = userRepository.findByUsername(request.username())
+        User user = userRepository.findByUsernameOrEmail(request.username(), request.username())
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Check username or password!"));
 
         if (!passwordEncoder.matches(request.password(), user.getPasswordHash())) {
@@ -158,4 +158,3 @@ public class AuthService {
         return userMapper.toResponse(user);
     }
 }
-

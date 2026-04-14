@@ -48,6 +48,7 @@ create table brands (
 create table packages (
     id uuid primary key default gen_random_uuid(),
     creator_id uuid not null references creators(id) on delete cascade,
+    name varchar(100) NOT NULL DEFAULT 'Unnamed Package',
     title varchar(150) not null,
     description varchar(2000),
     platform varchar(50) not null,
