@@ -16,6 +16,7 @@ public record CreatorResponse(
         String tiktokUrl,
         String instagramUrl,
         String youtubeUrl,
+        String facebookUrl,
         int followers,
         int avgViews,
         BigDecimal engagementRate,

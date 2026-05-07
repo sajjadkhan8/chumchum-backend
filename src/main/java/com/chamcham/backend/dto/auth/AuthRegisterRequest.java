@@ -21,6 +21,7 @@ public record AuthRegisterRequest(
         @Size(max = 255) String tiktokUrl,
         @Size(max = 255) String instagramUrl,
         @Size(max = 255) String youtubeUrl,
+        @Size(max = 255) String facebookUrl,
 
         // Brand fields
         @NotBlank @Size(max = 150) String companyName,

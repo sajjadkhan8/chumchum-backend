@@ -24,6 +24,7 @@ create table creators (
     tiktok_url varchar(255),
     instagram_url varchar(255),
     youtube_url varchar(255),
+    facebook_url varchar(255),
     followers int not null default 0,
     avg_views int not null default 0,
     engagement_rate numeric(5,2),
@@ -45,7 +46,7 @@ create table packages (
     name varchar(100) NOT NULL DEFAULT 'Unnamed Package',
     title varchar(150) not null,
     description varchar(2000),
-    platform varchar(50) not null,
+    platform varchar(50) not null constraint ck_packages_platform check (platform in ('YOUTUBE', 'INSTAGRAM', 'TIKTOK', 'FACEBOOK')),
     category varchar(80),
     type varchar(30) not null, -- ONE_TIME / SUBSCRIPTION
     pricing_type varchar(30) not null default 'PAID', -- PAID / BARTER

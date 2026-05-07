@@ -56,6 +56,7 @@ public class CreatorService {
                 request.tiktokUrl(),
                 request.instagramUrl(),
                 request.youtubeUrl(),
+                request.facebookUrl(),
                 0,
                 0,
                 null,
@@ -112,6 +113,9 @@ public class CreatorService {
         }
         if (request.youtubeUrl() != null) {
             creator.setYoutubeUrl(request.youtubeUrl());
+        }
+        if (request.facebookUrl() != null) {
+            creator.setFacebookUrl(request.facebookUrl());
         }
         if (request.followers() != null) {
             creator.setFollowers(request.followers());

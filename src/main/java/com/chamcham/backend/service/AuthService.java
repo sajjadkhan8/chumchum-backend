@@ -100,7 +100,8 @@ public class AuthService {
         if (request.role() == UserRole.CREATOR) {
             // Creator signup requires at least one creator field to be present
             if (request.bio() == null && request.category() == null && request.tiktokUrl() == null
-                    && request.instagramUrl() == null && request.youtubeUrl() == null) {
+                    && request.instagramUrl() == null && request.youtubeUrl() == null
+                    && request.facebookUrl() == null) {
                 throw new ApiException(HttpStatus.BAD_REQUEST, "Creator signup requires at least one profile field");
             }
         }
@@ -121,7 +122,8 @@ public class AuthService {
                     request.category(),
                     request.tiktokUrl(),
                     request.instagramUrl(),
-                    request.youtubeUrl()
+                    request.youtubeUrl(),
+                    request.facebookUrl()
             ));
             case BRAND -> brandService.create(new BrandCreateRequest(
                     user.getId(),

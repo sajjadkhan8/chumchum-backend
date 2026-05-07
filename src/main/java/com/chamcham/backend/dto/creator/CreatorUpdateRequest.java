@@ -16,6 +16,7 @@ public record CreatorUpdateRequest(
         @Size(max = 255) String tiktokUrl,
         @Size(max = 255) String instagramUrl,
         @Size(max = 255) String youtubeUrl,
+        @Size(max = 255) String facebookUrl,
         @Min(0) Integer followers,
         @Min(0) Integer avgViews,
         @DecimalMin("0.00") @DecimalMax("100.00") BigDecimal engagementRate,

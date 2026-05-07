@@ -21,6 +21,7 @@ public class CreatorMapper {
                 creator.getTiktokUrl(),
                 creator.getInstagramUrl(),
                 creator.getYoutubeUrl(),
+                creator.getFacebookUrl(),
                 creator.getFollowers(),
                 creator.getAvgViews(),
                 creator.getEngagementRate(),

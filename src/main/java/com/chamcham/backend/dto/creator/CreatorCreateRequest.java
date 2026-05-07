@@ -13,6 +13,7 @@ public record CreatorCreateRequest(
         @Size(max = 100) String category,
         @Size(max = 255) String tiktokUrl,
         @Size(max = 255) String instagramUrl,
-        @Size(max = 255) String youtubeUrl
+        @Size(max = 255) String youtubeUrl,
+        @Size(max = 255) String facebookUrl
 ) {
 }

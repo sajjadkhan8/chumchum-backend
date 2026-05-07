@@ -39,6 +39,9 @@ public class Creator extends User {
     @Column(length = 255)
     private String youtubeUrl;
 
+    @Column(length = 255)
+    private String facebookUrl;
+
     @Column(nullable = false)
     private int followers = 0;
 
