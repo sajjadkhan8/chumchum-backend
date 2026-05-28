@@ -1,6 +1,7 @@
 package com.chamcham.backend.service;
 
 import com.chamcham.backend.dto.servicepackage.ServicePackageCreateRequest;
+import com.chamcham.backend.entity.PackageAnalytics;
 import com.chamcham.backend.entity.PackageTier;
 import com.chamcham.backend.dto.servicepackage.ServicePackageResponse;
 import com.chamcham.backend.entity.ServicePackage;
@@ -11,6 +12,7 @@ import com.chamcham.backend.entity.enums.UserRole;
 import com.chamcham.backend.exception.ApiException;
 import com.chamcham.backend.mapper.ServicePackageMapper;
 import com.chamcham.backend.repository.CreatorRepository;
+import com.chamcham.backend.repository.PackageAnalyticsRepository;
 import com.chamcham.backend.repository.ServicePackageRepository;
 import com.chamcham.backend.util.PageResponse;
 import org.springframework.data.domain.Page;
@@ -20,7 +22,11 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
+import java.util.EnumSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
@@ -29,15 +35,26 @@ public class ServicePackageService {
     private final ServicePackageRepository servicePackageRepository;
     private final CreatorRepository creatorRepository;
     private final ServicePackageMapper servicePackageMapper;
+    private final PackageAnalyticsRepository packageAnalyticsRepository;
+
+    private static final Map<PackageStatus, Set<PackageStatus>> STATUS_TRANSITIONS = Map.of(
+            PackageStatus.DRAFT,        EnumSet.of(PackageStatus.ACTIVE, PackageStatus.ARCHIVED),
+            PackageStatus.ACTIVE,       EnumSet.of(PackageStatus.PAUSED, PackageStatus.ARCHIVED),
+            PackageStatus.PAUSED,       EnumSet.of(PackageStatus.ACTIVE, PackageStatus.ARCHIVED),
+            PackageStatus.ARCHIVED,     EnumSet.noneOf(PackageStatus.class),
+            PackageStatus.UNDER_REVIEW, EnumSet.noneOf(PackageStatus.class)
+    );
 
     public ServicePackageService(
             ServicePackageRepository servicePackageRepository,
             CreatorRepository creatorRepository,
-            ServicePackageMapper servicePackageMapper
+            ServicePackageMapper servicePackageMapper,
+            PackageAnalyticsRepository packageAnalyticsRepository
     ) {
         this.servicePackageRepository = servicePackageRepository;
         this.creatorRepository = creatorRepository;
         this.servicePackageMapper = servicePackageMapper;
+        this.packageAnalyticsRepository = packageAnalyticsRepository;
     }
 
     public ServicePackageResponse createPackage(UUID userId, UserRole role, ServicePackageCreateRequest request) {
@@ -114,6 +131,127 @@ public class ServicePackageService {
         }
 
         servicePackageRepository.delete(servicePackage);
+    }
+
+    public ServicePackageResponse updatePackage(UUID packageId, UUID userId, UserRole role,
+                                                ServicePackageCreateRequest request) {
+        ServicePackage pkg = servicePackageRepository.findById(packageId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Package not found"));
+
+        if (!role.isAdmin() && !pkg.getCreator().getId().equals(userId)) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "Cannot update another creator's package");
+        }
+
+        if (request.title() != null) pkg.setTitle(request.title());
+        if (request.name() != null)  pkg.setName(request.name().trim());
+        if (request.shortDescription() != null) pkg.setShortDescription(request.shortDescription());
+        if (request.description() != null)  pkg.setDescription(request.description());
+        if (request.fullDescription() != null) pkg.setFullDescription(request.fullDescription());
+        if (request.platform() != null) pkg.setPlatform(request.platform());
+        if (request.category() != null) pkg.setCategory(request.category());
+        if (request.dealType() != null) pkg.setDealType(request.dealType());
+        if (request.price() != null) pkg.setPrice(request.price());
+        if (request.barterDetails() != null) pkg.setBarterDetails(request.barterDetails());
+        if (request.barterDescription() != null) pkg.setBarterDescription(request.barterDescription());
+        if (request.barterCategory() != null) pkg.setBarterCategory(request.barterCategory());
+        if (request.estimatedBarterValue() != null) pkg.setEstimatedBarterValue(request.estimatedBarterValue());
+        if (request.hybridCashAmount() != null) pkg.setHybridCashAmount(request.hybridCashAmount());
+        if (request.hybridBarterValue() != null) pkg.setHybridBarterValue(request.hybridBarterValue());
+        if (request.creatorExpectations() != null) pkg.setCreatorExpectations(request.creatorExpectations());
+        if (request.deliverables() != null && !request.deliverables().isEmpty()) pkg.setDeliverables(request.deliverables());
+        if (request.deliveryDays() != null) pkg.setDeliveryDays(request.deliveryDays());
+        if (request.revisions() != null) pkg.setRevisions(request.revisions());
+        if (request.visibility() != null) pkg.setVisibility(request.visibility());
+        if (request.responseTime() != null) pkg.setResponseTime(request.responseTime());
+        if (request.coverImage() != null) pkg.setCoverImage(request.coverImage());
+        if (request.tags() != null) pkg.setTags(request.tags());
+        if (request.mediaUrls() != null) pkg.setMediaUrls(toArray(request.mediaUrls()));
+        if (request.isFeatured() != null) pkg.setFeatured(request.isFeatured());
+        if (request.isActive() != null) pkg.setActive(request.isActive());
+
+        return servicePackageMapper.toResponse(servicePackageRepository.save(pkg));
+    }
+
+    public ServicePackageResponse updateStatus(UUID packageId, UUID userId, UserRole role, String rawStatus) {
+        ServicePackage pkg = servicePackageRepository.findById(packageId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Package not found"));
+
+        if (!role.isAdmin() && !pkg.getCreator().getId().equals(userId)) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "Cannot update another creator's package status");
+        }
+
+        PackageStatus newStatus;
+        try {
+            newStatus = PackageStatus.valueOf(rawStatus.trim().toUpperCase());
+        } catch (Exception ex) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Invalid status: " + rawStatus);
+        }
+
+        Set<PackageStatus> allowed = STATUS_TRANSITIONS.getOrDefault(pkg.getStatus(), EnumSet.noneOf(PackageStatus.class));
+        if (!allowed.contains(newStatus)) {
+            throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY,
+                    "Cannot transition from " + pkg.getStatus() + " to " + newStatus);
+        }
+
+        pkg.setStatus(newStatus);
+        return servicePackageMapper.toResponse(servicePackageRepository.save(pkg));
+    }
+
+    public ServicePackageResponse duplicate(UUID packageId, UUID userId, UserRole role) {
+        ServicePackage src = servicePackageRepository.findById(packageId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Package not found"));
+
+        if (!role.isAdmin() && !src.getCreator().getId().equals(userId)) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "Cannot duplicate another creator's package");
+        }
+
+        ServicePackage copy = ServicePackage.builder()
+                .creator(src.getCreator())
+                .name("Copy of " + src.getName())
+                .title("Copy of " + src.getTitle())
+                .shortDescription(src.getShortDescription())
+                .description(src.getDescription())
+                .fullDescription(src.getFullDescription())
+                .platform(src.getPlatform())
+                .category(src.getCategory())
+                .type(src.getType())
+                .dealType(src.getDealType())
+                .status(PackageStatus.DRAFT)
+                .visibility("public")
+                .price(src.getPrice())
+                .currency(src.getCurrency())
+                .barterDetails(src.getBarterDetails())
+                .barterCategory(src.getBarterCategory())
+                .deliverables(src.getDeliverables())
+                .deliveryDays(src.getDeliveryDays())
+                .revisions(src.getRevisions())
+                .tags(src.getTags())
+                .coverImage(src.getCoverImage())
+                .build();
+
+        return servicePackageMapper.toResponse(servicePackageRepository.save(copy));
+    }
+
+    public Map<String, Object> getAnalytics(UUID packageId, UUID userId, UserRole role) {
+        ServicePackage pkg = servicePackageRepository.findById(packageId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Package not found"));
+
+        if (!role.isAdmin() && !pkg.getCreator().getId().equals(userId)) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "Cannot view analytics for another creator's package");
+        }
+
+        PackageAnalytics analytics = packageAnalyticsRepository.findByServicePackageId(packageId)
+                .orElse(PackageAnalytics.builder().servicePackage(pkg).build());
+
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("views", analytics.getViews());
+        data.put("clicks", analytics.getClicks());
+        data.put("inquiries", analytics.getInquiries());
+        data.put("conversionRate", analytics.getConversionRate());
+        data.put("completionRate", analytics.getCompletionRate());
+        data.put("repeatBrands", analytics.getRepeatBrands());
+        data.put("engagementPerformance", analytics.getEngagementPerformance());
+        return Map.of("success", true, "data", data);
     }
 
     public ServicePackageResponse getPackage(UUID packageId) {

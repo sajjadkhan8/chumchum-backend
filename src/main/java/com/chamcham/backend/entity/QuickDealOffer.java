@@ -27,7 +27,7 @@ public class QuickDealOffer {
 
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "message_id")
-    private Message message;
+    private Message messageEntity;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "conversation_id", nullable = false)
@@ -52,8 +52,8 @@ public class QuickDealOffer {
     @Column(name = "creator_expectation", columnDefinition = "text")
     private String creatorExpectation;
 
-    @Column(nullable = false, columnDefinition = "text")
-    private String message2;   // renamed to avoid clash with message FK field
+    @Column(name = "message", nullable = false, columnDefinition = "text")
+    private String message;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)

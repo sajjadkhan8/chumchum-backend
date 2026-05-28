@@ -3,6 +3,7 @@ package com.chamcham.backend.dto.order;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 
+import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
@@ -13,7 +14,7 @@ public record DeliverableResponse(
         String name,
         String status,
         String fileUrl,
-        OffsetDateTime submittedAt
+        OffsetDateTime submittedAt,
+        Instant createdAt
 ) {
 }
-

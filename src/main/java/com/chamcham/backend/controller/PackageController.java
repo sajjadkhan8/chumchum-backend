@@ -11,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -38,6 +39,42 @@ public class PackageController {
     ) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(servicePackageService.createPackage(authUser.userId(), authUser.role(), request));
+    }
+
+    @PatchMapping("/{id}")
+    public ResponseEntity<ServicePackageResponse> updatePackage(
+            @PathVariable UUID id,
+            @AuthenticationPrincipal AuthenticatedUser authUser,
+            @Valid @RequestBody ServicePackageCreateRequest request
+    ) {
+        return ResponseEntity.ok(servicePackageService.updatePackage(id, authUser.userId(), authUser.role(), request));
+    }
+
+    @PatchMapping("/{id}/status")
+    public ResponseEntity<ServicePackageResponse> updatePackageStatus(
+            @PathVariable UUID id,
+            @AuthenticationPrincipal AuthenticatedUser authUser,
+            @RequestBody Map<String, String> request
+    ) {
+        String status = request.get("status");
+        return ResponseEntity.ok(servicePackageService.updateStatus(id, authUser.userId(), authUser.role(), status));
+    }
+
+    @PostMapping("/{id}/duplicate")
+    public ResponseEntity<ServicePackageResponse> duplicatePackage(
+            @PathVariable UUID id,
+            @AuthenticationPrincipal AuthenticatedUser authUser
+    ) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(servicePackageService.duplicate(id, authUser.userId(), authUser.role()));
+    }
+
+    @GetMapping("/{id}/analytics")
+    public ResponseEntity<Map<String, Object>> getAnalytics(
+            @PathVariable UUID id,
+            @AuthenticationPrincipal AuthenticatedUser authUser
+    ) {
+        return ResponseEntity.ok(servicePackageService.getAnalytics(id, authUser.userId(), authUser.role()));
     }
 
     @DeleteMapping("/{id}")

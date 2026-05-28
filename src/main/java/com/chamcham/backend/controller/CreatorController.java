@@ -5,8 +5,11 @@ import com.chamcham.backend.dto.creator.CreatorCreateRequest;
 import com.chamcham.backend.dto.creator.CreatorResponse;
 import com.chamcham.backend.dto.creator.CreatorUpdateRequest;
 import com.chamcham.backend.dto.review.ReviewResponse;
+import com.chamcham.backend.dto.servicepackage.ServicePackageResponse;
 import com.chamcham.backend.service.CreatorService;
 import com.chamcham.backend.service.ReviewService;
+import com.chamcham.backend.service.ServicePackageService;
+import com.chamcham.backend.util.PageResponse;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -18,6 +21,7 @@ import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -29,10 +33,13 @@ public class CreatorController {
 
     private final CreatorService creatorService;
     private final ReviewService reviewService;
+    private final ServicePackageService packageService;
 
-    public CreatorController(CreatorService creatorService, ReviewService reviewService) {
+    public CreatorController(CreatorService creatorService, ReviewService reviewService,
+                             ServicePackageService packageService) {
         this.creatorService = creatorService;
         this.reviewService = reviewService;
+        this.packageService = packageService;
     }
 
     @PostMapping
@@ -56,6 +63,18 @@ public class CreatorController {
     @GetMapping("/{creatorId}/reviews")
     public ResponseEntity<List<ReviewResponse>> getCreatorReviews(@PathVariable UUID creatorId) {
         return ResponseEntity.ok(reviewService.getReviewsByCreator(creatorId));
+    }
+
+    @GetMapping("/{creatorId}/packages")
+    public ResponseEntity<PageResponse<ServicePackageResponse>> getCreatorPackages(
+            @PathVariable UUID creatorId,
+            @RequestParam(required = false) String platform,
+            @RequestParam(required = false) String dealType,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int limit
+    ) {
+        return ResponseEntity.ok(packageService.getPackages(null, null, null, null,
+                creatorId, null, page, limit, "createdAt"));
     }
 
     @GetMapping("/user/{userId}")

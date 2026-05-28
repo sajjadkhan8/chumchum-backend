@@ -10,6 +10,31 @@ public class MessageMapper {
     public MessageResponse toResponse(Message message) {
         // prefer content field, fallback to legacy description
         String content = message.getContent() != null ? message.getContent() : message.getDescription();
+
+        String offerDealType = message.getOfferDealType();
+        Integer offerAmount = message.getOfferAmount();
+        String offerBarterDetails = message.getOfferBarterDetails();
+        String offerBarterCategory = message.getOfferBarterCategory();
+        String offerStatus = message.getOfferStatus();
+        java.util.UUID offerId = null;
+        Integer offerEstimatedBarterValue = message.getOfferEstimatedBarterValue();
+        String offerCreatorExpectation = message.getOfferCreatorExpectation();
+
+        if (message.getQuickDealOffer() != null) {
+            offerId = message.getQuickDealOffer().getId();
+            offerDealType = message.getQuickDealOffer().getDealType() != null
+                    ? message.getQuickDealOffer().getDealType().name().toLowerCase()
+                    : offerDealType;
+            offerAmount = message.getQuickDealOffer().getAmount();
+            offerBarterDetails = message.getQuickDealOffer().getBarterDetails();
+            offerBarterCategory = message.getQuickDealOffer().getBarterCategory();
+            offerEstimatedBarterValue = message.getQuickDealOffer().getEstimatedBarterValue();
+            offerCreatorExpectation = message.getQuickDealOffer().getCreatorExpectation();
+            offerStatus = message.getQuickDealOffer().getStatus() != null
+                    ? message.getQuickDealOffer().getStatus().name().toLowerCase()
+                    : offerStatus;
+        }
+
         return new MessageResponse(
                 message.getId(),
                 message.getConversation().getId(),
@@ -19,11 +44,14 @@ public class MessageMapper {
                 content,
                 message.isRead(),
                 message.getAttachmentUrl(),
-                message.getOfferDealType(),
-                message.getOfferAmount(),
-                message.getOfferBarterDetails(),
-                message.getOfferBarterCategory(),
-                message.getOfferStatus(),
+                offerDealType,
+                offerAmount,
+                offerBarterDetails,
+                offerBarterCategory,
+                offerStatus,
+                offerId,
+                offerEstimatedBarterValue,
+                offerCreatorExpectation,
                 message.getCreatedAt()
         );
     }

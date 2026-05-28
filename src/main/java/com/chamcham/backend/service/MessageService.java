@@ -4,12 +4,16 @@ import com.chamcham.backend.dto.message.MessageCreateRequest;
 import com.chamcham.backend.dto.message.MessageResponse;
 import com.chamcham.backend.entity.Conversation;
 import com.chamcham.backend.entity.Message;
+import com.chamcham.backend.entity.QuickDealOffer;
 import com.chamcham.backend.entity.User;
+import com.chamcham.backend.entity.enums.DealType;
+import com.chamcham.backend.entity.enums.OfferStatus;
 import com.chamcham.backend.entity.enums.UserRole;
 import com.chamcham.backend.exception.ApiException;
 import com.chamcham.backend.mapper.MessageMapper;
 import com.chamcham.backend.repository.ConversationRepository;
 import com.chamcham.backend.repository.MessageRepository;
+import com.chamcham.backend.repository.QuickDealOfferRepository;
 import com.chamcham.backend.repository.UserRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.http.HttpStatus;
@@ -24,15 +28,18 @@ public class MessageService {
     private final MessageRepository messageRepository;
     private final ConversationRepository conversationRepository;
     private final UserRepository userRepository;
+    private final QuickDealOfferRepository quickDealOfferRepository;
     private final MessageMapper messageMapper;
 
     public MessageService(MessageRepository messageRepository,
                           ConversationRepository conversationRepository,
                           UserRepository userRepository,
+                          QuickDealOfferRepository quickDealOfferRepository,
                           MessageMapper messageMapper) {
         this.messageRepository = messageRepository;
         this.conversationRepository = conversationRepository;
         this.userRepository = userRepository;
+        this.quickDealOfferRepository = quickDealOfferRepository;
         this.messageMapper = messageMapper;
     }
 
@@ -74,7 +81,7 @@ public class MessageService {
                 .senderType(role.name().toLowerCase())
                 .content(request.content())
                 .type(Message.MessageType.OFFER)
-                .offerDealType(request.offerDealType())
+                .offerDealType(request.offerDealType() == null ? null : request.offerDealType().toLowerCase())
                 .offerAmount(request.offerAmount())
                 .offerBarterDetails(request.offerBarterDetails())
                 .offerBarterCategory(request.offerBarterCategory())
@@ -82,8 +89,25 @@ public class MessageService {
                 .offerStatus("pending")
                 .isRead(false)
                 .build();
+        Message savedMessage = messageRepository.save(message);
 
-        return save(message, conversation, role, "[Offer]");
+        DealType dealType = parseDealType(request.offerDealType());
+        QuickDealOffer quickDealOffer = quickDealOfferRepository.save(QuickDealOffer.builder()
+                .messageEntity(savedMessage)
+                .conversation(conversation)
+                .dealType(dealType)
+                .amount(request.offerAmount())
+                .barterDetails(request.offerBarterDetails())
+                .barterCategory(request.offerBarterCategory())
+                .estimatedBarterValue(request.offerEstimatedBarterValue())
+                .creatorExpectation(null)
+                .message(request.content() == null ? "Offer" : request.content())
+                .status(OfferStatus.PENDING)
+                .build());
+
+        savedMessage.setQuickDealOffer(quickDealOffer);
+        updateConversationAfterSend(conversation, role, "[Offer]", savedMessage.getId());
+        return messageMapper.toResponse(savedMessage);
     }
 
     public List<MessageResponse> getMessages(UUID conversationId, UUID userId) {
@@ -111,6 +135,11 @@ public class MessageService {
 
     private MessageResponse save(Message message, Conversation conversation, UserRole senderRole, String preview) {
         Message saved = messageRepository.save(message);
+        updateConversationAfterSend(conversation, senderRole, preview, saved.getId());
+        return messageMapper.toResponse(saved);
+    }
+
+    private void updateConversationAfterSend(Conversation conversation, UserRole senderRole, String preview, UUID messageId) {
         // increment unread for the OTHER party
         if (senderRole.isCreator()) {
             conversation.setUnreadCountBrand(conversation.getUnreadCountBrand() + 1);
@@ -123,9 +152,19 @@ public class MessageService {
         }
         conversation.setLastMessage(preview != null && preview.length() > 200
                 ? preview.substring(0, 200) : preview);
-        conversation.setLastMessageId(saved.getId());
+        conversation.setLastMessageId(messageId);
         conversationRepository.save(conversation);
-        return messageMapper.toResponse(saved);
+    }
+
+    private DealType parseDealType(String rawValue) {
+        if (rawValue == null || rawValue.isBlank()) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "offerDealType is required for offer messages");
+        }
+        try {
+            return DealType.valueOf(rawValue.trim().toUpperCase());
+        } catch (IllegalArgumentException ex) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Invalid offerDealType: " + rawValue);
+        }
     }
 
     private void validateParticipant(UUID userId, Conversation conv) {

@@ -71,6 +71,9 @@ public class Message extends BaseEntity {
     @Column(name = "offer_status", length = 30)
     private String offerStatus;
 
+    @OneToOne(mappedBy = "messageEntity", fetch = FetchType.LAZY)
+    private QuickDealOffer quickDealOffer;
+
     /** Legacy column kept for DB compat. */
     @Column(length = 2000)
     private String description;

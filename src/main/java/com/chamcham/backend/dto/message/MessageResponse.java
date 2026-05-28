@@ -17,6 +17,9 @@ public record MessageResponse(
         String offerBarterDetails,
         String offerBarterCategory,
         String offerStatus,
+        UUID offerId,
+        Integer offerEstimatedBarterValue,
+        String offerCreatorExpectation,
         Instant createdAt
 ) {
 }
