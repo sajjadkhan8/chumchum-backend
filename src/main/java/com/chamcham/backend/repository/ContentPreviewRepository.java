@@ -1,0 +1,12 @@
+package com.chamcham.backend.repository;
+
+import com.chamcham.backend.entity.ContentPreview;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import java.util.List;
+import java.util.UUID;
+
+public interface ContentPreviewRepository extends JpaRepository<ContentPreview, UUID> {
+    List<ContentPreview> findByCreatorIdOrderByCreatedAtDesc(UUID creatorId);
+}
+

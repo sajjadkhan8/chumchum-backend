@@ -10,13 +10,14 @@ import java.util.UUID;
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public record BrandResponse(
         UUID id,
-        String companyName,
+        String name,
         String website,
         String industry,
         String description,
+        String logoUrl,
+        Integer monthlyBudget,
         ProfileUserResponse user,
         Instant createdAt,
         Instant updatedAt
 ) {
 }
-

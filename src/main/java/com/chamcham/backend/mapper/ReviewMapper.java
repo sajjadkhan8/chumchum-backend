@@ -7,21 +7,15 @@ import org.springframework.stereotype.Component;
 @Component
 public class ReviewMapper {
 
-    private final UserMapper userMapper;
-
-    public ReviewMapper(UserMapper userMapper) {
-        this.userMapper = userMapper;
-    }
-
     public ReviewResponse toResponse(Review review) {
         return new ReviewResponse(
                 review.getId(),
-                review.getServicePackage().getId(),
-                userMapper.toResponse(review.getReviewer()),
-                review.getStar(),
-                review.getDescription(),
+                review.getOrder() != null ? review.getOrder().getId() : null,
+                review.getCreator() != null ? review.getCreator().getId() : null,
+                review.getBrand() != null ? review.getBrand().getId() : null,
+                review.getRating(),
+                review.getComment(),
                 review.getCreatedAt()
         );
     }
 }
-

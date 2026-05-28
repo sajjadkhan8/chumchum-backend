@@ -1,17 +1,34 @@
 package com.chamcham.backend.repository;
 
 import com.chamcham.backend.entity.Order;
+import com.chamcham.backend.entity.enums.OrderStatus;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 public interface OrderRepository extends JpaRepository<Order, UUID> {
 
-    @Query("select o from Order o where o.completed = true and (o.creator.id = :userId or o.brand.id = :userId)")
-    List<Order> findCompletedByParticipant(UUID userId);
+    @Query("select o from Order o where o.creator.id = :userId or o.brand.id = :userId order by o.createdAt desc")
+    List<Order> findAllByParticipant(@Param("userId") UUID userId);
 
-    Optional<Order> findByPaymentIntent(String paymentIntent);
+    List<Order> findByCreatorIdOrderByCreatedAtDesc(UUID creatorId);
+
+    List<Order> findByBrandIdOrderByCreatedAtDesc(UUID brandId);
+
+    List<Order> findByCreatorIdAndStatusIn(UUID creatorId, List<OrderStatus> statuses);
+
+    List<Order> findByBrandIdAndStatusIn(UUID brandId, List<OrderStatus> statuses);
+
+    List<Order> findByCreatorIdAndStatus(UUID creatorId, OrderStatus status, Pageable pageable);
+
+    long countByCreatorIdAndStatusIn(UUID creatorId, List<OrderStatus> statuses);
+
+    long countByBrandIdAndStatusIn(UUID brandId, List<OrderStatus> statuses);
+
+    @Query("select count(distinct o.brand.id) from Order o where o.creator.id = :creatorId and o.status = 'COMPLETED'")
+    long countDistinctBrandsByCreatorAndCompleted(@Param("creatorId") UUID creatorId);
 }

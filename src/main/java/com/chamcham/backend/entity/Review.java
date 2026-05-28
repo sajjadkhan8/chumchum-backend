@@ -1,18 +1,7 @@
 package com.chamcham.backend.entity;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
-import jakarta.persistence.UniqueConstraint;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import jakarta.persistence.*;
+import lombok.*;
 
 import java.util.UUID;
 
@@ -22,24 +11,46 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "reviews", uniqueConstraints = @UniqueConstraint(name = "uk_review_user_package", columnNames = {"package_id", "reviewer_id"}))
+@Table(name = "reviews",
+        uniqueConstraints = @UniqueConstraint(name = "uk_review_order", columnNames = {"order_id"}))
 public class Review extends BaseEntity {
 
     @Id
     private UUID id;
 
+    /** One review per order. */
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "order_id")
+    private Order order;
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "package_id", nullable = false)
+    @JoinColumn(name = "creator_id", nullable = false)
+    private Creator creator;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "brand_id", nullable = false)
+    private Brand brand;
+
+    /** 1–5 rating (was "star" in legacy schema). */
+    @Column(nullable = false)
+    private int rating;
+
+    @Column(columnDefinition = "text")
+    private String comment;
+
+    // -------- legacy columns kept for non-null DB compat --------
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "package_id")
     private ServicePackage servicePackage;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "reviewer_id", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "reviewer_id")
     private User reviewer;
 
-    @Column(nullable = false)
-    private int star;
+    /** Legacy column – use rating field instead. */
+    @Column
+    private Integer star;
 
-    @Column(nullable = false, length = 1000)
+    @Column(length = 1000)
     private String description;
 }
-

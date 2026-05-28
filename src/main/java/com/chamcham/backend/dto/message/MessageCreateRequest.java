@@ -1,25 +1,13 @@
 package com.chamcham.backend.dto.message;
 
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.DecimalMin;
-
-import java.math.BigDecimal;
-import java.util.UUID;
+import jakarta.validation.constraints.Size;
 
 public record MessageCreateRequest(
-        @NotNull UUID conversationId,
-        String type,
-        String content,
-        @NotBlank String description
-        String attachmentUrl,
+        @Size(max = 2000) String content,
         String offerDealType,
-        @DecimalMin("0.00") BigDecimal offerAmount,
-        String offerBarterDetails,
-        String offerBarterCategory,
-        @DecimalMin("0.00") BigDecimal offerEstimatedBarterValue,
-        String offerCreatorExpectation,
-        String offerMessage
+        Integer offerAmount,
+        @Size(max = 2000) String offerBarterDetails,
+        @Size(max = 100) String offerBarterCategory,
+        Integer offerEstimatedBarterValue
 ) {
 }
-

@@ -1,26 +1,13 @@
 package com.chamcham.backend.entity;
 
+import com.chamcham.backend.entity.enums.DealType;
 import com.chamcham.backend.entity.enums.OrderStatus;
-import com.chamcham.backend.entity.enums.PackagePricingType;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
-import jakarta.persistence.Temporal;
-import jakarta.persistence.TemporalType;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import jakarta.persistence.*;
+import lombok.*;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Getter
@@ -35,7 +22,7 @@ public class Order extends BaseEntity {
     @Id
     private UUID id;
 
-    @Column(length = 20, unique = true)
+    @Column(name = "order_number", length = 20, unique = true)
     private String orderNumber;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
@@ -51,38 +38,36 @@ public class Order extends BaseEntity {
     private Brand brand;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "deal_type")
-    private PackagePricingType dealType;
+    @Column(name = "deal_type", length = 30, nullable = false)
+    @Builder.Default
+    private DealType dealType = DealType.PAID;
 
-    @Column(name = "amount", precision = 10, scale = 2)
-    private BigDecimal amount;
+    /** SAR amount in integer halala (nullable for barter-only deals). */
+    @Column
+    private Integer amount;
 
-    @Column(name = "barter_details", length = 1000)
+    @Column(name = "barter_details", columnDefinition = "text")
     private String barterDetails;
 
-    @Column(name = "message", length = 2000)
+    @Column(columnDefinition = "text")
     private String message;
 
     @Enumerated(EnumType.STRING)
-    @Column(length = 30)
+    @Column(length = 30, nullable = false)
     @Builder.Default
     private OrderStatus status = OrderStatus.PENDING;
 
-    @Column(name = "progress")
+    @Column(nullable = false)
     @Builder.Default
     private int progress = 0;
 
     @Column(name = "delivery_date")
-    @Temporal(TemporalType.DATE)
     private LocalDate deliveryDate;
 
     @Column(name = "deadline_date")
-    @Temporal(TemporalType.DATE)
     private LocalDate deadlineDate;
 
-    private String image;
-
-    @Column(nullable = false)
-    private String title;
-
+    @OneToMany(mappedBy = "order", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<Deliverable> deliverables = new ArrayList<>();
 }

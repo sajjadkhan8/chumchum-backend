@@ -1,20 +1,7 @@
 package com.chamcham.backend.entity;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import jakarta.persistence.*;
+import lombok.*;
 
 import java.math.BigDecimal;
 import java.util.UUID;
@@ -40,56 +27,55 @@ public class Message extends BaseEntity {
     @JoinColumn(name = "sender_id", nullable = false)
     private User sender;
 
-    @Column(length = 50, name = "sender_type")
-    private String senderType;
+    @Column(name = "sender_type", length = 20)
+    private String senderType;   // "creator" | "brand"
 
-    @Column(length = 2000, name = "content")
+    /** Text content (null for offer/attachment-only messages). */
+    @Column(length = 2000)
     private String content;
 
-    @Column(nullable = false, length = 2000)
-    private String description;
-
     @Enumerated(EnumType.STRING)
-    @Column(length = 30)
+    @Column(length = 30, nullable = false)
     @Builder.Default
     private MessageType type = MessageType.TEXT;
 
-    @Column(name = "is_read")
+    @Column(name = "is_read", nullable = false)
     @Builder.Default
     private boolean isRead = false;
 
-    @Column(length = 500, name = "attachment_url")
+    @Column(name = "attachment_url", length = 500)
     private String attachmentUrl;
 
-    @Column(length = 100, name = "offer_deal_type")
+    // ---- Embedded offer snapshot (quick deal data stored inline) ----
+    @Column(name = "offer_deal_type", length = 30)
     private String offerDealType;
 
-    @Column(name = "offer_amount", precision = 10, scale = 2)
-    private BigDecimal offerAmount;
+    @Column(name = "offer_amount")
+    private Integer offerAmount;
 
-    @Column(length = 1000, name = "offer_barter_details")
+    @Column(name = "offer_barter_details", columnDefinition = "text")
     private String offerBarterDetails;
 
-    @Column(length = 100, name = "offer_barter_category")
+    @Column(name = "offer_barter_category", length = 100)
     private String offerBarterCategory;
 
-    @Column(name = "offer_estimated_barter_value", precision = 10, scale = 2)
-    private BigDecimal offerEstimatedBarterValue;
+    @Column(name = "offer_estimated_barter_value")
+    private Integer offerEstimatedBarterValue;
 
-    @Column(length = 1000, name = "offer_creator_expectation")
+    @Column(name = "offer_creator_expectation", columnDefinition = "text")
     private String offerCreatorExpectation;
 
-    @Column(length = 2000, name = "offer_message")
+    @Column(name = "offer_message", columnDefinition = "text")
     private String offerMessage;
 
-    @Column(length = 50, name = "offer_status")
+    @Column(name = "offer_status", length = 30)
     private String offerStatus;
 
+    /** Legacy column kept for DB compat. */
+    @Column(length = 2000)
+    private String description;
+
     public enum MessageType {
-        TEXT,
-        OFFER,
-        SYSTEM,
-        ATTACHMENT
+        TEXT, OFFER, SYSTEM, ATTACHMENT
     }
 }
-

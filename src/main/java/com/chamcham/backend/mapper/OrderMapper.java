@@ -10,21 +10,22 @@ public class OrderMapper {
     public OrderResponse toResponse(Order order) {
         return new OrderResponse(
                 order.getId(),
-                        order.getOrderNumber(),
+                order.getOrderNumber(),
                 order.getServicePackage().getId(),
+                order.getServicePackage().getTitle(),
                 order.getCreator().getId(),
+                order.getCreator().getName(),
                 order.getBrand().getId(),
-                        order.getDealType() != null ? order.getDealType().name().toLowerCase() : "paid",
-                        order.getAmount(),
-                        order.getBarterDetails(),
-                        order.getStatus() != null ? order.getStatus().name().toLowerCase() : "pending",
-                        order.getProgress(),
-                        order.getDeadlineDate(),
-                        order.getDeliveryDate(),
-                        order.getImage(),
-                        order.getTitle(),
+                order.getBrand().getName(),
+                order.getDealType() != null ? order.getDealType().name().toLowerCase() : "paid",
+                order.getAmount(),
+                order.getBarterDetails(),
+                order.getMessage(),
+                order.getStatus() != null ? order.getStatus().name().toLowerCase() : "pending",
+                order.getProgress(),
+                order.getDeadlineDate(),
+                order.getDeliveryDate(),
                 order.getCreatedAt()
         );
     }
 }
-

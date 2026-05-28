@@ -35,7 +35,8 @@ public class UserMapper {
                 user.getName(),
                 user.getRole().name().toLowerCase(),
                 user.getAvatarUrl() != null ? user.getAvatarUrl() : user.getImage(),
-                user.getCreatorProgramStatus().name().toLowerCase(),
+                user.getCreatorProgramStatus() != null
+                        ? user.getCreatorProgramStatus().name().toLowerCase() : "none",
                 user.getCity(),
                 user.getPhone(),
                 creatorPayload,
@@ -62,7 +63,7 @@ public class UserMapper {
 
     private BrandProfilePayload toBrandPayload(Brand brand) {
         return new BrandProfilePayload(
-                brand.getCompanyName(),
+                brand.getName(),   // was getCompanyName()
                 brand.getWebsite(),
                 brand.getIndustry(),
                 brand.getDescription()

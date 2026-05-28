@@ -12,23 +12,12 @@ public interface BrandRepository extends JpaRepository<Brand, UUID> {
 
     @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query(value = """
-            insert into core.brands (
-                id,
-                company_name,
-                website,
-                industry,
-                description
-            ) values (
-                :id,
-                :companyName,
-                :website,
-                :industry,
-                :description
-            )
+            INSERT INTO core.brands (id, name, website, industry, description)
+            VALUES (:id, :name, :website, :industry, :description)
             """, nativeQuery = true)
     int insertProfile(
             @Param("id") UUID id,
-            @Param("companyName") String companyName,
+            @Param("name") String name,
             @Param("website") String website,
             @Param("industry") String industry,
             @Param("description") String description

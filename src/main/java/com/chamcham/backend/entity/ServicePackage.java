@@ -1,28 +1,14 @@
 package com.chamcham.backend.entity;
 
+import com.chamcham.backend.entity.enums.DealType;
 import com.chamcham.backend.entity.enums.PackagePlatform;
-import com.chamcham.backend.entity.enums.PackagePricingType;
+import com.chamcham.backend.entity.enums.PackageStatus;
 import com.chamcham.backend.entity.enums.PackageType;
-import com.chamcham.backend.entity.enums.OrderStatus;
-import jakarta.persistence.Column;
-import jakarta.persistence.CascadeType;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.OneToMany;
-import jakarta.persistence.Table;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import jakarta.persistence.*;
+import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
-import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -44,20 +30,21 @@ public class ServicePackage extends BaseEntity {
     @JoinColumn(name = "creator_id", nullable = false)
     private Creator creator;
 
+    // legacy name field (kept for DB compat)
     @Column(nullable = false, length = 100)
     private String name;
 
-    @Column(nullable = false, length = 150)
+    @Column(nullable = false, length = 200)
     private String title;
 
-    @Column(length = 300)
+    @Column(name = "short_description", length = 300)
     private String shortDescription;
+
+    @Column(name = "full_description", columnDefinition = "text")
+    private String fullDescription;
 
     @Column(length = 2000)
     private String description;
-
-    @Column(length = 2000, name = "full_description")
-    private String fullDescription;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 50)
@@ -66,54 +53,81 @@ public class ServicePackage extends BaseEntity {
     @Column(length = 80)
     private String category;
 
+    // legacy type (ONE_TIME/SUBSCRIPTION) – kept for backward compat
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 30)
+    @Column(length = 30)
     private PackageType type;
 
-    @Builder.Default
     @Enumerated(EnumType.STRING)
-    @Column(name = "pricing_type", nullable = false, length = 30)
-    private PackagePricingType pricingType = PackagePricingType.PAID;
+    @Column(name = "deal_type", length = 30)
+    private DealType dealType;
+
+    @Enumerated(EnumType.STRING)
+    @Column(length = 30)
+    @Builder.Default
+    private PackageStatus status = PackageStatus.DRAFT;
+
+    @Column(length = 30)
+    @Builder.Default
+    private String visibility = "public";
+
+    // SAR amount in integer (not BigDecimal) per spec
+    @Column
+    private Integer price;
 
     @Column(name = "barter_details", length = 1000)
     private String barterDetails;
 
-    @Column(name = "barter_description", length = 1000)
+    @Column(name = "barter_description", columnDefinition = "text")
     private String barterDescription;
 
     @Column(name = "barter_category", length = 100)
     private String barterCategory;
 
-    @Column(name = "estimated_barter_value", precision = 10, scale = 2)
-    private BigDecimal estimatedBarterValue;
+    @Column(name = "estimated_barter_value")
+    private Integer estimatedBarterValue;
 
-    @Column(name = "hybrid_cash_amount", precision = 10, scale = 2)
-    private BigDecimal hybridCashAmount;
+    @Column(name = "hybrid_cash_amount")
+    private Integer hybridCashAmount;
 
-    @Column(name = "hybrid_barter_value", precision = 10, scale = 2)
-    private BigDecimal hybridBarterValue;
+    @Column(name = "hybrid_barter_value")
+    private Integer hybridBarterValue;
 
-    @Column(length = 1000, name = "creator_expectation")
-    private String creatorExpectation;
+    @Column(name = "creator_expectations", columnDefinition = "text")
+    private String creatorExpectations;
 
-    @Column(nullable = false, precision = 10, scale = 2)
-    private BigDecimal price;
-
-    @Builder.Default
-    @Column(length = 10)
-    private String currency = "PKR";
-
-    @Column(length = 1000, nullable = false)
-    private String deliverables;
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "deliverables", columnDefinition = "jsonb")
+    private List<String> deliverables = new ArrayList<>();
 
     @Column(nullable = false)
     private int deliveryDays;
 
-    private Integer durationDays;
-
     @Builder.Default
     @Column(nullable = false)
     private int revisions = 1;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "tags", columnDefinition = "jsonb")
+    private List<String> tags = new ArrayList<>();
+
+    @Column(name = "thumbnail_url", length = 500)
+    private String thumbnailUrl;
+
+    // legacy cover_image column retained to avoid schema conflict until removed
+    @Column(name = "cover_image", length = 500)
+    private String coverImage;
+
+    @Builder.Default
+    @Column(name = "is_popular", nullable = false)
+    private boolean isPopular = false;
+
+    @Builder.Default
+    @Column(name = "orders_completed", nullable = false)
+    private int ordersCompleted = 0;
+
+    @Column(name = "response_time", length = 50)
+    private String responseTime;
 
     @Builder.Default
     @Column(name = "is_active", nullable = false)
@@ -123,38 +137,17 @@ public class ServicePackage extends BaseEntity {
     @Column(name = "is_featured", nullable = false)
     private boolean featured = false;
 
-    @Column(length = 500)
-    private String coverImage;
-
-    @Builder.Default
-    @Column(length = 50, name = "status")
-    private String status = "draft";
-
-    @Builder.Default
-    @Column(length = 50, name = "visibility")
-    private String visibility = "public";
-
-    @Builder.Default
-    @Column(name = "is_popular")
-    private boolean isPopular = false;
-
-    @Builder.Default
-    @Column(name = "orders_completed")
-    private int ordersCompleted = 0;
-
-    @Column(name = "response_time", length = 50)
-    private String responseTime;
-
     @Column(name = "media_urls", columnDefinition = "text[]")
     private String[] mediaUrls;
 
-    @Column(name = "tags", columnDefinition = "text[]")
-    private String[] tags;
+    @Column(length = 10)
+    @Builder.Default
+    private String currency = "SAR";
 
     @OneToMany(mappedBy = "servicePackage", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<PackageTier> tiers = new ArrayList<>();
+
+    @OneToOne(mappedBy = "servicePackage", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
+    private PackageAnalytics analytics;
 }
-
-
-

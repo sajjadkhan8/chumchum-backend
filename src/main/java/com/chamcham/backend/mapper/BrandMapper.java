@@ -16,10 +16,12 @@ public class BrandMapper {
     public BrandResponse toResponse(Brand brand) {
         return new BrandResponse(
                 brand.getId(),
-                brand.getCompanyName(),
+                brand.getName(),
                 brand.getWebsite(),
                 brand.getIndustry(),
                 brand.getDescription(),
+                brand.getLogoUrl(),
+                brand.getMonthlyBudget(),
                 profileUserMapper.toResponse(brand),
                 brand.getCreatedAt(),
                 brand.getUpdatedAt()

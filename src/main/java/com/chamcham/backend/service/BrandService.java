@@ -48,28 +48,27 @@ public class BrandService {
             throw new ApiException(HttpStatus.CONFLICT, "Brand profile already exists for this user");
         }
 
-        int insertedRows = brandRepository.insertProfile(
+        int rows = brandRepository.insertProfile(
                 user.getId(),
-                request.companyName(),
+                request.companyName(),  // mapped to "name" column
                 request.website(),
                 request.industry(),
                 request.description()
         );
 
-        if (insertedRows != 1) {
+        if (rows != 1) {
             throw new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to create brand profile");
         }
 
         Brand created = brandRepository.findById(user.getId())
-                .orElseThrow(() -> new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "Brand profile created but could not be loaded"));
+                .orElseThrow(() -> new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "Brand created but not loadable"));
         return brandMapper.toResponse(created);
     }
 
     @Transactional
     public List<BrandResponse> getAll() {
-        return brandRepository.findAll(Sort.by(Sort.Direction.DESC, "createdAt")).stream()
-                .map(brandMapper::toResponse)
-                .toList();
+        return brandRepository.findAll(Sort.by(Sort.Direction.DESC, "createdAt"))
+                .stream().map(brandMapper::toResponse).toList();
     }
 
     @Transactional
@@ -90,18 +89,12 @@ public class BrandService {
         Brand brand = findBrand(brandId);
         validateOwnerOrAdmin(actorUserId, actorRole, brand.getId());
 
-        if (request.companyName() != null && !request.companyName().isBlank()) {
-            brand.setCompanyName(request.companyName());
-        }
-        if (request.website() != null) {
-            brand.setWebsite(request.website());
-        }
-        if (request.industry() != null) {
-            brand.setIndustry(request.industry());
-        }
-        if (request.description() != null) {
-            brand.setDescription(request.description());
-        }
+        if (request.companyName() != null && !request.companyName().isBlank()) brand.setName(request.companyName());
+        if (request.website()     != null) brand.setWebsite(request.website());
+        if (request.industry()    != null) brand.setIndustry(request.industry());
+        if (request.description() != null) brand.setDescription(request.description());
+        if (request.logoUrl()     != null) brand.setLogoUrl(request.logoUrl());
+        if (request.monthlyBudget() != null) brand.setMonthlyBudget(request.monthlyBudget());
 
         return brandMapper.toResponse(brandRepository.save(brand));
     }

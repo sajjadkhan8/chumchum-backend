@@ -1,6 +1,5 @@
 package com.chamcham.backend.dto.order;
 
-import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.UUID;
@@ -9,18 +8,19 @@ public record OrderResponse(
         UUID id,
         String orderNumber,
         UUID packageId,
+        String packageTitle,
         UUID creatorId,
+        String creatorName,
         UUID brandId,
+        String brandName,
         String dealType,
-        BigDecimal amount,
+        Integer amount,
         String barterDetails,
+        String message,
         String status,
         int progress,
         LocalDate deadlineDate,
         LocalDate deliveryDate,
-        String image,
-        String title,
         Instant createdAt
 ) {
 }
-

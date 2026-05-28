@@ -8,13 +8,23 @@ import org.springframework.stereotype.Component;
 public class MessageMapper {
 
     public MessageResponse toResponse(Message message) {
+        // prefer content field, fallback to legacy description
+        String content = message.getContent() != null ? message.getContent() : message.getDescription();
         return new MessageResponse(
                 message.getId(),
                 message.getConversation().getId(),
                 message.getSender().getId(),
-                message.getDescription(),
+                message.getSenderType(),
+                message.getType() != null ? message.getType().name().toLowerCase() : "text",
+                content,
+                message.isRead(),
+                message.getAttachmentUrl(),
+                message.getOfferDealType(),
+                message.getOfferAmount(),
+                message.getOfferBarterDetails(),
+                message.getOfferBarterCategory(),
+                message.getOfferStatus(),
                 message.getCreatedAt()
         );
     }
 }
-

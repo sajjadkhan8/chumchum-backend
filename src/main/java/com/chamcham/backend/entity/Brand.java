@@ -19,7 +19,10 @@ import lombok.Setter;
 public class Brand extends User {
 
     @Column(nullable = false, length = 150)
-    private String companyName;
+    private String name;
+
+    @Column(length = 500)
+    private String logoUrl;
 
     @Column(length = 255)
     private String website;
@@ -29,4 +32,7 @@ public class Brand extends User {
 
     @Column(length = 1000)
     private String description;
+
+    @Column(name = "monthly_budget")
+    private Integer monthlyBudget;
 }
