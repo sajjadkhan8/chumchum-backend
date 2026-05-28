@@ -3,7 +3,6 @@ package com.chamcham.backend.controller;
 import com.chamcham.backend.config.security.AuthenticatedUser;
 import com.chamcham.backend.entity.PayoutMethod;
 import com.chamcham.backend.entity.enums.PayoutMethodType;
-import com.chamcham.backend.exception.ApiException;
 import com.chamcham.backend.service.PayoutMethodService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;

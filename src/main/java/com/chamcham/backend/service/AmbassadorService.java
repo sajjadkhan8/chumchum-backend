@@ -14,7 +14,9 @@ import com.chamcham.backend.repository.CreatorRepository;
 import com.chamcham.backend.repository.OrderRepository;
 import com.chamcham.backend.repository.UserRepository;
 import jakarta.transaction.Transactional;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
@@ -99,6 +101,15 @@ public class AmbassadorService {
     }
 
     // ---- Admin ----
+    public Page<AmbassadorApplication> listApplications(String status, Pageable pageable) {
+        if (status == null || status.isBlank()) return applicationRepo.findAll(pageable);
+        try {
+            return applicationRepo.findByStatus(AmbassadorAppStatus.valueOf(status.trim().toUpperCase()), pageable);
+        } catch (IllegalArgumentException e) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Invalid status: " + status);
+        }
+    }
+
     public AmbassadorApplication getApplicationById(UUID id) {
         return applicationRepo.findById(id)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Application not found"));

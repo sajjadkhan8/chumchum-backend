@@ -1,7 +1,6 @@
 package com.chamcham.backend.controller;
 
 import com.chamcham.backend.config.security.AuthenticatedUser;
-import com.chamcham.backend.dto.creator.CreatorResponse;
 import com.chamcham.backend.entity.AmbassadorApplication;
 import com.chamcham.backend.entity.AmbassadorScore;
 import com.chamcham.backend.entity.Creator;
@@ -11,6 +10,9 @@ import com.chamcham.backend.mapper.CreatorMapper;
 import com.chamcham.backend.service.AmbassadorService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Size;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -84,6 +86,25 @@ public class AmbassadorController {
     }
 
     // ---- Admin endpoints ----
+
+    @GetMapping("/applications")
+    public ResponseEntity<Map<String, Object>> listApplications(
+            @RequestParam(required = false) String status,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @AuthenticationPrincipal AuthenticatedUser authUser
+    ) {
+        requireAdmin(authUser);
+        Page<AmbassadorApplication> result = ambassadorService.listApplications(
+                status, PageRequest.of(page, size, Sort.by("submittedAt").descending()));
+        return ResponseEntity.ok(Map.of(
+                "success", true,
+                "data", result.getContent().stream().map(this::toApplicationMap).toList(),
+                "total", result.getTotalElements(),
+                "page", result.getNumber(),
+                "size", result.getSize()
+        ));
+    }
 
     @GetMapping("/applications/{id}")
     public ResponseEntity<Map<String, Object>> getApplicationById(

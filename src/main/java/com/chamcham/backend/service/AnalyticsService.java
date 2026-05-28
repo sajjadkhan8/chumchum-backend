@@ -1,12 +1,14 @@
 package com.chamcham.backend.service;
 
 import com.chamcham.backend.entity.Creator;
+import com.chamcham.backend.entity.Wallet;
 import com.chamcham.backend.entity.enums.OrderStatus;
 import com.chamcham.backend.entity.enums.UserRole;
 import com.chamcham.backend.exception.ApiException;
 import com.chamcham.backend.repository.CreatorRepository;
 import com.chamcham.backend.repository.OrderRepository;
 import com.chamcham.backend.repository.ReviewRepository;
+import com.chamcham.backend.repository.WalletRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
@@ -19,12 +21,14 @@ public class AnalyticsService {
     private final CreatorRepository creatorRepository;
     private final OrderRepository orderRepository;
     private final ReviewRepository reviewRepository;
+    private final WalletRepository walletRepository;
 
     public AnalyticsService(CreatorRepository creatorRepository, OrderRepository orderRepository,
-                            ReviewRepository reviewRepository) {
+                            ReviewRepository reviewRepository, WalletRepository walletRepository) {
         this.creatorRepository = creatorRepository;
         this.orderRepository = orderRepository;
         this.reviewRepository = reviewRepository;
+        this.walletRepository = walletRepository;
     }
 
     public record CreatorDashboard(
@@ -52,7 +56,10 @@ public class AnalyticsService {
                 List.of(OrderStatus.COMPLETED));
         long repeatBrands = orderRepository.countDistinctBrandsByCreatorAndCompleted(userId);
 
-        return new CreatorDashboard(total, active, completed, 0L,
+        Wallet wallet = walletRepository.findByCreatorId(userId).orElse(null);
+        long totalEarnings = wallet != null ? wallet.getTotalEarned() : 0L;
+
+        return new CreatorDashboard(total, active, completed, totalEarnings,
                 creator.getRating().doubleValue(), creator.getTotalReviews(), repeatBrands);
     }
 
