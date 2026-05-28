@@ -33,6 +33,42 @@ public interface CreatorRepository extends JpaRepository<Creator, UUID> {
     @Query("select c from Creator c where c.followers >= :min and c.followers <= :max and c.active = true")
     List<Creator> findByFollowersBetween(@Param("min") int min, @Param("max") int max, Pageable pageable);
 
+    /**
+     * Explore-page filter – all params nullable; null means "no filter on that dimension".
+     */
+    @Query("""
+            select c from Creator c
+            where c.active = true
+              and (:search is null
+                   or lower(c.name) like lower(concat('%', :search, '%'))
+                   or lower(c.bio)  like lower(concat('%', :search, '%'))
+                   or lower(c.city) like lower(concat('%', :search, '%')))
+              and (:city is null or lower(c.city) = lower(:city))
+              and (:minFollowers is null or c.followers >= :minFollowers)
+              and (:maxFollowers is null or c.followers <= :maxFollowers)
+              and (:minRating is null or c.rating >= :minRating)
+              and (:minPrice is null or c.minPrice >= :minPrice)
+              and (:maxPrice is null or c.maxPrice <= :maxPrice)
+              and (:acceptsBarter is null or c.acceptsBarter = :acceptsBarter)
+              and (:isTrending is null or c.isTrending = :isTrending)
+              and (:isFastResponder is null or c.isFastResponder = :isFastResponder)
+              and (:isVerified is null or c.isVerified = :isVerified)
+            """)
+    Page<Creator> search(
+            @Param("search")          String search,
+            @Param("city")            String city,
+            @Param("minFollowers")    Integer minFollowers,
+            @Param("maxFollowers")    Integer maxFollowers,
+            @Param("minRating")       BigDecimal minRating,
+            @Param("minPrice")        Integer minPrice,
+            @Param("maxPrice")        Integer maxPrice,
+            @Param("acceptsBarter")   Boolean acceptsBarter,
+            @Param("isTrending")      Boolean isTrending,
+            @Param("isFastResponder") Boolean isFastResponder,
+            @Param("isVerified")      Boolean isVerified,
+            Pageable pageable
+    );
+
     @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query(value = """
             INSERT INTO core.creators (

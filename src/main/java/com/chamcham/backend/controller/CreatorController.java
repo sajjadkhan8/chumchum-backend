@@ -24,7 +24,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -51,8 +53,61 @@ public class CreatorController {
     }
 
     @GetMapping
-    public ResponseEntity<List<CreatorResponse>> getAll() {
-        return ResponseEntity.ok(creatorService.getAll());
+    public ResponseEntity<Map<String, Object>> search(
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String city,
+            @RequestParam(required = false) Integer minFollowers,
+            @RequestParam(required = false) Integer maxFollowers,
+            @RequestParam(required = false) BigDecimal minRating,
+            @RequestParam(required = false) Integer minPrice,
+            @RequestParam(required = false) Integer maxPrice,
+            @RequestParam(required = false) Boolean acceptsBarter,
+            @RequestParam(required = false) Boolean isTrending,
+            @RequestParam(required = false) Boolean isFastResponder,
+            @RequestParam(defaultValue = "false") Boolean ambassadorOnly,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int limit,
+            @RequestParam(defaultValue = "createdAt") String sortBy
+    ) {
+        CreatorService.CreatorSearchResult r = creatorService.search(
+                search, city, minFollowers, maxFollowers, minRating, minPrice, maxPrice,
+                acceptsBarter, isTrending, isFastResponder, ambassadorOnly, page, limit, sortBy);
+        return ResponseEntity.ok(Map.of("success", true, "data",
+                Map.of("creators", r.creators(), "total", r.total(),
+                        "page", r.page(), "limit", r.limit())));
+    }
+
+    @GetMapping("/trending")
+    public ResponseEntity<Map<String, Object>> trending(
+            @RequestParam(defaultValue = "20") int limit) {
+        CreatorService.CreatorSearchResult r = creatorService.search(
+                null, null, null, null, null, null, null, null, true, null, false, 0, limit, "createdAt");
+        return ResponseEntity.ok(Map.of("success", true, "data", r.creators()));
+    }
+
+    @GetMapping("/barter-friendly")
+    public ResponseEntity<Map<String, Object>> barterFriendly(
+            @RequestParam(defaultValue = "20") int limit) {
+        CreatorService.CreatorSearchResult r = creatorService.search(
+                null, null, null, null, null, null, null, true, null, null, false, 0, limit, "createdAt");
+        return ResponseEntity.ok(Map.of("success", true, "data", r.creators()));
+    }
+
+    @GetMapping("/fast-responders")
+    public ResponseEntity<Map<String, Object>> fastResponders(
+            @RequestParam(defaultValue = "20") int limit) {
+        CreatorService.CreatorSearchResult r = creatorService.search(
+                null, null, null, null, null, null, null, null, null, true, false, 0, limit, "createdAt");
+        return ResponseEntity.ok(Map.of("success", true, "data", r.creators()));
+    }
+
+    @GetMapping("/by-city")
+    public ResponseEntity<Map<String, Object>> byCity(
+            @RequestParam String city,
+            @RequestParam(defaultValue = "20") int limit) {
+        CreatorService.CreatorSearchResult r = creatorService.search(
+                null, city, null, null, null, null, null, null, null, null, false, 0, limit, "createdAt");
+        return ResponseEntity.ok(Map.of("success", true, "data", r.creators()));
     }
 
     @GetMapping("/{creatorId}")

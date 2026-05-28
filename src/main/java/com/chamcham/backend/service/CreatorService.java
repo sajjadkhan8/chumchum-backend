@@ -11,6 +11,9 @@ import com.chamcham.backend.mapper.CreatorMapper;
 import com.chamcham.backend.repository.CreatorRepository;
 import com.chamcham.backend.repository.UserRepository;
 import jakarta.transaction.Transactional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -78,6 +81,38 @@ public class CreatorService {
         return creatorRepository.findAll(Sort.by(Sort.Direction.DESC, "createdAt")).stream()
                 .map(creatorMapper::toResponse)
                 .toList();
+    }
+
+    public record CreatorSearchResult(
+            List<CreatorResponse> creators, long total, int page, int limit) {}
+
+    public CreatorSearchResult search(
+            String search, String city,
+            Integer minFollowers, Integer maxFollowers,
+            BigDecimal minRating, Integer minPrice, Integer maxPrice,
+            Boolean acceptsBarter, Boolean isTrending, Boolean isFastResponder,
+            Boolean ambassadorOnly,
+            int page, int limit, String sortBy) {
+
+        String sortField = switch (sortBy == null ? "" : sortBy) {
+            case "top_rated"       -> "rating";
+            case "budget_friendly" -> "minPrice";
+            default                -> "createdAt";
+        };
+
+        Boolean isVerified = Boolean.TRUE.equals(ambassadorOnly) ? Boolean.TRUE : null;
+
+        Pageable pageable = PageRequest.of(page, Math.min(limit, 50),
+                Sort.by(Sort.Direction.DESC, sortField));
+
+        Page<Creator> result = creatorRepository.search(
+                search, city, minFollowers, maxFollowers, minRating,
+                minPrice, maxPrice, acceptsBarter, isTrending, isFastResponder,
+                isVerified, pageable);
+
+        return new CreatorSearchResult(
+                result.getContent().stream().map(creatorMapper::toResponse).toList(),
+                result.getTotalElements(), page, limit);
     }
 
     @Transactional

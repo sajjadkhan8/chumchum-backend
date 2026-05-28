@@ -1,6 +1,10 @@
 spring:
   application:
     name: zingzing-backend
+  servlet:
+    multipart:
+      max-file-size: 500MB
+      max-request-size: 502MB
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/zingzing?currentSchema=core}
     username: ${DB_USERNAME:postgres}
@@ -53,3 +57,7 @@ security:
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://localhost:4173}
 
+app:
+  uploads:
+    dir: ${UPLOAD_DIR:./uploads}
+    base-url: ${UPLOAD_BASE_URL:http://localhost:8080/uploads}
