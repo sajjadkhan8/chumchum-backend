@@ -1,13 +1,12 @@
 package com.chamcham.backend.dto.servicepackage;
 
-import com.chamcham.backend.dto.profile.ProfileUserResponse;
+import com.chamcham.backend.entity.enums.DealType;
 import com.chamcham.backend.entity.enums.PackagePlatform;
-import com.chamcham.backend.entity.enums.PackagePricingType;
+import com.chamcham.backend.entity.enums.PackageStatus;
 import com.chamcham.backend.entity.enums.PackageType;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 
-import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -24,23 +23,22 @@ public record ServicePackageResponse(
         PackagePlatform platform,
         String category,
         PackageType type,
-        PackagePricingType pricingType,
+        DealType dealType,
         String barterDetails,
         String barterDescription,
         String barterCategory,
-        BigDecimal estimatedBarterValue,
-        BigDecimal hybridCashAmount,
-        BigDecimal hybridBarterValue,
-        String creatorExpectation,
-        BigDecimal price,
+        Integer estimatedBarterValue,
+        Integer hybridCashAmount,
+        Integer hybridBarterValue,
+        String creatorExpectations,
+        Integer price,
         String currency,
-        String deliverables,
+        List<String> deliverables,
         int deliveryDays,
-        Integer durationDays,
         int revisions,
         boolean isActive,
         boolean isFeatured,
-        String status,
+        PackageStatus status,
         String visibility,
         boolean isPopular,
         int ordersCompleted,

@@ -9,7 +9,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -49,11 +48,6 @@ public class ConversationController {
             @PathVariable UUID brandId
     ) {
         return ResponseEntity.ok(conversationService.getSingleConversation(creatorId, brandId));
-    }
-
-    @PatchMapping("/{conversationId}")
-    public ResponseEntity<ConversationResponse> updateConversation(@PathVariable UUID conversationId) {
-        return ResponseEntity.ok(conversationService.markAsRead(conversationId));
     }
 }
 

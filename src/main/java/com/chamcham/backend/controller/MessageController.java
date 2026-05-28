@@ -9,6 +9,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -19,7 +20,7 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/v1/messages")
+@RequestMapping("/api/v1/conversations/{conversationId}")
 public class MessageController {
 
     private final MessageService messageService;
@@ -28,18 +29,41 @@ public class MessageController {
         this.messageService = messageService;
     }
 
-    @PostMapping
-    public ResponseEntity<MessageResponse> create(
+    @PostMapping("/messages")
+    public ResponseEntity<MessageResponse> sendText(
+            @PathVariable UUID conversationId,
             @AuthenticationPrincipal AuthenticatedUser authUser,
             @Valid @RequestBody MessageCreateRequest request
     ) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(messageService.createMessage(authUser.userId(), authUser.role(), request));
+                .body(messageService.sendTextMessage(authUser.userId(), authUser.role(), conversationId, request));
     }
 
-    @GetMapping("/{conversationId}")
-    public ResponseEntity<List<MessageResponse>> list(@PathVariable UUID conversationId) {
-        return ResponseEntity.ok(messageService.getMessages(conversationId));
+    @PostMapping("/messages/offer")
+    public ResponseEntity<MessageResponse> sendOffer(
+            @PathVariable UUID conversationId,
+            @AuthenticationPrincipal AuthenticatedUser authUser,
+            @Valid @RequestBody MessageCreateRequest request
+    ) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(messageService.sendOfferMessage(authUser.userId(), authUser.role(), conversationId, request));
+    }
+
+    @GetMapping("/messages")
+    public ResponseEntity<List<MessageResponse>> list(
+            @PathVariable UUID conversationId,
+            @AuthenticationPrincipal AuthenticatedUser authUser
+    ) {
+        return ResponseEntity.ok(messageService.getMessages(conversationId, authUser.userId()));
+    }
+
+    @PatchMapping("/read")
+    public ResponseEntity<Void> markRead(
+            @PathVariable UUID conversationId,
+            @AuthenticationPrincipal AuthenticatedUser authUser
+    ) {
+        messageService.markRead(conversationId, authUser.userId(), authUser.role());
+        return ResponseEntity.noContent().build();
     }
 }
 

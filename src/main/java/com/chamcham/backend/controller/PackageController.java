@@ -18,7 +18,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.math.BigDecimal;
 import java.util.Map;
 import java.util.UUID;
 
@@ -50,7 +49,7 @@ public class PackageController {
         return ResponseEntity.ok(Map.of("error", false, "message", "Package has been deleted successfully!"));
     }
 
-    @GetMapping("/single/{id}")
+    @GetMapping("/{id}")
     public ResponseEntity<ServicePackageResponse> getPackage(@PathVariable UUID id) {
         return ResponseEntity.ok(servicePackageService.getPackage(id));
     }
@@ -59,8 +58,8 @@ public class PackageController {
     public ResponseEntity<PageResponse<ServicePackageResponse>> getPackages(
             @RequestParam(required = false) String category,
             @RequestParam(required = false) String search,
-            @RequestParam(required = false) BigDecimal min,
-            @RequestParam(required = false) BigDecimal max,
+            @RequestParam(required = false) Integer min,
+            @RequestParam(required = false) Integer max,
             @RequestParam(required = false) UUID creatorId,
             @RequestParam(required = false) UUID creatorUserId,
             @RequestParam(defaultValue = "0") int page,

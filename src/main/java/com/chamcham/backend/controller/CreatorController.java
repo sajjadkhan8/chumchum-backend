@@ -4,7 +4,9 @@ import com.chamcham.backend.config.security.AuthenticatedUser;
 import com.chamcham.backend.dto.creator.CreatorCreateRequest;
 import com.chamcham.backend.dto.creator.CreatorResponse;
 import com.chamcham.backend.dto.creator.CreatorUpdateRequest;
+import com.chamcham.backend.dto.review.ReviewResponse;
 import com.chamcham.backend.service.CreatorService;
+import com.chamcham.backend.service.ReviewService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -26,9 +28,11 @@ import java.util.UUID;
 public class CreatorController {
 
     private final CreatorService creatorService;
+    private final ReviewService reviewService;
 
-    public CreatorController(CreatorService creatorService) {
+    public CreatorController(CreatorService creatorService, ReviewService reviewService) {
         this.creatorService = creatorService;
+        this.reviewService = reviewService;
     }
 
     @PostMapping
@@ -47,6 +51,11 @@ public class CreatorController {
     @GetMapping("/{creatorId}")
     public ResponseEntity<CreatorResponse> getById(@PathVariable UUID creatorId) {
         return ResponseEntity.ok(creatorService.getById(creatorId));
+    }
+
+    @GetMapping("/{creatorId}/reviews")
+    public ResponseEntity<List<ReviewResponse>> getCreatorReviews(@PathVariable UUID creatorId) {
+        return ResponseEntity.ok(reviewService.getReviewsByCreator(creatorId));
     }
 
     @GetMapping("/user/{userId}")

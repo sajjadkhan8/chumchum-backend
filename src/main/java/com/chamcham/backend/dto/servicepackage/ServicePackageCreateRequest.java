@@ -1,18 +1,18 @@
 package com.chamcham.backend.dto.servicepackage;
 
 import com.chamcham.backend.entity.enums.PackagePlatform;
-import com.chamcham.backend.entity.enums.PackagePricingType;
+import com.chamcham.backend.entity.enums.DealType;
+import com.chamcham.backend.entity.enums.PackageStatus;
 import com.chamcham.backend.entity.enums.PackageType;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 
-import java.math.BigDecimal;
 import java.util.List;
 
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
@@ -25,22 +25,21 @@ public record ServicePackageCreateRequest(
         @NotNull PackagePlatform platform,
         @Size(max = 80) String category,
         @NotNull PackageType type,
-        PackagePricingType pricingType,
+        DealType dealType,
         @Size(max = 1000) String barterDetails,
         @Size(max = 1000) String barterDescription,
         @Size(max = 100) String barterCategory,
-        @DecimalMin("0.00") BigDecimal estimatedBarterValue,
-        @DecimalMin("0.00") BigDecimal hybridCashAmount,
-        @DecimalMin("0.00") BigDecimal hybridBarterValue,
-        @Size(max = 1000) String creatorExpectation,
-        @NotNull @DecimalMin("1.00") BigDecimal price,
+        @Min(0) Integer estimatedBarterValue,
+        @Min(0) Integer hybridCashAmount,
+        @Min(0) Integer hybridBarterValue,
+        @Size(max = 1000) String creatorExpectations,
+        @NotNull @Min(1) Integer price,
         @Size(max = 10) String currency,
-        @NotBlank @Size(max = 1000) String deliverables,
+        @NotNull @Size(min = 1, max = 30) List<@NotBlank @Size(max = 200) String> deliverables,
         @NotNull @Positive Integer deliveryDays,
-        @Positive Integer durationDays,
         @Positive Integer revisions,
         Boolean isFeatured,
-        String status,
+        PackageStatus status,
         String visibility,
         @Size(max = 50) String responseTime,
         String coverImage,

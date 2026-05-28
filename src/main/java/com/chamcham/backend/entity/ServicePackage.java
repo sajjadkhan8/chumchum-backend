@@ -98,6 +98,7 @@ public class ServicePackage extends BaseEntity {
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "deliverables", columnDefinition = "jsonb")
+    @Builder.Default
     private List<String> deliverables = new ArrayList<>();
 
     @Column(nullable = false)
@@ -109,6 +110,7 @@ public class ServicePackage extends BaseEntity {
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "tags", columnDefinition = "jsonb")
+    @Builder.Default
     private List<String> tags = new ArrayList<>();
 
     @Column(name = "thumbnail_url", length = 500)

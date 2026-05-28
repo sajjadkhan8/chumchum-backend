@@ -5,7 +5,8 @@ import com.chamcham.backend.entity.PackageTier;
 import com.chamcham.backend.dto.servicepackage.ServicePackageResponse;
 import com.chamcham.backend.entity.ServicePackage;
 import com.chamcham.backend.entity.Creator;
-import com.chamcham.backend.entity.enums.PackagePricingType;
+import com.chamcham.backend.entity.enums.DealType;
+import com.chamcham.backend.entity.enums.PackageStatus;
 import com.chamcham.backend.entity.enums.UserRole;
 import com.chamcham.backend.exception.ApiException;
 import com.chamcham.backend.mapper.ServicePackageMapper;
@@ -19,7 +20,6 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
-import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
@@ -63,17 +63,27 @@ public class ServicePackageService {
                 .platform(request.platform())
                 .category(request.category())
                 .type(request.type())
-                .pricingType(request.pricingType() == null ? PackagePricingType.PAID : request.pricingType())
+                .shortDescription(request.shortDescription())
+                .fullDescription(request.fullDescription())
+                .dealType(request.dealType() == null ? DealType.PAID : request.dealType())
                 .barterDetails(request.barterDetails())
+                .barterDescription(request.barterDescription())
+                .barterCategory(request.barterCategory())
+                .estimatedBarterValue(request.estimatedBarterValue())
+                .hybridCashAmount(request.hybridCashAmount())
+                .hybridBarterValue(request.hybridBarterValue())
+                .creatorExpectations(request.creatorExpectations())
                 .price(request.price())
                 .currency(request.currency() == null || request.currency().isBlank() ? "SAR" : request.currency())
                 .deliverables(request.deliverables())
                 .deliveryDays(request.deliveryDays())
-                .durationDays(request.durationDays())
                 .revisions(request.revisions() == null ? 1 : request.revisions())
+                .status(request.status() == null ? PackageStatus.DRAFT : request.status())
+                .visibility(request.visibility() == null || request.visibility().isBlank() ? "public" : request.visibility())
+                .responseTime(request.responseTime())
                 .featured(request.isFeatured() != null && request.isFeatured())
                 .mediaUrls(toArray(request.mediaUrls()))
-                .tags(toArray(request.tags()))
+                .tags(request.tags())
                 .active(request.isActive() == null || request.isActive())
                 .coverImage(request.coverImage())
                 .build();
@@ -115,8 +125,8 @@ public class ServicePackageService {
     public PageResponse<ServicePackageResponse> getPackages(
             String category,
             String search,
-            BigDecimal min,
-            BigDecimal max,
+            Integer min,
+            Integer max,
             UUID creatorId,
             UUID creatorUserId,
             int page,
@@ -132,11 +142,11 @@ public class ServicePackageService {
                     .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Creator not found"));
             packages = servicePackageRepository.findByCreator(creator, pageable);
         } else {
-            packages = servicePackageRepository.findByActiveTrueAndCategoryContainingIgnoreCaseAndTitleContainingIgnoreCaseAndPriceBetween(
-                    category == null ? "" : category,
-                    search == null ? "" : search,
-                    min == null ? BigDecimal.ZERO : min,
-                    max == null ? new BigDecimal("999999999") : max,
+            packages = servicePackageRepository.searchActive(
+                    category,
+                    search,
+                    min,
+                    max,
                     pageable
             );
         }
@@ -149,11 +159,16 @@ public class ServicePackageService {
     }
 
     private void validatePricing(ServicePackageCreateRequest request) {
-        PackagePricingType pricingType = request.pricingType() == null ? PackagePricingType.PAID : request.pricingType();
+        DealType dealType = request.dealType() == null ? DealType.PAID : request.dealType();
 
-        if (pricingType == PackagePricingType.BARTER
+        if (dealType == DealType.BARTER
                 && (request.barterDetails() == null || request.barterDetails().isBlank())) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "barterDetails is required when pricingType is BARTER");
+            throw new ApiException(HttpStatus.BAD_REQUEST, "barterDetails is required when dealType is BARTER");
+        }
+
+        if ((dealType == DealType.PAID || dealType == DealType.HYBRID)
+                && (request.price() == null || request.price() <= 0)) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "price is required when dealType is PAID/HYBRID");
         }
     }
 }
