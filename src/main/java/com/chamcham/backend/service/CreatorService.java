@@ -4,11 +4,16 @@ import com.chamcham.backend.dto.creator.CreatorCreateRequest;
 import com.chamcham.backend.dto.creator.CreatorResponse;
 import com.chamcham.backend.dto.creator.CreatorUpdateRequest;
 import com.chamcham.backend.entity.Creator;
+import com.chamcham.backend.entity.PayoutMethod;
+import com.chamcham.backend.entity.SocialAccount;
 import com.chamcham.backend.entity.User;
+import com.chamcham.backend.entity.enums.PayoutMethodType;
 import com.chamcham.backend.entity.enums.UserRole;
 import com.chamcham.backend.exception.ApiException;
 import com.chamcham.backend.mapper.CreatorMapper;
 import com.chamcham.backend.repository.CreatorRepository;
+import com.chamcham.backend.repository.PayoutMethodRepository;
+import com.chamcham.backend.repository.SocialAccountRepository;
 import com.chamcham.backend.repository.UserRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.data.domain.Page;
@@ -28,11 +33,18 @@ public class CreatorService {
     private final CreatorRepository creatorRepository;
     private final UserRepository userRepository;
     private final CreatorMapper creatorMapper;
+    private final SocialAccountRepository socialAccountRepository;
+    private final PayoutMethodRepository payoutMethodRepository;
 
-    public CreatorService(CreatorRepository creatorRepository, UserRepository userRepository, CreatorMapper creatorMapper) {
+    public CreatorService(CreatorRepository creatorRepository, UserRepository userRepository,
+                          CreatorMapper creatorMapper,
+                          SocialAccountRepository socialAccountRepository,
+                          PayoutMethodRepository payoutMethodRepository) {
         this.creatorRepository = creatorRepository;
         this.userRepository = userRepository;
         this.creatorMapper = creatorMapper;
+        this.socialAccountRepository = socialAccountRepository;
+        this.payoutMethodRepository = payoutMethodRepository;
     }
 
     @Transactional
@@ -169,6 +181,81 @@ public class CreatorService {
         }
 
         return creatorMapper.toResponse(creatorRepository.save(creator));
+    }
+
+    // ---- Social accounts ----
+
+    public record SocialAccountRequest(
+            String platform, String username, String profileUrl,
+            Integer followers, Integer avgViews, BigDecimal engagementRate) {}
+
+    @Transactional
+    public List<SocialAccount> updateSocialAccounts(UUID userId, UserRole role, List<SocialAccountRequest> accounts) {
+        if (!role.isCreator()) throw new ApiException(HttpStatus.FORBIDDEN, "Only creators can update social accounts");
+        Creator creator = findCreator(userId);
+        // delete existing and re-insert (simpler than upsert per-platform)
+        socialAccountRepository.deleteAll(socialAccountRepository.findByCreatorId(userId));
+        List<SocialAccount> saved = accounts.stream().map(a -> socialAccountRepository.save(
+                SocialAccount.builder()
+                        .creator(creator)
+                        .platform(a.platform())
+                        .username(a.username() != null ? a.username() : "")
+                        .profileUrl(a.profileUrl())
+                        .followers(a.followers() != null ? a.followers() : 0)
+                        .avgViews(a.avgViews())
+                        .engagementRate(a.engagementRate() != null ? a.engagementRate() : BigDecimal.ZERO)
+                        .build()
+        )).toList();
+        return saved;
+    }
+
+    // ---- Preferences ----
+
+    public record PreferencesRequest(
+            Boolean acceptsBarter, Boolean acceptsHybridDeals,
+            String preferredIndustries, Integer minimumBudget) {}
+
+    @Transactional
+    public CreatorResponse updatePreferences(UUID userId, UserRole role, PreferencesRequest req) {
+        if (!role.isCreator()) throw new ApiException(HttpStatus.FORBIDDEN, "Only creators can update preferences");
+        Creator creator = findCreator(userId);
+        if (req.acceptsBarter() != null) creator.setAcceptsBarter(req.acceptsBarter());
+        if (req.acceptsHybridDeals() != null) creator.setAcceptsHybridDeals(req.acceptsHybridDeals());
+        if (req.preferredIndustries() != null) creator.setPreferredIndustries(req.preferredIndustries());
+        if (req.minimumBudget() != null) creator.setMinimumBudget(req.minimumBudget());
+        return creatorMapper.toResponse(creatorRepository.save(creator));
+    }
+
+    // ---- Payment settings ----
+
+    public record PaymentSettingsRequest(
+            String stcPayNumber, String madaCard, String accountTitle,
+            String ibanOrAccount, String applePayNumber, String bankTransferIban) {}
+
+    @Transactional
+    public void updatePaymentSettings(UUID userId, UserRole role, PaymentSettingsRequest req) {
+        if (!role.isCreator()) throw new ApiException(HttpStatus.FORBIDDEN, "Only creators can update payment settings");
+        Creator creator = findCreator(userId);
+        upsertPayoutMethod(creator, PayoutMethodType.STCPAY, "STC Pay", req.stcPayNumber());
+        upsertPayoutMethod(creator, PayoutMethodType.MADA,    "Mada",    req.madaCard());
+        upsertPayoutMethod(creator, PayoutMethodType.APPLEPAY,"Apple Pay", req.applePayNumber());
+        upsertPayoutMethod(creator, PayoutMethodType.BANK_TRANSFER, req.accountTitle() != null ? req.accountTitle() : "Bank Transfer",
+                req.ibanOrAccount() != null ? req.ibanOrAccount() : req.bankTransferIban());
+    }
+
+    private void upsertPayoutMethod(Creator creator, PayoutMethodType type, String name, String accountDetails) {
+        if (accountDetails == null || accountDetails.isBlank()) return;
+        List<PayoutMethod> existing = payoutMethodRepository.findByCreatorId(creator.getId())
+                .stream().filter(p -> p.getType() == type).toList();
+        if (!existing.isEmpty()) {
+            PayoutMethod pm = existing.get(0);
+            pm.setAccountDetails(accountDetails);
+            pm.setName(name);
+            payoutMethodRepository.save(pm);
+        } else {
+            payoutMethodRepository.save(PayoutMethod.builder()
+                    .creator(creator).type(type).name(name).accountDetails(accountDetails).build());
+        }
     }
 
     private Creator findCreator(UUID creatorId) {

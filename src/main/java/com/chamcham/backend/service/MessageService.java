@@ -18,6 +18,9 @@ import com.chamcham.backend.repository.UserRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+
+import static com.chamcham.backend.service.FileStorageService.MB;
 
 import java.util.List;
 import java.util.UUID;
@@ -30,17 +33,20 @@ public class MessageService {
     private final UserRepository userRepository;
     private final QuickDealOfferRepository quickDealOfferRepository;
     private final MessageMapper messageMapper;
+    private final FileStorageService fileStorageService;
 
     public MessageService(MessageRepository messageRepository,
                           ConversationRepository conversationRepository,
                           UserRepository userRepository,
                           QuickDealOfferRepository quickDealOfferRepository,
-                          MessageMapper messageMapper) {
+                          MessageMapper messageMapper,
+                          FileStorageService fileStorageService) {
         this.messageRepository = messageRepository;
         this.conversationRepository = conversationRepository;
         this.userRepository = userRepository;
         this.quickDealOfferRepository = quickDealOfferRepository;
         this.messageMapper = messageMapper;
+        this.fileStorageService = fileStorageService;
     }
 
     @Transactional
@@ -115,6 +121,30 @@ public class MessageService {
         validateParticipant(userId, conversation);
         return messageRepository.findByConversationIdOrderByCreatedAtAsc(conversationId)
                 .stream().map(messageMapper::toResponse).toList();
+    }
+
+    @Transactional
+    public MessageResponse sendAttachmentMessage(UUID userId, UserRole role, UUID conversationId, MultipartFile file) {
+        if (role.isAdmin()) throw new ApiException(HttpStatus.FORBIDDEN, "Admin cannot send messages");
+        Conversation conversation = findConversation(conversationId);
+        validateParticipant(userId, conversation);
+        User sender = findUser(userId);
+
+        if (file.getSize() > 100 * MB)
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Attachment must be under 100 MB");
+
+        String attachmentUrl = fileStorageService.store(file, "attachments");
+
+        Message message = Message.builder()
+                .conversation(conversation)
+                .sender(sender)
+                .senderType(role.name().toLowerCase())
+                .type(Message.MessageType.ATTACHMENT)
+                .attachmentUrl(attachmentUrl)
+                .isRead(false)
+                .build();
+
+        return save(message, conversation, role, "[Attachment]");
     }
 
     @Transactional

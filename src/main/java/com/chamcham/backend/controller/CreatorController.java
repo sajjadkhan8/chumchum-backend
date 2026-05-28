@@ -6,6 +6,7 @@ import com.chamcham.backend.dto.creator.CreatorResponse;
 import com.chamcham.backend.dto.creator.CreatorUpdateRequest;
 import com.chamcham.backend.dto.review.ReviewResponse;
 import com.chamcham.backend.dto.servicepackage.ServicePackageResponse;
+import com.chamcham.backend.entity.SocialAccount;
 import com.chamcham.backend.service.CreatorService;
 import com.chamcham.backend.service.ReviewService;
 import com.chamcham.backend.service.ServicePackageService;
@@ -160,6 +161,40 @@ public class CreatorController {
             @Valid @RequestBody CreatorUpdateRequest request
     ) {
         return ResponseEntity.ok(creatorService.update(authUser.userId(), authUser.role(), authUser.userId(), request));
+    }
+
+    @PutMapping("/me/social-accounts")
+    public ResponseEntity<Map<String, Object>> updateSocialAccounts(
+            @AuthenticationPrincipal AuthenticatedUser authUser,
+            @RequestBody Map<String, List<CreatorService.SocialAccountRequest>> body
+    ) {
+        List<SocialAccount> accounts = creatorService.updateSocialAccounts(
+                authUser.userId(), authUser.role(), body.getOrDefault("accounts", List.of()));
+        return ResponseEntity.ok(Map.of("success", true, "data",
+                accounts.stream().map(a -> Map.of(
+                        "id", a.getId(),
+                        "platform", a.getPlatform(),
+                        "username", a.getUsername(),
+                        "followers", a.getFollowers()
+                )).toList()));
+    }
+
+    @PatchMapping("/me/preferences")
+    public ResponseEntity<Map<String, Object>> updatePreferences(
+            @AuthenticationPrincipal AuthenticatedUser authUser,
+            @RequestBody CreatorService.PreferencesRequest req
+    ) {
+        CreatorResponse updated = creatorService.updatePreferences(authUser.userId(), authUser.role(), req);
+        return ResponseEntity.ok(Map.of("success", true, "data", updated));
+    }
+
+    @PatchMapping("/me/payment-settings")
+    public ResponseEntity<Map<String, Object>> updatePaymentSettings(
+            @AuthenticationPrincipal AuthenticatedUser authUser,
+            @RequestBody CreatorService.PaymentSettingsRequest req
+    ) {
+        creatorService.updatePaymentSettings(authUser.userId(), authUser.role(), req);
+        return ResponseEntity.ok(Map.of("success", true, "message", "Payment settings updated"));
     }
 }
 
