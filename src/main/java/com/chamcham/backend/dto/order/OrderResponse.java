@@ -2,18 +2,24 @@ package com.chamcham.backend.dto.order;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.UUID;
 
 public record OrderResponse(
         UUID id,
+        String orderNumber,
         UUID packageId,
-        String image,
-        String title,
-        BigDecimal price,
         UUID creatorId,
         UUID brandId,
-        boolean isCompleted,
-        String paymentIntent,
+        String dealType,
+        BigDecimal amount,
+        String barterDetails,
+        String status,
+        int progress,
+        LocalDate deadlineDate,
+        LocalDate deliveryDate,
+        String image,
+        String title,
         Instant createdAt
 ) {
 }

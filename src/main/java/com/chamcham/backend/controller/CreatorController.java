@@ -12,6 +12,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -21,7 +22,7 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/creators")
+@RequestMapping("/api/v1/creators")
 public class CreatorController {
 
     private final CreatorService creatorService;
@@ -56,6 +57,11 @@ public class CreatorController {
         return ResponseEntity.ok(creatorService.getByUserId(authUser.userId(), authUser.role(), userId));
     }
 
+    @GetMapping("/me/profile")
+    public ResponseEntity<CreatorResponse> meProfile(@AuthenticationPrincipal AuthenticatedUser authUser) {
+        return ResponseEntity.ok(creatorService.getByUserId(authUser.userId(), authUser.role(), authUser.userId()));
+    }
+
     @PutMapping("/{creatorId}")
     public ResponseEntity<CreatorResponse> update(
             @AuthenticationPrincipal AuthenticatedUser authUser,
@@ -63,6 +69,14 @@ public class CreatorController {
             @Valid @RequestBody CreatorUpdateRequest request
     ) {
         return ResponseEntity.ok(creatorService.update(authUser.userId(), authUser.role(), creatorId, request));
+    }
+
+    @PatchMapping("/me/profile")
+    public ResponseEntity<CreatorResponse> updateMe(
+            @AuthenticationPrincipal AuthenticatedUser authUser,
+            @Valid @RequestBody CreatorUpdateRequest request
+    ) {
+        return ResponseEntity.ok(creatorService.update(authUser.userId(), authUser.role(), authUser.userId(), request));
     }
 }
 

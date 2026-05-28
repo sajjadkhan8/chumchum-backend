@@ -3,6 +3,7 @@ package com.chamcham.backend.entity;
 import com.chamcham.backend.entity.enums.PackagePlatform;
 import com.chamcham.backend.entity.enums.PackagePricingType;
 import com.chamcham.backend.entity.enums.PackageType;
+import com.chamcham.backend.entity.enums.OrderStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;
@@ -49,8 +50,14 @@ public class ServicePackage extends BaseEntity {
     @Column(nullable = false, length = 150)
     private String title;
 
+    @Column(length = 300)
+    private String shortDescription;
+
     @Column(length = 2000)
     private String description;
+
+    @Column(length = 2000, name = "full_description")
+    private String fullDescription;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 50)
@@ -70,6 +77,24 @@ public class ServicePackage extends BaseEntity {
 
     @Column(name = "barter_details", length = 1000)
     private String barterDetails;
+
+    @Column(name = "barter_description", length = 1000)
+    private String barterDescription;
+
+    @Column(name = "barter_category", length = 100)
+    private String barterCategory;
+
+    @Column(name = "estimated_barter_value", precision = 10, scale = 2)
+    private BigDecimal estimatedBarterValue;
+
+    @Column(name = "hybrid_cash_amount", precision = 10, scale = 2)
+    private BigDecimal hybridCashAmount;
+
+    @Column(name = "hybrid_barter_value", precision = 10, scale = 2)
+    private BigDecimal hybridBarterValue;
+
+    @Column(length = 1000, name = "creator_expectation")
+    private String creatorExpectation;
 
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal price;
@@ -100,6 +125,25 @@ public class ServicePackage extends BaseEntity {
 
     @Column(length = 500)
     private String coverImage;
+
+    @Builder.Default
+    @Column(length = 50, name = "status")
+    private String status = "draft";
+
+    @Builder.Default
+    @Column(length = 50, name = "visibility")
+    private String visibility = "public";
+
+    @Builder.Default
+    @Column(name = "is_popular")
+    private boolean isPopular = false;
+
+    @Builder.Default
+    @Column(name = "orders_completed")
+    private int ordersCompleted = 0;
+
+    @Column(name = "response_time", length = 50)
+    private String responseTime;
 
     @Column(name = "media_urls", columnDefinition = "text[]")
     private String[] mediaUrls;

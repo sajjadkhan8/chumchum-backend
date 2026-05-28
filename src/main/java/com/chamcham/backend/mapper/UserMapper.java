@@ -31,16 +31,16 @@ public class UserMapper {
 
         return new UserResponse(
                 user.getId(),
-                user.getUsername(),
                 user.getEmail(),
-                user.getImage(),
+                user.getName(),
+                user.getRole().name().toLowerCase(),
+                user.getAvatarUrl() != null ? user.getAvatarUrl() : user.getImage(),
+                user.getCreatorProgramStatus().name().toLowerCase(),
                 user.getCity(),
                 user.getPhone(),
-                user.getRole(),
-                user.getRole().isCreator(),
-                user.isActive(),
                 creatorPayload,
                 brandPayload,
+                user.isActive(),
                 user.getCreatedAt()
         );
     }

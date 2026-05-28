@@ -66,7 +66,7 @@ public class ServicePackageService {
                 .pricingType(request.pricingType() == null ? PackagePricingType.PAID : request.pricingType())
                 .barterDetails(request.barterDetails())
                 .price(request.price())
-                .currency(request.currency() == null || request.currency().isBlank() ? "PKR" : request.currency())
+                .currency(request.currency() == null || request.currency().isBlank() ? "SAR" : request.currency())
                 .deliverables(request.deliverables())
                 .deliveryDays(request.deliveryDays())
                 .durationDays(request.durationDays())

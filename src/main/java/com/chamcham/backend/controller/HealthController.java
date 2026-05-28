@@ -1,16 +1,11 @@
 package com.chamcham.backend.controller;
 
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RestController;
+/**
+ * Legacy placeholder kept intentionally empty while removing non-spec root endpoint mapping.
+ */
+public final class HealthController {
 
-import java.util.Map;
-
-@RestController
-public class HealthController {
-
-    @GetMapping("/")
-    public Map<String, String> home() {
-        return Map.of("message", "Hello, Topper!");
+    private HealthController() {
     }
 }
 

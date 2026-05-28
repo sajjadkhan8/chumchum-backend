@@ -1,10 +1,11 @@
 package com.chamcham.backend.service;
 
 import com.chamcham.backend.dto.order.OrderResponse;
-import com.chamcham.backend.dto.order.PaymentIntentResponse;
 import com.chamcham.backend.entity.Brand;
 import com.chamcham.backend.entity.Order;
 import com.chamcham.backend.entity.ServicePackage;
+import com.chamcham.backend.entity.enums.OrderStatus;
+import com.chamcham.backend.entity.enums.PackagePricingType;
 import com.chamcham.backend.entity.enums.UserRole;
 import com.chamcham.backend.exception.ApiException;
 import com.chamcham.backend.mapper.OrderMapper;
@@ -14,6 +15,8 @@ import com.chamcham.backend.repository.ServicePackageRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.List;
 import java.util.UUID;
 
@@ -24,6 +27,7 @@ public class OrderService {
     private final ServicePackageRepository servicePackageRepository;
     private final BrandRepository brandRepository;
     private final OrderMapper orderMapper;
+    private final AtomicLong orderNumberCounter = new AtomicLong(1);
 
     public OrderService(
             OrderRepository orderRepository,
@@ -44,7 +48,7 @@ public class OrderService {
                 .toList();
     }
 
-    public PaymentIntentResponse createPaymentIntent(UUID packageId, UUID brandId, UserRole role) {
+    public OrderResponse createOrder(UUID packageId, UUID brandId, UserRole role, BigDecimal amount, String barterDetails) {
         if (!role.isBrand() && !role.isAdmin()) {
             throw new ApiException(HttpStatus.FORBIDDEN, "Only brands can place orders");
         }
@@ -54,30 +58,31 @@ public class OrderService {
         Brand brand = brandRepository.findById(brandId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Brand profile not found"));
 
-        String paymentIntent = "pi_" + UUID.randomUUID();
-        String clientSecret = paymentIntent + "_secret";
+        String orderNumber = "ORD-" + String.format("%05d", orderNumberCounter.getAndIncrement());
 
         Order order = Order.builder()
                 .id(UUID.randomUUID())
+                .orderNumber(orderNumber)
                 .servicePackage(servicePackage)
                 .image(servicePackage.getCoverImage())
                 .title(servicePackage.getTitle())
                 .brand(brand)
                 .creator(servicePackage.getCreator())
-                .price(servicePackage.getPrice())
-                .paymentIntent(paymentIntent)
-                .completed(false)
+                .dealType(PackagePricingType.PAID)
+                .amount(amount)
+                .barterDetails(barterDetails)
+                .status(OrderStatus.PENDING)
+                .progress(0)
                 .build();
 
         orderRepository.save(order);
-        return new PaymentIntentResponse(false, clientSecret);
+        return orderMapper.toResponse(order);
     }
 
-    public void confirmPayment(String paymentIntent) {
-        Order order = orderRepository.findByPaymentIntent(paymentIntent)
+    public void updateOrderStatus(UUID orderId, OrderStatus status) {
+        Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Order not found"));
-
-        order.setCompleted(true);
+        order.setStatus(status);
         orderRepository.save(order);
     }
 }

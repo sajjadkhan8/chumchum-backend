@@ -5,6 +5,8 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
 import jakarta.persistence.Inheritance;
@@ -17,6 +19,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.util.UUID;
+import java.time.OffsetDateTime;
 
 @Getter
 @Setter
@@ -35,25 +38,54 @@ public class User extends BaseEntity {
     @Column(nullable = false, unique = true, length = 40)
     private String username;
 
+    @Column(length = 100)
+    private String name;
+
     @Column(nullable = false, unique = true, length = 120)
     private String email;
 
-    @Column(nullable = false)
+    @Column(unique = true, length = 20)
+    private String phone;
+
+    @Column
     private String passwordHash;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private UserRole role;
 
+    @Column(length = 500)
+    private String avatarUrl;
+
+    @Column(length = 500)
     private String image;
 
     @Column(length = 80)
     private String city;
 
-    @Column(length = 30)
-    private String phone;
+    @Enumerated(EnumType.STRING)
+    @Column(length = 40)
+    @Builder.Default
+    private CreatorProgramStatus creatorProgramStatus = CreatorProgramStatus.NONE;
 
     @Column(name = "is_active", nullable = false)
     @Builder.Default
     private boolean active = true;
+
+    @Column(name = "deleted_at")
+    private OffsetDateTime deletedAt;
+
+    @PrePersist
+    @PreUpdate
+    void normalize() {
+        if (creatorProgramStatus == null) {
+            creatorProgramStatus = CreatorProgramStatus.NONE;
+        }
+    }
+
+    public enum CreatorProgramStatus {
+        NONE,
+        IN_PATH,
+        ACTIVE_AMBASSADOR
+    }
 }

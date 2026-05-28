@@ -36,13 +36,13 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/auth/register").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/creators", "/api/brands").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/packages/**", "/api/reviews/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/creators", "/api/creators/*", "/api/brands",
-                                "/api/brands/*")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/auth/login", "/api/v1/auth/register", "/api/v1/auth/send-otp", "/api/v1/auth/verify-otp", "/api/v1/auth/refresh", "/api/v1/auth/forgot-password", "/api/v1/auth/reset-password").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/creators", "/api/v1/brands").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/packages/**", "/api/v1/reviews/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/creators", "/api/v1/creators/*", "/api/v1/brands",
+                                "/api/v1/brands/*")
                         .permitAll()
-                        .requestMatchers("/actuator/health", "/").permitAll()
+                        .requestMatchers("/actuator/health").permitAll()
                         .requestMatchers(
                                 "/swagger-ui.html",
                                 "/swagger-ui/**",
@@ -68,7 +68,7 @@ public class SecurityConfig {
 //                "http://localhost:4200"
 //        ));
 
-        config.setAllowedOriginPatterns(List.of("*"));
+        config.setAllowedOrigins(allowedOrigins);
 
         // 👇 allowed HTTP methods
         config.setAllowedMethods(List.of(

@@ -1,8 +1,8 @@
 spring:
   application:
-    name: chamcham-backend
+    name: zingzing-backend
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5432/chamcham?currentSchema=core}
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/zingzing?currentSchema=core}
     username: ${DB_USERNAME:postgres}
     password: ${DB_PASSWORD:postgres}
   jpa:

@@ -63,9 +63,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         if (roleClaim != null && !roleClaim.isBlank()) {
             return UserRole.valueOf(roleClaim);
         }
-
-        boolean legacySeller = Boolean.TRUE.equals(claims.get("isSeller", Boolean.class));
-        return UserRole.fromLegacySellerFlag(legacySeller);
+        throw new IllegalArgumentException("Missing role claim");
     }
 
     private String resolveToken(HttpServletRequest request) {

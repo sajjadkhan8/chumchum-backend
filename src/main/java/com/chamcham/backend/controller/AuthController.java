@@ -1,22 +1,13 @@
 package com.chamcham.backend.controller;
 
 import com.chamcham.backend.config.security.AuthenticatedUser;
-import com.chamcham.backend.dto.auth.AuthLoginRequest;
-import com.chamcham.backend.dto.auth.AuthRegisterRequest;
-import com.chamcham.backend.dto.auth.AuthRegisterResponse;
-import com.chamcham.backend.dto.auth.AuthRegisterUserResponse;
-import com.chamcham.backend.dto.auth.AuthResponse;
-import com.chamcham.backend.dto.user.UserResponse;
+import com.chamcham.backend.dto.auth.*;
 import com.chamcham.backend.service.AuthService;
-import com.chamcham.backend.service.AuthSession;
+import com.chamcham.backend.util.ApiResponse;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -25,76 +16,56 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/auth")
+@RequestMapping("/api/v1/auth")
 public class AuthController {
 
     private final AuthService authService;
-
-    @Value("${security.cookie.secure}")
-    private boolean secureCookie;
-
-    @Value("${security.cookie.same-site}")
-    private String sameSite;
-
-    @Value("${security.cookie.max-age-seconds}")
-    private long maxAgeSeconds;
 
     public AuthController(AuthService authService) {
         this.authService = authService;
     }
 
     @PostMapping("/register")
-    public ResponseEntity<AuthRegisterResponse> register(@Valid @RequestBody AuthRegisterRequest request) {
-        UserResponse registeredUser = authService.register(request);
-        AuthRegisterUserResponse user = new AuthRegisterUserResponse(
-                registeredUser.id(),
-                registeredUser.username(),
-                registeredUser.email(),
-                registeredUser.role(),
-                registeredUser.image(),
-                registeredUser.city(),
-                registeredUser.phone()
-        );
-
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(new AuthRegisterResponse(user, "Registration successful"));
+    public ResponseEntity<ApiResponse<AuthTokenResponse>> register(@Valid @RequestBody AuthRegisterRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(authService.register(request)));
     }
 
     @PostMapping("/login")
-    public ResponseEntity<AuthResponse> login(@Valid @RequestBody AuthLoginRequest request) {
-        AuthSession session = authService.login(request);
-        ResponseCookie cookie = ResponseCookie.from("accessToken", session.token())
-                .httpOnly(true)
-                .secure(secureCookie)
-                .path("/")
-                .sameSite(sameSite)
-                .maxAge(maxAgeSeconds)
-                .build();
+    public ResponseEntity<ApiResponse<AuthTokenResponse>> login(@Valid @RequestBody AuthLoginRequest request) {
+        return ResponseEntity.ok(ApiResponse.ok(authService.login(request)));
+    }
 
-        return ResponseEntity.status(HttpStatus.ACCEPTED)
-                .header(HttpHeaders.SET_COOKIE, cookie.toString())
-                .body(new AuthResponse(false, "Success!", session.user()));
+    @PostMapping("/send-otp")
+    public ResponseEntity<ApiResponse<AuthSendOtpResponse>> sendOtp(@Valid @RequestBody AuthSendOtpRequest request) {
+        return ResponseEntity.ok(ApiResponse.ok(authService.sendOtp(request)));
+    }
+
+    @PostMapping("/verify-otp")
+    public ResponseEntity<ApiResponse<AuthTokenResponse>> verifyOtp(@Valid @RequestBody AuthVerifyOtpRequest request) {
+        return ResponseEntity.ok(ApiResponse.ok(authService.verifyOtp(request)));
+    }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<ApiResponse<AuthService.AuthTokenPair>> refresh(@Valid @RequestBody AuthRefreshRequest request) {
+        return ResponseEntity.ok(ApiResponse.ok(authService.refresh(request)));
+    }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<ApiResponse<Map<String, String>>> forgotPassword(@Valid @RequestBody AuthForgotPasswordRequest request) {
+        authService.forgotPassword(request);
+        return ResponseEntity.ok(ApiResponse.ok(Map.of("message", "If your email exists, a reset link has been sent.")));
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<ApiResponse<Void>> resetPassword(@Valid @RequestBody AuthResetPasswordRequest request) {
+        authService.resetPassword(request);
+        return ResponseEntity.ok(ApiResponse.<Void>ok(null));
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<Map<String, Object>> logout() {
-        ResponseCookie cleared = ResponseCookie.from("accessToken", "")
-                .httpOnly(true)
-                .secure(secureCookie)
-                .sameSite(sameSite)
-                .path("/")
-                .maxAge(0)
-                .build();
-
-        return ResponseEntity.ok()
-                .header(HttpHeaders.SET_COOKIE, cleared.toString())
-                .body(Map.of("error", false, "message", "User have been logged out!"));
-    }
-
-    @GetMapping("/me")
-    public ResponseEntity<AuthResponse> me(@AuthenticationPrincipal AuthenticatedUser authUser) {
-        UserResponse user = authService.me(authUser.userId());
-        return ResponseEntity.ok(new AuthResponse(false, "Success!", user));
+    public ResponseEntity<ApiResponse<Void>> logout(@AuthenticationPrincipal AuthenticatedUser authUser) {
+        authService.logout(null);
+        return ResponseEntity.ok(ApiResponse.<Void>ok(null));
     }
 }
 

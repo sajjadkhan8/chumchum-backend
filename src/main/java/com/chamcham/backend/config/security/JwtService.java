@@ -33,8 +33,7 @@ public class JwtService {
         return Jwts.builder()
                 .subject(userId.toString())
                 .claims(Map.of(
-                        "role", role.name(),
-                        "isSeller", role.isCreator()
+                        "role", role.name()
                 ))
                 .issuedAt(Date.from(now))
                 .expiration(Date.from(now.plusMillis(expirationMillis)))

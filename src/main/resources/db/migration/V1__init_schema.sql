@@ -8,7 +8,7 @@ create table users (
     username varchar(40) not null unique,
     email varchar(120) not null unique,
     password_hash varchar(255) not null,
-    role varchar(20) not null constraint ck_users_role check (role in ('CREATOR', 'BRAND', 'ADMIN')),
+    role varchar(20) not null constraint ck_users_role check (role in ('CREATOR', 'BRAND', 'PLATFORM_ADMIN')),
     image varchar(500),
     city varchar(80),
     phone varchar(30),
@@ -50,9 +50,9 @@ create table packages (
     category varchar(80),
     type varchar(30) not null, -- ONE_TIME / SUBSCRIPTION
     pricing_type varchar(30) not null default 'PAID', -- PAID / BARTER
-    barter_details varchar(1000),    -- e.g. "Free meal for 2 worth PKR 5000"
+    barter_details varchar(1000),    -- e.g. "Free meal for 2 worth SAR 500"
     price numeric(10,2) not null,
-    currency varchar(10) default 'PKR',
+    currency varchar(10) default 'SAR',
     deliverables varchar(1000) not null,
     delivery_days int not null,
     duration_days int,

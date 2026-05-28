@@ -23,7 +23,7 @@ import java.util.Map;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/packages")
+@RequestMapping("/api/v1/packages")
 public class PackageController {
 
     private final ServicePackageService servicePackageService;

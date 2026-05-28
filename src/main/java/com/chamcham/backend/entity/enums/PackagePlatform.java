@@ -4,7 +4,8 @@ public enum PackagePlatform {
     TIKTOK,
     INSTAGRAM,
     YOUTUBE,
-    FACEBOOK
+    FACEBOOK,
+    SNAPCHAT
 }
 
 

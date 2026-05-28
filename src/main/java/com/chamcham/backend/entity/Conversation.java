@@ -42,6 +42,17 @@ public class Conversation extends BaseEntity {
     @Column(nullable = false)
     private boolean readByBrand;
 
+    @Column(name = "unread_count_creator")
+    @Builder.Default
+    private int unreadCountCreator = 0;
+
+    @Column(name = "unread_count_brand")
+    @Builder.Default
+    private int unreadCountBrand = 0;
+
+    @Column(name = "last_message_id")
+    private java.util.UUID lastMessageId;
+
     @Column(length = 2000)
     private String lastMessage;
 }

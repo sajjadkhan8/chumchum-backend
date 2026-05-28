@@ -1,8 +1,7 @@
 package com.chamcham.backend.service;
 
 import com.chamcham.backend.config.security.JwtService;
-import com.chamcham.backend.dto.auth.AuthLoginRequest;
-import com.chamcham.backend.dto.auth.AuthRegisterRequest;
+import com.chamcham.backend.dto.auth.*;
 import com.chamcham.backend.dto.brand.BrandCreateRequest;
 import com.chamcham.backend.dto.creator.CreatorCreateRequest;
 import com.chamcham.backend.dto.user.UserResponse;
@@ -12,18 +11,18 @@ import com.chamcham.backend.exception.ApiException;
 import com.chamcham.backend.mapper.UserMapper;
 import com.chamcham.backend.repository.UserRepository;
 import jakarta.transaction.Transactional;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.security.SecureRandom;
+import java.time.Instant;
+import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 public class AuthService {
-
-    private static final Logger log = LoggerFactory.getLogger(AuthService.class);
 
     private final UserRepository userRepository;
     private final UserMapper userMapper;
@@ -32,14 +31,12 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
 
-    public AuthService(
-            UserRepository userRepository,
-            UserMapper userMapper,
-            CreatorService creatorService,
-            BrandService brandService,
-            PasswordEncoder passwordEncoder,
-            JwtService jwtService
-    ) {
+    private final Map<String, OtpEntry> otpStore = new ConcurrentHashMap<>();
+    private final Map<String, UUID> refreshStore = new ConcurrentHashMap<>();
+    private final Map<String, UUID> resetTokens = new ConcurrentHashMap<>();
+    private final SecureRandom secureRandom = new SecureRandom();
+
+    public AuthService(UserRepository userRepository, UserMapper userMapper, CreatorService creatorService, BrandService brandService, PasswordEncoder passwordEncoder, JwtService jwtService) {
         this.userRepository = userRepository;
         this.userMapper = userMapper;
         this.creatorService = creatorService;
@@ -49,98 +46,115 @@ public class AuthService {
     }
 
     @Transactional
-    public UserResponse register(AuthRegisterRequest request) {
-        if (userRepository.existsByUsername(request.username())) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Choose a unique username!");
-        }
+    public AuthTokenResponse register(AuthRegisterRequest request) {
         if (userRepository.existsByEmail(request.email())) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Email already exists!");
+            throw new ApiException(HttpStatus.CONFLICT, "Email already in use");
         }
-
-        validateRolePayload(request);
 
         User user = User.builder()
-                .username(request.username())
+                .username(generateUsername(request.email()))
                 .email(request.email())
+                .name(request.name())
                 .passwordHash(passwordEncoder.encode(request.password()))
-                .image(request.image())
-                .city(request.city())
-                .phone(request.phone())
                 .role(request.role())
+                .creatorProgramStatus(request.role() == UserRole.CREATOR ? User.CreatorProgramStatus.IN_PATH : User.CreatorProgramStatus.NONE)
                 .active(true)
                 .build();
-
-        User savedUser = userRepository.save(user);
-        createRoleProfile(savedUser, request);
-        log.info("Created user {} with role {}", savedUser.getId(), savedUser.getRole());
-        return userMapper.toResponse(savedUser);
-    }
-
-    public AuthSession login(AuthLoginRequest request) {
-        User user = userRepository.findByUsernameOrEmail(request.username(), request.username())
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Check username or password!"));
-
-        if (!passwordEncoder.matches(request.password(), user.getPasswordHash())) {
-            throw new ApiException(HttpStatus.NOT_FOUND, "Check username or password!");
-        }
-        if (!user.isActive()) {
-            throw new ApiException(HttpStatus.FORBIDDEN, "User account is inactive");
-        }
-
-        String token = jwtService.generateToken(user.getId(), user.getRole());
-        UserResponse userResponse = userMapper.toResponse(user);
-        return new AuthSession(token, userResponse);
-    }
-
-    private void validateRolePayload(AuthRegisterRequest request) {
-        if (request.role() == UserRole.ADMIN) {
-            throw new ApiException(HttpStatus.FORBIDDEN, "Admin cannot be created from public signup");
-        }
+        user = userRepository.save(user);
 
         if (request.role() == UserRole.CREATOR) {
-            // Creator signup requires at least one creator field to be present
-            if (request.bio() == null && request.category() == null && request.tiktokUrl() == null
-                    && request.instagramUrl() == null && request.youtubeUrl() == null
-                    && request.facebookUrl() == null) {
-                throw new ApiException(HttpStatus.BAD_REQUEST, "Creator signup requires at least one profile field");
-            }
+            creatorService.create(new CreatorCreateRequest(user.getId(), null, null, null, null, null, null));
+        } else if (request.role() == UserRole.BRAND) {
+            brandService.create(new BrandCreateRequest(user.getId(), request.name(), null, null, null));
         }
 
-        if (request.role() == UserRole.BRAND) {
-            // Brand signup requires company name
-            if (request.companyName() == null || request.companyName().isBlank()) {
-                throw new ApiException(HttpStatus.BAD_REQUEST, "Brand signup requires company name");
-            }
-        }
+        return issueTokens(user);
     }
 
-    private void createRoleProfile(User user, AuthRegisterRequest request) {
-        switch (request.role()) {
-            case CREATOR -> creatorService.create(new CreatorCreateRequest(
-                    user.getId(),
-                    request.bio(),
-                    request.category(),
-                    request.tiktokUrl(),
-                    request.instagramUrl(),
-                    request.youtubeUrl(),
-                    request.facebookUrl()
-            ));
-            case BRAND -> brandService.create(new BrandCreateRequest(
-                    user.getId(),
-                    request.companyName(),
-                    request.website(),
-                    request.industry(),
-                    request.description()
-            ));
-            case ADMIN -> {
-                // Guarded by validateRolePayload
-            }
+    public AuthTokenResponse login(AuthLoginRequest request) {
+        User user = userRepository.findByEmail(request.email())
+                .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "Invalid credentials"));
+
+        if (!passwordEncoder.matches(request.password(), user.getPasswordHash())) {
+            throw new ApiException(HttpStatus.UNAUTHORIZED, "Invalid credentials");
+        }
+
+        return issueTokens(user);
+    }
+
+    public AuthSendOtpResponse sendOtp(AuthSendOtpRequest request) {
+        String otp = String.format("%06d", secureRandom.nextInt(1_000_000));
+        otpStore.put(request.phone(), new OtpEntry(otp, Instant.now().plusSeconds(300)));
+        return new AuthSendOtpResponse("OTP sent successfully", 300);
+    }
+
+    public AuthTokenResponse verifyOtp(AuthVerifyOtpRequest request) {
+        OtpEntry entry = otpStore.get(request.phone());
+        if (entry == null || entry.expiresAt.isBefore(Instant.now()) || !entry.otp.equals(request.otp())) {
+            throw new ApiException(HttpStatus.UNAUTHORIZED, "Invalid or expired OTP");
+        }
+        User user = userRepository.findByPhone(request.phone()).orElseGet(() -> userRepository.save(User.builder()
+                .username(generateUsername(request.phone()))
+                .phone(request.phone())
+                .name(request.phone())
+                .email(request.phone() + "@phone.zingzing.sa")
+                .role(UserRole.CREATOR)
+                .creatorProgramStatus(User.CreatorProgramStatus.IN_PATH)
+                .active(true)
+                .build()));
+        otpStore.remove(request.phone());
+        return issueTokens(user);
+    }
+
+    public AuthTokenPair refresh(AuthRefreshRequest request) {
+        UUID userId = refreshStore.get(request.refreshToken());
+        if (userId == null) {
+            throw new ApiException(HttpStatus.UNAUTHORIZED, "Invalid or expired refresh token");
+        }
+        User user = userRepository.findById(userId).orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "Invalid or expired refresh token"));
+        return new AuthTokenPair(jwtService.generateToken(user.getId(), user.getRole()), request.refreshToken());
+    }
+
+    public void forgotPassword(AuthForgotPasswordRequest request) {
+        userRepository.findByEmail(request.email()).ifPresent(user -> resetTokens.put(UUID.randomUUID().toString(), user.getId()));
+    }
+
+    public void resetPassword(AuthResetPasswordRequest request) {
+        UUID userId = resetTokens.remove(request.token());
+        if (userId == null) {
+            throw new ApiException(HttpStatus.UNAUTHORIZED, "Invalid/expired reset token");
+        }
+        User user = userRepository.findById(userId).orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "Invalid/expired reset token"));
+        user.setPasswordHash(passwordEncoder.encode(request.newPassword()));
+        userRepository.save(user);
+    }
+
+    public void logout(String refreshToken) {
+        if (refreshToken != null) {
+            refreshStore.remove(refreshToken);
         }
     }
 
     public UserResponse me(UUID userId) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "User not found!"));
+        User user = userRepository.findById(userId).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "User not found"));
         return userMapper.toResponse(user);
     }
+
+    private AuthTokenResponse issueTokens(User user) {
+        String accessToken = jwtService.generateToken(user.getId(), user.getRole());
+        String refreshToken = UUID.randomUUID().toString().replace("-", "") + UUID.randomUUID().toString().replace("-", "");
+        refreshStore.put(refreshToken, user.getId());
+        return new AuthTokenResponse(accessToken, refreshToken, userMapper.toResponse(user));
+    }
+
+    private String generateUsername(String seed) {
+        String normalized = seed.replaceAll("[^a-zA-Z0-9]", "").toLowerCase();
+        if (normalized.length() < 3) {
+            normalized = "user" + normalized;
+        }
+        return normalized.length() > 40 ? normalized.substring(0, 40) : normalized;
+    }
+
+    private record OtpEntry(String otp, Instant expiresAt) {}
+    public record AuthTokenPair(String accessToken, String refreshToken) {}
 }
