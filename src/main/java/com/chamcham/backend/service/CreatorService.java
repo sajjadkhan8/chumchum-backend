@@ -114,8 +114,7 @@ public class CreatorService {
 
         Boolean isVerified = Boolean.TRUE.equals(ambassadorOnly) ? Boolean.TRUE : null;
 
-        Pageable pageable = PageRequest.of(page, Math.min(limit, 50),
-                Sort.by(Sort.Direction.DESC, sortField));
+        Pageable pageable = cappedPageable(page, limit, sortField);
 
         Page<Creator> result = creatorRepository.search(
                 search, city, minFollowers, maxFollowers, minRating,
@@ -279,5 +278,39 @@ public class CreatorService {
         if (metricsProvided && !actorRole.isAdmin()) {
             throw new ApiException(HttpStatus.FORBIDDEN, "Only admin can update creator metrics");
         }
+    }
+
+    public List<CreatorResponse> getTrending(int limit) {
+        Pageable pageable = cappedPageable(0, limit, "createdAt");
+        return creatorRepository.findByIsTrendingTrue(pageable).stream()
+                .map(creatorMapper::toResponse)
+                .toList();
+    }
+
+    public List<CreatorResponse> getBarterFriendly(int limit) {
+        Pageable pageable = cappedPageable(0, limit, "createdAt");
+        return creatorRepository.findByAcceptsBarterTrue(pageable).stream()
+                .map(creatorMapper::toResponse)
+                .toList();
+    }
+
+    public List<CreatorResponse> getFastResponders(int limit) {
+        Pageable pageable = cappedPageable(0, limit, "createdAt");
+        return creatorRepository.findByIsFastResponderTrue(pageable).stream()
+                .map(creatorMapper::toResponse)
+                .toList();
+    }
+
+    public List<CreatorResponse> getByCity(String city, int limit) {
+        Pageable pageable = cappedPageable(0, limit, "createdAt");
+        return creatorRepository.findByCityIgnoreCaseAndActiveTrue(city, pageable).stream()
+                .map(creatorMapper::toResponse)
+                .toList();
+    }
+
+    private Pageable cappedPageable(int page, int limit, String sortField) {
+        int safePage = Math.max(page, 0);
+        int safeLimit = Math.min(Math.max(limit, 1), 50);
+        return PageRequest.of(safePage, safeLimit, Sort.by(Sort.Direction.DESC, sortField));
     }
 }

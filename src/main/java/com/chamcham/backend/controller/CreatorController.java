@@ -81,34 +81,26 @@ public class CreatorController {
     @GetMapping("/trending")
     public ResponseEntity<Map<String, Object>> trending(
             @RequestParam(defaultValue = "20") int limit) {
-        CreatorService.CreatorSearchResult r = creatorService.search(
-                null, null, null, null, null, null, null, null, true, null, false, 0, limit, "createdAt");
-        return ResponseEntity.ok(Map.of("success", true, "data", r.creators()));
+        return ResponseEntity.ok(Map.of("success", true, "data", creatorService.getTrending(limit)));
     }
 
     @GetMapping("/barter-friendly")
     public ResponseEntity<Map<String, Object>> barterFriendly(
             @RequestParam(defaultValue = "20") int limit) {
-        CreatorService.CreatorSearchResult r = creatorService.search(
-                null, null, null, null, null, null, null, true, null, null, false, 0, limit, "createdAt");
-        return ResponseEntity.ok(Map.of("success", true, "data", r.creators()));
+        return ResponseEntity.ok(Map.of("success", true, "data", creatorService.getBarterFriendly(limit)));
     }
 
     @GetMapping("/fast-responders")
     public ResponseEntity<Map<String, Object>> fastResponders(
             @RequestParam(defaultValue = "20") int limit) {
-        CreatorService.CreatorSearchResult r = creatorService.search(
-                null, null, null, null, null, null, null, null, null, true, false, 0, limit, "createdAt");
-        return ResponseEntity.ok(Map.of("success", true, "data", r.creators()));
+        return ResponseEntity.ok(Map.of("success", true, "data", creatorService.getFastResponders(limit)));
     }
 
     @GetMapping("/by-city")
     public ResponseEntity<Map<String, Object>> byCity(
             @RequestParam String city,
             @RequestParam(defaultValue = "20") int limit) {
-        CreatorService.CreatorSearchResult r = creatorService.search(
-                null, city, null, null, null, null, null, null, null, null, false, 0, limit, "createdAt");
-        return ResponseEntity.ok(Map.of("success", true, "data", r.creators()));
+        return ResponseEntity.ok(Map.of("success", true, "data", creatorService.getByCity(city, limit)));
     }
 
     @GetMapping("/{creatorId}")
@@ -197,4 +189,3 @@ public class CreatorController {
         return ResponseEntity.ok(Map.of("success", true, "message", "Payment settings updated"));
     }
 }
-

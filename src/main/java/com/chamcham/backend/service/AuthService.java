@@ -6,6 +6,7 @@ import com.chamcham.backend.dto.brand.BrandCreateRequest;
 import com.chamcham.backend.dto.creator.CreatorCreateRequest;
 import com.chamcham.backend.dto.user.UserResponse;
 import com.chamcham.backend.entity.User;
+import com.chamcham.backend.entity.enums.CreatorProgramStatus;
 import com.chamcham.backend.entity.enums.UserRole;
 import com.chamcham.backend.exception.ApiException;
 import com.chamcham.backend.mapper.UserMapper;
@@ -57,7 +58,7 @@ public class AuthService {
                 .name(request.name())
                 .passwordHash(passwordEncoder.encode(request.password()))
                 .role(request.role())
-                .creatorProgramStatus(request.role() == UserRole.CREATOR ? User.CreatorProgramStatus.IN_PATH : User.CreatorProgramStatus.NONE)
+                .creatorProgramStatus(request.role() == UserRole.CREATOR ? CreatorProgramStatus.IN_PATH : CreatorProgramStatus.NONE)
                 .active(true)
                 .build();
         user = userRepository.save(user);
@@ -99,7 +100,7 @@ public class AuthService {
                 .name(request.phone())
                 .email(request.phone() + "@phone.zingzing.sa")
                 .role(UserRole.CREATOR)
-                .creatorProgramStatus(User.CreatorProgramStatus.IN_PATH)
+                .creatorProgramStatus(CreatorProgramStatus.IN_PATH)
                 .active(true)
                 .build()));
         otpStore.remove(request.phone());

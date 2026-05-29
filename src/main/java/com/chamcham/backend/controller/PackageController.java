@@ -115,7 +115,12 @@ public class PackageController {
                 sort
         ));
     }
+
+    @GetMapping("/featured")
+    public ResponseEntity<PageResponse<ServicePackageResponse>> getFeaturedPackages(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "12") int size
+    ) {
+        return ResponseEntity.ok(servicePackageService.getFeaturedPackages(page, size));
+    }
 }
-
-
-

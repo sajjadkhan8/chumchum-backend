@@ -81,16 +81,16 @@ public class Creator extends User {
     private List<String> categories = new ArrayList<>();
 
     // legacy social URL fields (kept for backward compat, new data uses social_accounts table)
-    @Column(length = 255)
+    @Column(name = "tiktok_url", length = 255)
     private String tiktokUrl;
 
-    @Column(length = 255)
+    @Column(name = "instagram_url", length = 255)
     private String instagramUrl;
 
-    @Column(length = 255)
+    @Column(name = "youtube_url", length = 255)
     private String youtubeUrl;
 
-    @Column(length = 255)
+    @Column(name = "facebook_url", length = 255)
     private String facebookUrl;
 
     @Column(nullable = false)
@@ -109,7 +109,7 @@ public class Creator extends User {
     private int totalReviews = 0;
 
     @OneToMany(mappedBy = "creator", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<ServicePackage> packages = new ArrayList<>();
+    private List<Package> packages = new ArrayList<>();
 
     @OneToMany(mappedBy = "creator", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     private List<SocialAccount> socialAccounts = new ArrayList<>();

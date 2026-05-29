@@ -21,7 +21,7 @@ public class Brand extends User {
     @Column(nullable = false, length = 150)
     private String name;
 
-    @Column(length = 500)
+    @Column(name = "logo_url", length = 500)
     private String logoUrl;
 
     @Column(length = 255)

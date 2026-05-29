@@ -7,6 +7,7 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.UUID;
 
 @Getter
 @Setter
@@ -19,9 +20,13 @@ import java.time.Instant;
 public class PackageAnalytics {
 
     @Id
+    @Column(name = "package_id", nullable = false)
+    private UUID packageId;
+
+    @MapsId
     @OneToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "package_id")
-    private ServicePackage servicePackage;
+    private Package aPackage;
 
     @Column(nullable = false)
     @Builder.Default

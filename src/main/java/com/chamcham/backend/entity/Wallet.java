@@ -6,6 +6,7 @@ import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.Instant;
+import java.util.UUID;
 
 @Getter
 @Setter
@@ -18,6 +19,10 @@ import java.time.Instant;
 public class Wallet {
 
     @Id
+    @Column(name = "creator_id", nullable = false)
+    private UUID creatorId;
+
+    @MapsId
     @OneToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "creator_id")
     private Creator creator;

@@ -11,8 +11,8 @@ public class OrderMapper {
         return new OrderResponse(
                 order.getId(),
                 order.getOrderNumber(),
-                order.getServicePackage().getId(),
-                order.getServicePackage().getTitle(),
+                order.getAPackage().getId(),
+                order.getAPackage().getTitle(),
                 order.getCreator().getId(),
                 order.getCreator().getName(),
                 order.getBrand().getId(),

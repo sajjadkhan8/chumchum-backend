@@ -11,6 +11,7 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 @Getter
 @Setter
@@ -23,6 +24,10 @@ import java.util.List;
 public class AmbassadorScore {
 
     @Id
+    @Column(name = "creator_id", nullable = false)
+    private UUID creatorId;
+
+    @MapsId
     @OneToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "creator_id")
     private Creator creator;

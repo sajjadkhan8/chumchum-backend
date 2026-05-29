@@ -1,7 +1,7 @@
 package com.chamcham.backend.repository;
 
 import com.chamcham.backend.entity.Creator;
-import com.chamcham.backend.entity.ServicePackage;
+import com.chamcham.backend.entity.Package;
 import com.chamcham.backend.entity.enums.PackageStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -12,15 +12,15 @@ import org.springframework.data.repository.query.Param;
 import java.util.List;
 import java.util.UUID;
 
-public interface ServicePackageRepository extends JpaRepository<ServicePackage, UUID> {
+public interface ServicePackageRepository extends JpaRepository<Package, UUID> {
 
     boolean existsByCreatorAndNameIgnoreCase(Creator creator, String name);
 
-    Page<ServicePackage> findByCreator(Creator creator, Pageable pageable);
+    Page<Package> findByCreator(Creator creator, Pageable pageable);
 
-    List<ServicePackage> findByCreatorIdAndStatus(UUID creatorId, PackageStatus status);
+    List<Package> findByCreatorIdAndStatus(UUID creatorId, PackageStatus status);
 
-    List<ServicePackage> findByCreatorId(UUID creatorId);
+    List<Package> findByCreatorId(UUID creatorId);
 
     @Query("""
             select p from ServicePackage p
@@ -30,11 +30,20 @@ public interface ServicePackageRepository extends JpaRepository<ServicePackage, 
               and (:minPrice is null or p.price   >= :minPrice)
               and (:maxPrice is null or p.price   <= :maxPrice)
             """)
-    Page<ServicePackage> searchActive(
+    Page<Package> searchActive(
             @Param("category") String category,
             @Param("search")   String search,
             @Param("minPrice") Integer minPrice,
             @Param("maxPrice") Integer maxPrice,
             Pageable pageable
     );
+
+    @Query("""
+            select p from ServicePackage p
+            where p.status = 'ACTIVE'
+              and p.active = true
+              and p.visibility = 'public'
+              and p.featured = true
+            """)
+    Page<Package> findFeaturedForFeed(Pageable pageable);
 }

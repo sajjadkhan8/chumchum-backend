@@ -37,7 +37,7 @@ public class PackageTier {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "package_id")
-    private ServicePackage servicePackage;
+    private Package aPackage;
 
     @Column(nullable = false, length = 50)
     private String name;
@@ -48,13 +48,14 @@ public class PackageTier {
     @Column(length = 1000)
     private String deliverables;
 
+    @Column(name = "delivery_days")
     private Integer deliveryDays;
 
     @Builder.Default
     private Integer revisions = 1;
 
     @CreatedDate
-    @Column(nullable = false, updatable = false)
+    @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 }
 

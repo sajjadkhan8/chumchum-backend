@@ -4,7 +4,7 @@ import com.chamcham.backend.dto.servicepackage.ServicePackageCreateRequest;
 import com.chamcham.backend.entity.PackageAnalytics;
 import com.chamcham.backend.entity.PackageTier;
 import com.chamcham.backend.dto.servicepackage.ServicePackageResponse;
-import com.chamcham.backend.entity.ServicePackage;
+import com.chamcham.backend.entity.Package;
 import com.chamcham.backend.entity.Creator;
 import com.chamcham.backend.entity.enums.DealType;
 import com.chamcham.backend.entity.enums.PackageStatus;
@@ -45,6 +45,10 @@ public class ServicePackageService {
             PackageStatus.UNDER_REVIEW, EnumSet.noneOf(PackageStatus.class)
     );
 
+    private static final Set<String> ALLOWED_SORT_FIELDS = Set.of(
+            "createdAt", "updatedAt", "price", "ordersCompleted"
+    );
+
     public ServicePackageService(
             ServicePackageRepository servicePackageRepository,
             CreatorRepository creatorRepository,
@@ -72,7 +76,7 @@ public class ServicePackageService {
             throw new ApiException(HttpStatus.CONFLICT, "You already have a package with this name");
         }
 
-        ServicePackage servicePackage = ServicePackage.builder()
+        Package aPackage = Package.builder()
                 .creator(creator)
                 .name(packageName)
                 .title(request.title())
@@ -108,7 +112,7 @@ public class ServicePackageService {
         if (request.tiers() != null && !request.tiers().isEmpty()) {
             List<PackageTier> tiers = request.tiers().stream()
                     .map(tier -> PackageTier.builder()
-                            .servicePackage(servicePackage)
+                            .aPackage(aPackage)
                             .name(tier.name())
                             .price(tier.price())
                             .deliverables(tier.deliverables())
@@ -116,26 +120,26 @@ public class ServicePackageService {
                             .revisions(tier.revisions() == null ? 1 : tier.revisions())
                             .build())
                     .toList();
-            servicePackage.setTiers(tiers);
+            aPackage.setTiers(tiers);
         }
 
-        return servicePackageMapper.toResponse(servicePackageRepository.save(servicePackage));
+        return servicePackageMapper.toResponse(servicePackageRepository.save(aPackage));
     }
 
     public void deletePackage(UUID packageId, UUID userId, UserRole role) {
-        ServicePackage servicePackage = servicePackageRepository.findById(packageId)
+        Package aPackage = servicePackageRepository.findById(packageId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Package not found"));
 
-        if (!role.isAdmin() && !servicePackage.getCreator().getId().equals(userId)) {
+        if (!role.isAdmin() && !aPackage.getCreator().getId().equals(userId)) {
             throw new ApiException(HttpStatus.FORBIDDEN, "Invalid request! Cannot delete other creator packages!");
         }
 
-        servicePackageRepository.delete(servicePackage);
+        servicePackageRepository.delete(aPackage);
     }
 
     public ServicePackageResponse updatePackage(UUID packageId, UUID userId, UserRole role,
                                                 ServicePackageCreateRequest request) {
-        ServicePackage pkg = servicePackageRepository.findById(packageId)
+        Package pkg = servicePackageRepository.findById(packageId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Package not found"));
 
         if (!role.isAdmin() && !pkg.getCreator().getId().equals(userId)) {
@@ -173,7 +177,7 @@ public class ServicePackageService {
     }
 
     public ServicePackageResponse updateStatus(UUID packageId, UUID userId, UserRole role, String rawStatus) {
-        ServicePackage pkg = servicePackageRepository.findById(packageId)
+        Package pkg = servicePackageRepository.findById(packageId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Package not found"));
 
         if (!role.isAdmin() && !pkg.getCreator().getId().equals(userId)) {
@@ -198,14 +202,14 @@ public class ServicePackageService {
     }
 
     public ServicePackageResponse duplicate(UUID packageId, UUID userId, UserRole role) {
-        ServicePackage src = servicePackageRepository.findById(packageId)
+        Package src = servicePackageRepository.findById(packageId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Package not found"));
 
         if (!role.isAdmin() && !src.getCreator().getId().equals(userId)) {
             throw new ApiException(HttpStatus.FORBIDDEN, "Cannot duplicate another creator's package");
         }
 
-        ServicePackage copy = ServicePackage.builder()
+        Package copy = Package.builder()
                 .creator(src.getCreator())
                 .name("Copy of " + src.getName())
                 .title("Copy of " + src.getTitle())
@@ -233,7 +237,7 @@ public class ServicePackageService {
     }
 
     public Map<String, Object> getAnalytics(UUID packageId, UUID userId, UserRole role) {
-        ServicePackage pkg = servicePackageRepository.findById(packageId)
+        Package pkg = servicePackageRepository.findById(packageId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Package not found"));
 
         if (!role.isAdmin() && !pkg.getCreator().getId().equals(userId)) {
@@ -241,7 +245,7 @@ public class ServicePackageService {
         }
 
         PackageAnalytics analytics = packageAnalyticsRepository.findByServicePackageId(packageId)
-                .orElse(PackageAnalytics.builder().servicePackage(pkg).build());
+                .orElse(PackageAnalytics.builder().aPackage(pkg).build());
 
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("views", analytics.getViews());
@@ -255,9 +259,26 @@ public class ServicePackageService {
     }
 
     public ServicePackageResponse getPackage(UUID packageId) {
-        ServicePackage servicePackage = servicePackageRepository.findById(packageId)
+        Package aPackage = servicePackageRepository.findById(packageId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Package not found!"));
-        return servicePackageMapper.toResponse(servicePackage);
+        return servicePackageMapper.toResponse(aPackage);
+    }
+
+    public PageResponse<ServicePackageResponse> getFeaturedPackages(int page, int size) {
+        int safeSize = Math.min(Math.max(size, 1), 50);
+        int safePage = Math.max(page, 0);
+
+        Pageable pageable = PageRequest.of(
+                safePage,
+                safeSize,
+                Sort.by(
+                        Sort.Order.desc("ordersCompleted"),
+                        Sort.Order.desc("createdAt")
+                )
+        );
+
+        Page<Package> packages = servicePackageRepository.findFeaturedForFeed(pageable);
+        return PageResponse.from(packages.map(servicePackageMapper::toResponse));
     }
 
     public PageResponse<ServicePackageResponse> getPackages(
@@ -271,8 +292,12 @@ public class ServicePackageService {
             int size,
             String sortBy
     ) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, sortBy));
-        Page<ServicePackage> packages;
+        String safeSortBy = ALLOWED_SORT_FIELDS.contains(sortBy) ? sortBy : "createdAt";
+        int safeSize = Math.min(Math.max(size, 1), 50);
+        int safePage = Math.max(page, 0);
+
+        Pageable pageable = PageRequest.of(safePage, safeSize, Sort.by(Sort.Direction.DESC, safeSortBy));
+        Page<Package> packages;
 
         if (creatorId != null || creatorUserId != null) {
             UUID resolvedCreatorId = creatorId != null ? creatorId : creatorUserId;
@@ -310,4 +335,3 @@ public class ServicePackageService {
         }
     }
 }
-

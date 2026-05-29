@@ -15,6 +15,10 @@ import java.util.UUID;
 public class NotificationPreference {
 
     @Id
+    @Column(name = "user_id", nullable = false)
+    private UUID userId;
+
+    @MapsId
     @OneToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "user_id")
     private User user;
@@ -51,4 +55,3 @@ public class NotificationPreference {
     @Builder.Default
     private boolean smsNotifications = false;
 }
-

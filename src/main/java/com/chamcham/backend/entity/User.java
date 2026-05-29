@@ -1,5 +1,6 @@
 package com.chamcham.backend.entity;
 
+import com.chamcham.backend.entity.enums.CreatorProgramStatus;
 import com.chamcham.backend.entity.enums.UserRole;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -47,14 +48,14 @@ public class User extends BaseEntity {
     @Column(unique = true, length = 20)
     private String phone;
 
-    @Column
+    @Column(name = "password_hash")
     private String passwordHash;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private UserRole role;
 
-    @Column(length = 500)
+    @Column(name = "avatar_url", length = 500)
     private String avatarUrl;
 
     @Column(length = 500)
@@ -83,9 +84,4 @@ public class User extends BaseEntity {
         }
     }
 
-    public enum CreatorProgramStatus {
-        NONE,
-        IN_PATH,
-        ACTIVE_AMBASSADOR
-    }
 }

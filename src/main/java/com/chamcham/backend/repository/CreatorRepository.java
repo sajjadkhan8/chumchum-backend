@@ -25,6 +25,8 @@ public interface CreatorRepository extends JpaRepository<Creator, UUID> {
 
     List<Creator> findByCityIgnoreCase(String city, Pageable pageable);
 
+    List<Creator> findByCityIgnoreCaseAndActiveTrue(String city, Pageable pageable);
+
     Page<Creator> findByIsVerifiedTrue(Pageable pageable);
 
     @Query("select c from Creator c where c.city = :city and c.active = true")
@@ -40,10 +42,10 @@ public interface CreatorRepository extends JpaRepository<Creator, UUID> {
             select c from Creator c
             where c.active = true
               and (:search is null
-                   or lower(c.name) like lower(concat('%', :search, '%'))
-                   or lower(c.bio)  like lower(concat('%', :search, '%'))
-                   or lower(c.city) like lower(concat('%', :search, '%')))
-              and (:city is null or lower(c.city) = lower(:city))
+                   or lower(c.name) like concat('%', lower(cast(:search as string)), '%')
+                   or lower(c.bio)  like concat('%', lower(cast(:search as string)), '%')
+                   or lower(c.city) like concat('%', lower(cast(:search as string)), '%'))
+              and (:city is null or lower(c.city) = lower(cast(:city as string)))
               and (:minFollowers is null or c.followers >= :minFollowers)
               and (:maxFollowers is null or c.followers <= :maxFollowers)
               and (:minRating is null or c.rating >= :minRating)
