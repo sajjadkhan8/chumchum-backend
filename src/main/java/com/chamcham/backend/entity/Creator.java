@@ -109,7 +109,7 @@ public class Creator extends User {
     private int totalReviews = 0;
 
     @OneToMany(mappedBy = "creator", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Package> packages = new ArrayList<>();
+    private List<ServicePackage> packages = new ArrayList<>();
 
     @OneToMany(mappedBy = "creator", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     private List<SocialAccount> socialAccounts = new ArrayList<>();

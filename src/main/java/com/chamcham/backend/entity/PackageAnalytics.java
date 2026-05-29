@@ -26,7 +26,7 @@ public class PackageAnalytics {
     @MapsId
     @OneToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "package_id")
-    private Package aPackage;
+    private ServicePackage servicePackage;
 
     @Column(nullable = false)
     @Builder.Default

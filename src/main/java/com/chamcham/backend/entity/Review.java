@@ -41,7 +41,7 @@ public class Review extends BaseEntity {
     // -------- legacy columns kept for non-null DB compat --------
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "package_id")
-    private Package aPackage;
+    private ServicePackage servicePackage;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "reviewer_id")

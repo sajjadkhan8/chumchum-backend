@@ -37,7 +37,7 @@ public class PackageTier {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "package_id")
-    private Package aPackage;
+    private ServicePackage servicePackage;
 
     @Column(nullable = false, length = 50)
     private String name;

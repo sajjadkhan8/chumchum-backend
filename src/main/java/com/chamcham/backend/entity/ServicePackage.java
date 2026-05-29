@@ -20,7 +20,7 @@ import java.util.UUID;
 @AllArgsConstructor
 @Entity
 @Table(name = "packages", schema = "core")
-public class Package extends BaseEntity {
+public class ServicePackage extends BaseEntity {
 
     @Id
     @GeneratedValue
@@ -146,10 +146,10 @@ public class Package extends BaseEntity {
     @Builder.Default
     private String currency = "SAR";
 
-    @OneToMany(mappedBy = "aPackage", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "servicePackage", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<PackageTier> tiers = new ArrayList<>();
 
-    @OneToOne(mappedBy = "aPackage", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToOne(mappedBy = "servicePackage", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     private PackageAnalytics analytics;
 }

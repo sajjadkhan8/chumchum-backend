@@ -1,8 +1,8 @@
 package com.chamcham.backend.service;
 
 import com.chamcham.backend.entity.Creator;
-import com.chamcham.backend.entity.Package;
 import com.chamcham.backend.entity.PackageAnalytics;
+import com.chamcham.backend.entity.ServicePackage;
 import com.chamcham.backend.entity.Wallet;
 import com.chamcham.backend.entity.enums.OrderStatus;
 import com.chamcham.backend.entity.enums.UserRole;
@@ -92,12 +92,12 @@ public class AnalyticsService {
     public Map<String, Object> creatorInsights(UUID userId, UserRole role) {
         if (!role.isCreator()) throw new ApiException(HttpStatus.FORBIDDEN, "Access denied");
 
-        List<Package> packages = servicePackageRepository.findByCreatorId(userId);
+        List<ServicePackage> packages = servicePackageRepository.findByCreatorId(userId);
         long totalViews = 0, totalClicks = 0, totalInquiries = 0, totalRepeatBrands = 0;
         double totalConversionRate = 0;
         int packageCount = 0;
 
-        for (Package pkg : packages) {
+        for (ServicePackage pkg : packages) {
             PackageAnalytics a = pkg.getAnalytics();
             if (a != null) {
                 totalViews        += a.getViews();
@@ -129,7 +129,7 @@ public class AnalyticsService {
     public Map<String, Object> creatorPerformance(UUID userId, UserRole role) {
         if (!role.isCreator()) throw new ApiException(HttpStatus.FORBIDDEN, "Access denied");
 
-        List<Package> packages = servicePackageRepository.findByCreatorId(userId);
+        List<ServicePackage> packages = servicePackageRepository.findByCreatorId(userId);
         List<Map<String, Object>> rows = packages.stream().map(pkg -> {
             PackageAnalytics a = pkg.getAnalytics();
             int views = a != null ? a.getViews() : 0;

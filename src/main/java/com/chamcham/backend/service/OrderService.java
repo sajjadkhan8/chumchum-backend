@@ -3,7 +3,7 @@ package com.chamcham.backend.service;
 import com.chamcham.backend.dto.order.OrderResponse;
 import com.chamcham.backend.entity.Brand;
 import com.chamcham.backend.entity.Order;
-import com.chamcham.backend.entity.Package;
+import com.chamcham.backend.entity.ServicePackage;
 import com.chamcham.backend.entity.enums.DealType;
 import com.chamcham.backend.entity.enums.OrderStatus;
 import com.chamcham.backend.entity.enums.UserRole;
@@ -82,7 +82,7 @@ public class OrderService {
         if (!role.isBrand() && !role.isAdmin()) {
             throw new ApiException(HttpStatus.FORBIDDEN, "Only brands can place orders");
         }
-        Package pkg = servicePackageRepository.findById(packageId)
+        ServicePackage pkg = servicePackageRepository.findById(packageId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Package not found"));
         Brand brand = brandRepository.findById(brandUserId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Brand profile not found"));
@@ -93,7 +93,7 @@ public class OrderService {
         Order order = Order.builder()
                 .id(UUID.randomUUID())
                 .orderNumber(orderNumber)
-                .aPackage(pkg)
+                .servicePackage(pkg)
                 .brand(brand)
                 .creator(pkg.getCreator())
                 .dealType(effectiveDealType)
