@@ -21,6 +21,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.EnumSet;
 import java.util.LinkedHashMap;
@@ -126,6 +127,7 @@ public class ServicePackageService {
         return servicePackageMapper.toResponse(servicePackageRepository.save(servicePackage));
     }
 
+    @Transactional
     public void deletePackage(UUID packageId, UUID userId, UserRole role) {
         ServicePackage servicePackage = servicePackageRepository.findById(packageId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Package not found"));
@@ -137,6 +139,7 @@ public class ServicePackageService {
         servicePackageRepository.delete(servicePackage);
     }
 
+    @Transactional
     public ServicePackageResponse updatePackage(UUID packageId, UUID userId, UserRole role,
                                                 ServicePackageCreateRequest request) {
         ServicePackage pkg = servicePackageRepository.findById(packageId)
@@ -176,6 +179,7 @@ public class ServicePackageService {
         return servicePackageMapper.toResponse(servicePackageRepository.save(pkg));
     }
 
+    @Transactional
     public ServicePackageResponse updateStatus(UUID packageId, UUID userId, UserRole role, String rawStatus) {
         ServicePackage pkg = servicePackageRepository.findById(packageId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Package not found"));
@@ -201,6 +205,7 @@ public class ServicePackageService {
         return servicePackageMapper.toResponse(servicePackageRepository.save(pkg));
     }
 
+    @Transactional
     public ServicePackageResponse duplicate(UUID packageId, UUID userId, UserRole role) {
         ServicePackage src = servicePackageRepository.findById(packageId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Package not found"));
@@ -236,6 +241,7 @@ public class ServicePackageService {
         return servicePackageMapper.toResponse(servicePackageRepository.save(copy));
     }
 
+    @Transactional(readOnly = true)
     public Map<String, Object> getAnalytics(UUID packageId, UUID userId, UserRole role) {
         ServicePackage pkg = servicePackageRepository.findById(packageId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Package not found"));
@@ -258,12 +264,14 @@ public class ServicePackageService {
         return Map.of("success", true, "data", data);
     }
 
+    @Transactional(readOnly = true)
     public ServicePackageResponse getPackage(UUID packageId) {
         ServicePackage servicePackage = servicePackageRepository.findById(packageId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Package not found!"));
         return servicePackageMapper.toResponse(servicePackage);
     }
 
+    @Transactional(readOnly = true)
     public PageResponse<ServicePackageResponse> getFeaturedPackages(int page, int size) {
         int safeSize = Math.min(Math.max(size, 1), 50);
         int safePage = Math.max(page, 0);
@@ -281,6 +289,7 @@ public class ServicePackageService {
         return PageResponse.from(packages.map(servicePackageMapper::toResponse));
     }
 
+    @Transactional(readOnly = true)
     public PageResponse<ServicePackageResponse> getPackages(
             String category,
             String search,

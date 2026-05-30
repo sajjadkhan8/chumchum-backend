@@ -5,6 +5,7 @@ import com.chamcham.backend.entity.ServicePackage;
 import com.chamcham.backend.entity.enums.PackageStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -16,12 +17,14 @@ public interface ServicePackageRepository extends JpaRepository<ServicePackage, 
 
     boolean existsByCreatorAndNameIgnoreCase(Creator creator, String name);
 
+    @EntityGraph(attributePaths = {"creator", "tiers"})
     Page<ServicePackage> findByCreator(Creator creator, Pageable pageable);
 
     List<ServicePackage> findByCreatorIdAndStatus(UUID creatorId, PackageStatus status);
 
     List<ServicePackage> findByCreatorId(UUID creatorId);
 
+    @EntityGraph(attributePaths = {"creator", "tiers"})
     @Query("""
             select p from ServicePackage p
             where p.status = 'ACTIVE'
@@ -38,6 +41,7 @@ public interface ServicePackageRepository extends JpaRepository<ServicePackage, 
             Pageable pageable
     );
 
+    @EntityGraph(attributePaths = {"creator", "tiers"})
     @Query("""
             select p from ServicePackage p
             where p.status = 'ACTIVE'
