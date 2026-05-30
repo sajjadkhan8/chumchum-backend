@@ -10,6 +10,7 @@ public class ProfileUserMapper {
     public ProfileUserResponse toResponse(User user) {
         return new ProfileUserResponse(
                 user.getId(),
+                user.getName(),
                 user.getUsername(),
                 user.getImage(),
                 user.getCity(),

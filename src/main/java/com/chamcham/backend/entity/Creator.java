@@ -18,8 +18,6 @@ import java.util.List;
 @PrimaryKeyJoinColumn(name = "id")
 public class Creator extends User {
 
-    @Column(length = 50, unique = true)
-    private String username;
 
     @Column(length = 1000)
     private String bio;

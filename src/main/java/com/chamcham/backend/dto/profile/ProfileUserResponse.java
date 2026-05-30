@@ -8,6 +8,7 @@ import java.util.UUID;
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public record ProfileUserResponse(
         UUID id,
+        String name,
         String username,
         String image,
         String city,
