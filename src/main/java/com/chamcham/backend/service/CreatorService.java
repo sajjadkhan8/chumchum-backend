@@ -145,11 +145,80 @@ public class CreatorService {
         validateOwnerOrAdmin(actorUserId, actorRole, creator.getId());
         validateMetricsAccess(actorRole, request);
 
+        if (request.name() != null) {
+            creator.setName(request.name());
+        }
+        if (request.username() != null && !request.username().equals(creator.getUsername())) {
+            if (userRepository.existsByUsername(request.username())) {
+                throw new ApiException(HttpStatus.CONFLICT, "Username is already in use");
+            }
+            creator.setUsername(request.username());
+        }
+        if (request.email() != null && !request.email().equals(creator.getEmail())) {
+            if (userRepository.existsByEmail(request.email())) {
+                throw new ApiException(HttpStatus.CONFLICT, "Email is already in use");
+            }
+            creator.setEmail(request.email());
+        }
+        if (request.phone() != null && !request.phone().equals(creator.getPhone())) {
+            userRepository.findByPhone(request.phone()).ifPresent(existing -> {
+                if (!existing.getId().equals(creator.getId())) {
+                    throw new ApiException(HttpStatus.CONFLICT, "Phone is already in use");
+                }
+            });
+            creator.setPhone(request.phone().isBlank() ? null : request.phone());
+        }
+        if (request.city() != null) {
+            creator.setCity(request.city());
+        }
+        if (request.avatarUrl() != null) {
+            creator.setAvatarUrl(request.avatarUrl());
+            creator.setImage(request.avatarUrl());
+        }
         if (request.bio() != null) {
             creator.setBio(request.bio());
         }
         if (request.category() != null) {
             creator.setCategory(request.category());
+        }
+        if (request.coverImageUrl() != null) {
+            creator.setCoverImageUrl(request.coverImageUrl());
+        }
+        if (request.website() != null) {
+            creator.setWebsite(request.website());
+        }
+        if (request.niche() != null) {
+            creator.setNiche(request.niche());
+        }
+        if (request.availabilityStatus() != null) {
+            creator.setAvailabilityStatus(request.availabilityStatus());
+        }
+        if (request.responseTime() != null) {
+            creator.setResponseTime(request.responseTime());
+        }
+        if (request.minPrice() != null) {
+            creator.setMinPrice(request.minPrice());
+        }
+        if (request.maxPrice() != null) {
+            creator.setMaxPrice(request.maxPrice());
+        }
+        if (request.acceptsBarter() != null) {
+            creator.setAcceptsBarter(request.acceptsBarter());
+        }
+        if (request.acceptsHybridDeals() != null) {
+            creator.setAcceptsHybridDeals(request.acceptsHybridDeals());
+        }
+        if (request.minimumBudget() != null) {
+            creator.setMinimumBudget(request.minimumBudget());
+        }
+        if (request.preferredIndustries() != null) {
+            creator.setPreferredIndustries(request.preferredIndustries());
+        }
+        if (request.languages() != null) {
+            creator.setLanguages(request.languages());
+        }
+        if (request.categories() != null) {
+            creator.setCategories(request.categories());
         }
         if (request.tiktokUrl() != null) {
             creator.setTiktokUrl(request.tiktokUrl());

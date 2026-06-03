@@ -6,13 +6,37 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public record CreatorResponse(
         UUID id,
+        String name,
+        String username,
+        String email,
+        String phone,
+        String city,
+        String avatarUrl,
         String bio,
         String category,
+        String coverImageUrl,
+        String website,
+        String niche,
+        String availabilityStatus,
+        String responseTime,
+        Integer minPrice,
+        Integer maxPrice,
+        boolean isVerified,
+        boolean isTrending,
+        boolean isFastResponder,
+        int completedDeals,
+        boolean acceptsBarter,
+        boolean acceptsHybridDeals,
+        Integer minimumBudget,
+        String preferredIndustries,
+        List<String> languages,
+        List<String> categories,
         String tiktokUrl,
         String instagramUrl,
         String youtubeUrl,
@@ -22,9 +46,9 @@ public record CreatorResponse(
         BigDecimal engagementRate,
         BigDecimal rating,
         int totalReviews,
+        List<SocialAccountResponse> socialAccounts,
         ProfileUserResponse user,
         Instant createdAt,
         Instant updatedAt
 ) {
 }
-

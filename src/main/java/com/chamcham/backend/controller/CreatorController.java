@@ -26,6 +26,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.math.BigDecimal;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -163,12 +164,18 @@ public class CreatorController {
         List<SocialAccount> accounts = creatorService.updateSocialAccounts(
                 authUser.userId(), authUser.role(), body.getOrDefault("accounts", List.of()));
         return ResponseEntity.ok(Map.of("success", true, "data",
-                accounts.stream().map(a -> Map.of(
-                        "id", a.getId(),
-                        "platform", a.getPlatform(),
-                        "username", a.getUsername(),
-                        "followers", a.getFollowers()
-                )).toList()));
+                accounts.stream().map(a -> {
+                    Map<String, Object> row = new LinkedHashMap<>();
+                    row.put("id", a.getId());
+                    row.put("platform", a.getPlatform());
+                    row.put("username", a.getUsername());
+                    row.put("profileUrl", a.getProfileUrl());
+                    row.put("followers", a.getFollowers());
+                    row.put("avgViews", a.getAvgViews());
+                    row.put("engagementRate", a.getEngagementRate());
+                    row.put("isVerified", a.isVerified());
+                    return row;
+                }).toList()));
     }
 
     @PatchMapping("/me/preferences")
