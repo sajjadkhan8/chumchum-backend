@@ -33,7 +33,7 @@ public record ServicePackageCreateRequest(
         @Min(0) Integer hybridCashAmount,
         @Min(0) Integer hybridBarterValue,
         @Size(max = 1000) String creatorExpectations,
-        @NotNull @Min(1) Integer price,
+        @NotNull @Min(0) Integer price,
         @Size(max = 10) String currency,
         @NotNull @Size(min = 1, max = 30) List<@NotBlank @Size(max = 200) String> deliverables,
         @NotNull @Positive Integer deliveryDays,
@@ -49,6 +49,5 @@ public record ServicePackageCreateRequest(
         @Valid List<ServicePackageTierRequest> tiers
 ) {
 }
-
 
 

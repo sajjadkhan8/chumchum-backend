@@ -12,9 +12,9 @@ import com.chamcham.backend.mapper.OrderMapper;
 import com.chamcham.backend.repository.BrandRepository;
 import com.chamcham.backend.repository.OrderRepository;
 import com.chamcham.backend.repository.ServicePackageRepository;
-import jakarta.transaction.Transactional;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.EnumSet;
 import java.util.List;
@@ -58,6 +58,7 @@ public class OrderService {
         this.orderMapper = orderMapper;
     }
 
+    @Transactional(readOnly = true)
     public List<OrderResponse> getOrders(UUID userId, UserRole role) {
         List<Order> orders = role.isCreator()
                 ? orderRepository.findByCreatorIdOrderByCreatedAtDesc(userId)
@@ -65,6 +66,7 @@ public class OrderService {
         return orders.stream().map(orderMapper::toResponse).toList();
     }
 
+    @Transactional(readOnly = true)
     public OrderResponse getOrder(UUID orderId, UUID userId, UserRole role) {
         Order order = findOrder(orderId);
         if (!role.isAdmin()

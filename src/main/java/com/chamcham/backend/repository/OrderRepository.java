@@ -12,12 +12,35 @@ import java.util.UUID;
 
 public interface OrderRepository extends JpaRepository<Order, UUID> {
 
-    @Query("select o from Order o where o.creator.id = :userId or o.brand.id = :userId order by o.createdAt desc")
+    @Query("""
+            select o from Order o
+            join fetch o.servicePackage
+            join fetch o.creator
+            join fetch o.brand
+            where o.creator.id = :userId or o.brand.id = :userId
+            order by o.createdAt desc
+            """)
     List<Order> findAllByParticipant(@Param("userId") UUID userId);
 
-    List<Order> findByCreatorIdOrderByCreatedAtDesc(UUID creatorId);
+    @Query("""
+            select o from Order o
+            join fetch o.servicePackage
+            join fetch o.creator
+            join fetch o.brand
+            where o.creator.id = :creatorId
+            order by o.createdAt desc
+            """)
+    List<Order> findByCreatorIdOrderByCreatedAtDesc(@Param("creatorId") UUID creatorId);
 
-    List<Order> findByBrandIdOrderByCreatedAtDesc(UUID brandId);
+    @Query("""
+            select o from Order o
+            join fetch o.servicePackage
+            join fetch o.creator
+            join fetch o.brand
+            where o.brand.id = :brandId
+            order by o.createdAt desc
+            """)
+    List<Order> findByBrandIdOrderByCreatedAtDesc(@Param("brandId") UUID brandId);
 
     List<Order> findByCreatorIdAndStatusIn(UUID creatorId, List<OrderStatus> statuses);
 

@@ -110,6 +110,8 @@ public class ServicePackageService {
                 .coverImage(request.coverImage())
                 .build();
 
+        clearIncompatiblePricingFields(servicePackage);
+
         if (request.tiers() != null && !request.tiers().isEmpty()) {
             List<PackageTier> tiers = request.tiers().stream()
                     .map(tier -> PackageTier.builder()
@@ -149,6 +151,8 @@ public class ServicePackageService {
             throw new ApiException(HttpStatus.FORBIDDEN, "Cannot update another creator's package");
         }
 
+        validatePricing(request);
+
         if (request.title() != null) pkg.setTitle(request.title());
         if (request.name() != null)  pkg.setName(request.name().trim());
         if (request.shortDescription() != null) pkg.setShortDescription(request.shortDescription());
@@ -156,6 +160,7 @@ public class ServicePackageService {
         if (request.fullDescription() != null) pkg.setFullDescription(request.fullDescription());
         if (request.platform() != null) pkg.setPlatform(request.platform());
         if (request.category() != null) pkg.setCategory(request.category());
+        if (request.type() != null) pkg.setType(request.type());
         if (request.dealType() != null) pkg.setDealType(request.dealType());
         if (request.price() != null) pkg.setPrice(request.price());
         if (request.barterDetails() != null) pkg.setBarterDetails(request.barterDetails());
@@ -175,6 +180,9 @@ public class ServicePackageService {
         if (request.mediaUrls() != null) pkg.setMediaUrls(toArray(request.mediaUrls()));
         if (request.isFeatured() != null) pkg.setFeatured(request.isFeatured());
         if (request.isActive() != null) pkg.setActive(request.isActive());
+        if (request.status() != null) pkg.setStatus(request.status());
+
+        clearIncompatiblePricingFields(pkg);
 
         return servicePackageMapper.toResponse(servicePackageRepository.save(pkg));
     }
@@ -230,12 +238,19 @@ public class ServicePackageService {
                 .price(src.getPrice())
                 .currency(src.getCurrency())
                 .barterDetails(src.getBarterDetails())
+                .barterDescription(src.getBarterDescription())
                 .barterCategory(src.getBarterCategory())
+                .estimatedBarterValue(src.getEstimatedBarterValue())
+                .hybridCashAmount(src.getHybridCashAmount())
+                .hybridBarterValue(src.getHybridBarterValue())
+                .creatorExpectations(src.getCreatorExpectations())
                 .deliverables(src.getDeliverables())
                 .deliveryDays(src.getDeliveryDays())
                 .revisions(src.getRevisions())
                 .tags(src.getTags())
                 .coverImage(src.getCoverImage())
+                .responseTime(src.getResponseTime())
+                .mediaUrls(src.getMediaUrls())
                 .build();
 
         return servicePackageMapper.toResponse(servicePackageRepository.save(copy));
@@ -269,6 +284,23 @@ public class ServicePackageService {
         ServicePackage servicePackage = servicePackageRepository.findById(packageId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Package not found!"));
         return servicePackageMapper.toResponse(servicePackage);
+    }
+
+    @Transactional(readOnly = true)
+    public PageResponse<ServicePackageResponse> getMyPackages(UUID userId, UserRole role, int page, int size, String sortBy) {
+        if (!role.isCreator() && !role.isAdmin()) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "Only creators can view their package inventory");
+        }
+
+        Creator creator = creatorRepository.findById(userId)
+                .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST, "Creator profile not found for this user"));
+
+        String safeSortBy = ALLOWED_SORT_FIELDS.contains(sortBy) ? sortBy : "createdAt";
+        int safeSize = Math.min(Math.max(size, 1), 100);
+        int safePage = Math.max(page, 0);
+
+        Pageable pageable = PageRequest.of(safePage, safeSize, Sort.by(Sort.Direction.DESC, safeSortBy));
+        return PageResponse.from(servicePackageRepository.findByCreator(creator, pageable).map(servicePackageMapper::toResponse));
     }
 
     @Transactional(readOnly = true)
@@ -341,6 +373,27 @@ public class ServicePackageService {
         if ((dealType == DealType.PAID || dealType == DealType.HYBRID)
                 && (request.price() == null || request.price() <= 0)) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "price is required when dealType is PAID/HYBRID");
+        }
+    }
+
+    private void clearIncompatiblePricingFields(ServicePackage pkg) {
+        DealType dealType = pkg.getDealType() == null ? DealType.PAID : pkg.getDealType();
+
+        if (dealType == DealType.PAID) {
+            pkg.setBarterDetails(null);
+            pkg.setBarterDescription(null);
+            pkg.setBarterCategory(null);
+            pkg.setEstimatedBarterValue(null);
+            pkg.setHybridCashAmount(null);
+            pkg.setHybridBarterValue(null);
+            pkg.setCreatorExpectations(null);
+            return;
+        }
+
+        if (dealType == DealType.BARTER) {
+            pkg.setHybridCashAmount(null);
+            pkg.setHybridBarterValue(null);
+            pkg.setPrice(0);
         }
     }
 }

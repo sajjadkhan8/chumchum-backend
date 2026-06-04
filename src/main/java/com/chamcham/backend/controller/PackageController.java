@@ -86,6 +86,16 @@ public class PackageController {
         return ResponseEntity.ok(Map.of("error", false, "message", "Package has been deleted successfully!"));
     }
 
+    @GetMapping("/mine")
+    public ResponseEntity<PageResponse<ServicePackageResponse>> getMyPackages(
+            @AuthenticationPrincipal AuthenticatedUser authUser,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size,
+            @RequestParam(defaultValue = "createdAt") String sort
+    ) {
+        return ResponseEntity.ok(servicePackageService.getMyPackages(authUser.userId(), authUser.role(), page, size, sort));
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<ServicePackageResponse> getPackage(@PathVariable UUID id) {
         return ResponseEntity.ok(servicePackageService.getPackage(id));
