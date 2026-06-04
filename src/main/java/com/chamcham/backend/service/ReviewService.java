@@ -18,6 +18,8 @@ import jakarta.transaction.Transactional;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
 import java.util.UUID;
 
@@ -69,6 +71,12 @@ public class ReviewService {
                 .brand(brand)
                 .rating(request.rating())
                 .comment(request.comment())
+                .servicePackage(order.getServicePackage())
+                .reviewer(brand)
+                .star(request.rating())
+                .description(request.comment() == null || request.comment().isBlank()
+                        ? "Brand review for completed order"
+                        : request.comment())
                 .build();
 
         Review saved = reviewRepository.save(review);
@@ -76,7 +84,7 @@ public class ReviewService {
         // update creator aggregate rating
         List<Review> allReviews = reviewRepository.findByCreatorIdOrderByCreatedAtDesc(creator.getId());
         double avgRating = allReviews.stream().mapToInt(Review::getRating).average().orElse(0);
-        creator.setRating(new java.math.BigDecimal(String.format("%.2f", avgRating)));
+        creator.setRating(BigDecimal.valueOf(avgRating).setScale(2, RoundingMode.HALF_UP));
         creator.setTotalReviews(allReviews.size());
         creatorRepository.save(creator);
 
