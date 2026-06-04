@@ -8,8 +8,12 @@ import com.chamcham.backend.entity.Conversation;
 import com.chamcham.backend.entity.Creator;
 import com.chamcham.backend.entity.Message;
 import com.chamcham.backend.entity.QuickDealOffer;
+import com.chamcham.backend.entity.ServicePackage;
 import com.chamcham.backend.entity.enums.DealType;
 import com.chamcham.backend.entity.enums.OfferStatus;
+import com.chamcham.backend.entity.enums.PackagePlatform;
+import com.chamcham.backend.entity.enums.PackageStatus;
+import com.chamcham.backend.entity.enums.PackageType;
 import com.chamcham.backend.entity.enums.UserRole;
 import com.chamcham.backend.exception.ApiException;
 import com.chamcham.backend.repository.BrandRepository;
@@ -17,6 +21,7 @@ import com.chamcham.backend.repository.ConversationRepository;
 import com.chamcham.backend.repository.CreatorRepository;
 import com.chamcham.backend.repository.MessageRepository;
 import com.chamcham.backend.repository.QuickDealOfferRepository;
+import com.chamcham.backend.repository.ServicePackageRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -31,17 +36,23 @@ public class QuickDealService {
     private final CreatorRepository creatorRepository;
     private final BrandRepository brandRepository;
     private final MessageRepository messageRepository;
+    private final ServicePackageRepository servicePackageRepository;
+    private final OrderService orderService;
 
     public QuickDealService(QuickDealOfferRepository offerRepository,
                             ConversationRepository conversationRepository,
                             CreatorRepository creatorRepository,
                             BrandRepository brandRepository,
-                            MessageRepository messageRepository) {
+                            MessageRepository messageRepository,
+                            ServicePackageRepository servicePackageRepository,
+                            OrderService orderService) {
         this.offerRepository = offerRepository;
         this.conversationRepository = conversationRepository;
         this.creatorRepository = creatorRepository;
         this.brandRepository = brandRepository;
         this.messageRepository = messageRepository;
+        this.servicePackageRepository = servicePackageRepository;
+        this.orderService = orderService;
     }
 
     @Transactional
@@ -131,6 +142,20 @@ public class QuickDealService {
 
         offer.setStatus(response);
         QuickDealOffer saved = offerRepository.save(offer);
+        UUID orderId = null;
+
+        if (response == OfferStatus.ACCEPTED) {
+            ServicePackage quickDealPackage = createQuickDealPackage(saved);
+            orderId = orderService.createOrder(
+                    quickDealPackage.getId(),
+                    saved.getConversation().getBrand().getId(),
+                    UserRole.BRAND,
+                    saved.getAmount(),
+                    saved.getBarterDetails(),
+                    saved.getMessage(),
+                    saved.getDealType()
+            ).id();
+        }
 
         if (saved.getMessageEntity() != null) {
             Message message = saved.getMessageEntity();
@@ -138,7 +163,44 @@ public class QuickDealService {
             messageRepository.save(message);
         }
 
-        return new QuickDealRespondResponse(saved.getId(), saved.getStatus().name().toLowerCase());
+        return new QuickDealRespondResponse(saved.getId(), saved.getStatus().name().toLowerCase(), orderId);
+    }
+
+    private ServicePackage createQuickDealPackage(QuickDealOffer offer) {
+        Creator creator = offer.getConversation().getCreator();
+        String title = "Quick Deal - " + creator.getName();
+        String description = offer.getMessage();
+        Integer price = offer.getDealType() == DealType.BARTER ? 0 : offer.getAmount();
+
+        return servicePackageRepository.save(ServicePackage.builder()
+                .creator(creator)
+                .name("quick-deal-" + offer.getId())
+                .title(title.length() > 150 ? title.substring(0, 150) : title)
+                .shortDescription("Accepted quick deal")
+                .description(description)
+                .fullDescription(description)
+                .platform(PackagePlatform.INSTAGRAM)
+                .category("Quick Deal")
+                .type(PackageType.ONE_TIME)
+                .dealType(offer.getDealType())
+                .status(PackageStatus.ACTIVE)
+                .visibility("private")
+                .price(price == null ? 0 : price)
+                .barterDetails(offer.getBarterDetails())
+                .barterDescription(offer.getBarterDetails())
+                .barterCategory(offer.getBarterCategory())
+                .estimatedBarterValue(offer.getEstimatedBarterValue())
+                .hybridCashAmount(offer.getDealType() == DealType.HYBRID ? offer.getAmount() : null)
+                .hybridBarterValue(offer.getEstimatedBarterValue())
+                .creatorExpectations(offer.getCreatorExpectation())
+                .deliverables(java.util.List.of("Quick deal deliverable"))
+                .deliveryDays(7)
+                .revisions(1)
+                .tags(java.util.List.of("quick-deal"))
+                .currency("PKR")
+                .responseTime("Within 24 hours")
+                .active(true)
+                .build());
     }
 
     private void validateDealPayload(DealType dealType, Integer amount, String barterDetails) {
@@ -151,4 +213,3 @@ public class QuickDealService {
         }
     }
 }
-

@@ -2,6 +2,7 @@ package com.chamcham.backend.service;
 
 import com.chamcham.backend.dto.order.OrderResponse;
 import com.chamcham.backend.entity.Brand;
+import com.chamcham.backend.entity.Deliverable;
 import com.chamcham.backend.entity.Order;
 import com.chamcham.backend.entity.ServicePackage;
 import com.chamcham.backend.entity.enums.DealType;
@@ -16,6 +17,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
@@ -104,7 +106,17 @@ public class OrderService {
                 .message(message)
                 .status(OrderStatus.PENDING)
                 .progress(0)
+                .deadlineDate(LocalDate.now().plusDays(Math.max(pkg.getDeliveryDays(), 1)))
                 .build();
+
+        List<Deliverable> deliverables = packageDeliverables(pkg).stream()
+                .map(name -> Deliverable.builder()
+                        .order(order)
+                        .name(name)
+                        .status(Deliverable.DeliverableStatus.PENDING)
+                        .build())
+                .toList();
+        order.setDeliverables(deliverables);
 
         return orderMapper.toResponse(orderRepository.save(order));
     }
@@ -160,5 +172,17 @@ public class OrderService {
     private Order findOrder(UUID id) {
         return orderRepository.findById(id)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Order not found"));
+    }
+
+    private List<String> packageDeliverables(ServicePackage pkg) {
+        List<String> deliverables = pkg.getDeliverables();
+        if (deliverables == null || deliverables.isEmpty()) {
+            return List.of("Package deliverables");
+        }
+        List<String> normalized = deliverables.stream()
+                .filter(value -> value != null && !value.isBlank())
+                .map(String::trim)
+                .toList();
+        return normalized.isEmpty() ? List.of("Package deliverables") : normalized;
     }
 }

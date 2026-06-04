@@ -1,13 +1,21 @@
 package com.chamcham.backend.mapper;
 
+import com.chamcham.backend.dto.order.DeliverableResponse;
 import com.chamcham.backend.dto.order.OrderResponse;
+import com.chamcham.backend.entity.Deliverable;
 import com.chamcham.backend.entity.Order;
 import org.springframework.stereotype.Component;
+
+import java.util.List;
 
 @Component
 public class OrderMapper {
 
     public OrderResponse toResponse(Order order) {
+        List<DeliverableResponse> deliverables = order.getDeliverables() == null
+                ? List.of()
+                : order.getDeliverables().stream().map(this::toDeliverableResponse).toList();
+
         return new OrderResponse(
                 order.getId(),
                 order.getOrderNumber(),
@@ -25,7 +33,20 @@ public class OrderMapper {
                 order.getProgress(),
                 order.getDeadlineDate(),
                 order.getDeliveryDate(),
-                order.getCreatedAt()
+                order.getCreatedAt(),
+                deliverables
+        );
+    }
+
+    private DeliverableResponse toDeliverableResponse(Deliverable deliverable) {
+        return new DeliverableResponse(
+                deliverable.getId(),
+                deliverable.getOrder().getId(),
+                deliverable.getName(),
+                deliverable.getStatus() != null ? deliverable.getStatus().name().toLowerCase() : "pending",
+                deliverable.getFileUrl(),
+                deliverable.getSubmittedAt(),
+                deliverable.getCreatedAt()
         );
     }
 }

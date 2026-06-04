@@ -4,7 +4,7 @@ import java.util.UUID;
 
 public record QuickDealRespondResponse(
         UUID offerId,
-        String status
+        String status,
+        UUID orderId
 ) {
 }
-

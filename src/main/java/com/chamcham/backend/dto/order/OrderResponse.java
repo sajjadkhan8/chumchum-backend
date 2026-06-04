@@ -2,6 +2,7 @@ package com.chamcham.backend.dto.order;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
 public record OrderResponse(
@@ -21,6 +22,7 @@ public record OrderResponse(
         int progress,
         LocalDate deadlineDate,
         LocalDate deliveryDate,
-        Instant createdAt
+        Instant createdAt,
+        List<DeliverableResponse> deliverables
 ) {
 }
