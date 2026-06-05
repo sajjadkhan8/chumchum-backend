@@ -54,4 +54,7 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
 
     @Query("select count(distinct o.brand.id) from Order o where o.creator.id = :creatorId and o.status = 'COMPLETED'")
     long countDistinctBrandsByCreatorAndCompleted(@Param("creatorId") UUID creatorId);
+
+    @Query("select count(distinct o.creator.id) from Order o where o.brand.id = :brandId")
+    long countDistinctCreatorsByBrand(@Param("brandId") UUID brandId);
 }

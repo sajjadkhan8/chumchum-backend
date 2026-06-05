@@ -31,7 +31,7 @@ public class SavedCreatorService {
 
     public List<Creator> getSaved(UUID brandUserId, UserRole role) {
         requireBrand(role);
-        return savedCreatorRepository.findByBrandId(brandUserId)
+        return savedCreatorRepository.findByBrandIdWithCreator(brandUserId)
                 .stream().map(SavedCreator::getCreator).toList();
     }
 
@@ -62,4 +62,3 @@ public class SavedCreatorService {
         if (!role.isBrand()) throw new ApiException(HttpStatus.FORBIDDEN, "Only brands can save creators");
     }
 }
-

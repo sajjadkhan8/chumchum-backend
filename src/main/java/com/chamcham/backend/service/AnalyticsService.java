@@ -11,6 +11,7 @@ import com.chamcham.backend.repository.CreatorRepository;
 import com.chamcham.backend.repository.OrderRepository;
 import com.chamcham.backend.repository.PackageAnalyticsRepository;
 import com.chamcham.backend.repository.ReviewRepository;
+import com.chamcham.backend.repository.SavedCreatorRepository;
 import com.chamcham.backend.repository.ServicePackageRepository;
 import com.chamcham.backend.repository.WalletRepository;
 import org.springframework.http.HttpStatus;
@@ -34,17 +35,20 @@ public class AnalyticsService {
     private final WalletRepository walletRepository;
     private final PackageAnalyticsRepository packageAnalyticsRepository;
     private final ServicePackageRepository servicePackageRepository;
+    private final SavedCreatorRepository savedCreatorRepository;
 
     public AnalyticsService(CreatorRepository creatorRepository, OrderRepository orderRepository,
                             ReviewRepository reviewRepository, WalletRepository walletRepository,
                             PackageAnalyticsRepository packageAnalyticsRepository,
-                            ServicePackageRepository servicePackageRepository) {
+                            ServicePackageRepository servicePackageRepository,
+                            SavedCreatorRepository savedCreatorRepository) {
         this.creatorRepository = creatorRepository;
         this.orderRepository = orderRepository;
         this.reviewRepository = reviewRepository;
         this.walletRepository = walletRepository;
         this.packageAnalyticsRepository = packageAnalyticsRepository;
         this.servicePackageRepository = servicePackageRepository;
+        this.savedCreatorRepository = savedCreatorRepository;
     }
 
     public record CreatorDashboard(
@@ -55,7 +59,8 @@ public class AnalyticsService {
 
     public record BrandDashboard(
             long totalOrders, long activeOrders, long completedOrders,
-            long savedCreators
+            long savedCreators, long totalSpent, long creatorsWorkedWith,
+            double avgRating
     ) {}
 
     @Transactional(readOnly = true)
@@ -89,8 +94,15 @@ public class AnalyticsService {
                 List.of(OrderStatus.ACCEPTED, OrderStatus.IN_PROGRESS, OrderStatus.DELIVERED,
                         OrderStatus.REVIEW, OrderStatus.REVISION));
         long completed = orderRepository.countByBrandIdAndStatusIn(userId, List.of(OrderStatus.COMPLETED));
+        long totalSpent = orderRepository.findByBrandIdOrderByCreatedAtDesc(userId).stream()
+                .filter(order -> order.getAmount() != null)
+                .mapToLong(com.chamcham.backend.entity.Order::getAmount)
+                .sum();
+        long creatorsWorkedWith = orderRepository.countDistinctCreatorsByBrand(userId);
+        long savedCreators = savedCreatorRepository.countByBrandId(userId);
+        double avgRating = Math.round(reviewRepository.averageRatingByBrand(userId) * 10.0) / 10.0;
 
-        return new BrandDashboard(total, active, completed, 0L);
+        return new BrandDashboard(total, active, completed, savedCreators, totalSpent, creatorsWorkedWith, avgRating);
     }
 
     // ---- Creator Insights ----
@@ -225,21 +237,60 @@ public class AnalyticsService {
     public Map<String, Object> brandCampaigns(UUID userId, UserRole role) {
         if (!role.isBrand()) throw new ApiException(HttpStatus.FORBIDDEN, "Access denied");
 
-        long totalOrders = orderRepository.countByBrandIdAndStatusIn(userId, List.of(OrderStatus.values()));
-        long completedOrders = orderRepository.countByBrandIdAndStatusIn(userId, List.of(OrderStatus.COMPLETED));
-        long activeCreators = orderRepository.countByBrandIdAndStatusIn(userId,
-                List.of(OrderStatus.ACCEPTED, OrderStatus.IN_PROGRESS, OrderStatus.DELIVERED,
-                        OrderStatus.REVIEW, OrderStatus.REVISION));
+        List<com.chamcham.backend.entity.Order> orders = orderRepository.findByBrandIdOrderByCreatedAtDesc(userId);
+        List<OrderStatus> activeStatuses = List.of(OrderStatus.ACCEPTED, OrderStatus.IN_PROGRESS, OrderStatus.DELIVERED,
+                OrderStatus.REVIEW, OrderStatus.REVISION);
+        long totalOrders = orders.size();
+        long completedOrders = orders.stream().filter(order -> order.getStatus() == OrderStatus.COMPLETED).count();
+        long activeCreators = orders.stream()
+                .filter(order -> activeStatuses.contains(order.getStatus()))
+                .map(order -> order.getCreator().getId())
+                .distinct()
+                .count();
+        long monthlySpend = orders.stream()
+                .filter(order -> order.getAmount() != null)
+                .mapToLong(com.chamcham.backend.entity.Order::getAmount)
+                .sum();
+
+        Map<String, Long> cityCounts = new HashMap<>();
+        Map<String, Integer> dealMix = new LinkedHashMap<>();
+        dealMix.put("paid", 0);
+        dealMix.put("hybrid", 0);
+        dealMix.put("barter", 0);
+
+        orders.forEach(order -> {
+            String dealType = order.getDealType() != null ? order.getDealType().name().toLowerCase() : "paid";
+            dealMix.computeIfPresent(dealType, (key, value) -> value + 1);
+
+            String city = order.getCreator().getCity() != null && !order.getCreator().getCity().isBlank()
+                    ? order.getCreator().getCity().trim().toLowerCase()
+                    : "unknown";
+            cityCounts.merge(city, 1L, Long::sum);
+        });
+
+        List<Map<String, Object>> topCities = cityCounts.entrySet().stream()
+                .sorted((a, b) -> Long.compare(b.getValue(), a.getValue()))
+                .limit(5)
+                .map(entry -> {
+                    Map<String, Object> city = new LinkedHashMap<>();
+                    city.put("city", entry.getKey());
+                    city.put("orders", entry.getValue());
+                    city.put("share", totalOrders > 0
+                            ? Math.round((entry.getValue() * 1000.0 / totalOrders)) / 10.0
+                            : 0.0);
+                    return city;
+                })
+                .toList();
 
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("totalReach", 0L);
         data.put("avgEngagementRate", 0.0);
         data.put("creatorsActive", activeCreators);
-        data.put("monthlySpend", 0L);
+        data.put("monthlySpend", monthlySpend);
         data.put("totalOrders", totalOrders);
         data.put("completedOrders", completedOrders);
-        data.put("topCities", List.of());
-        data.put("dealMix", Map.of("paid", 0, "hybrid", 0, "barter", 0));
+        data.put("topCities", topCities);
+        data.put("dealMix", dealMix);
 
         return data;
     }

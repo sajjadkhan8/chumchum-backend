@@ -48,6 +48,9 @@ public class AnalyticsController {
         data.put("activeOrders", dash.activeOrders());
         data.put("completedOrders", dash.completedOrders());
         data.put("savedCreators", dash.savedCreators());
+        data.put("totalSpent", dash.totalSpent());
+        data.put("creatorsWorkedWith", dash.creatorsWorkedWith());
+        data.put("avgRating", dash.avgRating());
         return ResponseEntity.ok(Map.of("success", true, "data", data));
     }
 
@@ -77,4 +80,3 @@ public class AnalyticsController {
                 analyticsService.brandCampaigns(authUser.userId(), authUser.role())));
     }
 }
-
