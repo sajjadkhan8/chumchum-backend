@@ -14,7 +14,8 @@ public interface TransactionRepository extends JpaRepository<Transaction, UUID> 
 
     Page<Transaction> findByCreatorIdOrderByCreatedAtDesc(UUID creatorId, Pageable pageable);
 
+    boolean existsByOrderIdAndType(UUID orderId, TransactionType type);
+
     @Query("select coalesce(sum(t.amount), 0) from Transaction t where t.creator.id = :creatorId and t.type = :type and t.status = 'COMPLETED'")
     long sumCompletedByCreatorAndType(@Param("creatorId") UUID creatorId, @Param("type") TransactionType type);
 }
-

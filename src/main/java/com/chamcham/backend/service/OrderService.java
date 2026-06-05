@@ -5,14 +5,19 @@ import com.chamcham.backend.entity.Brand;
 import com.chamcham.backend.entity.Deliverable;
 import com.chamcham.backend.entity.Order;
 import com.chamcham.backend.entity.ServicePackage;
+import com.chamcham.backend.entity.Transaction;
 import com.chamcham.backend.entity.enums.DealType;
 import com.chamcham.backend.entity.enums.OrderStatus;
+import com.chamcham.backend.entity.enums.TransactionStatus;
+import com.chamcham.backend.entity.enums.TransactionType;
 import com.chamcham.backend.entity.enums.UserRole;
 import com.chamcham.backend.exception.ApiException;
 import com.chamcham.backend.mapper.OrderMapper;
 import com.chamcham.backend.repository.BrandRepository;
 import com.chamcham.backend.repository.OrderRepository;
 import com.chamcham.backend.repository.ServicePackageRepository;
+import com.chamcham.backend.repository.TransactionRepository;
+import com.chamcham.backend.repository.WalletRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -47,16 +52,22 @@ public class OrderService {
     private final OrderRepository orderRepository;
     private final ServicePackageRepository servicePackageRepository;
     private final BrandRepository brandRepository;
+    private final WalletRepository walletRepository;
+    private final TransactionRepository transactionRepository;
     private final OrderMapper orderMapper;
     private final AtomicLong orderNumberCounter = new AtomicLong(1000);
 
     public OrderService(OrderRepository orderRepository,
                         ServicePackageRepository servicePackageRepository,
                         BrandRepository brandRepository,
+                        WalletRepository walletRepository,
+                        TransactionRepository transactionRepository,
                         OrderMapper orderMapper) {
         this.orderRepository = orderRepository;
         this.servicePackageRepository = servicePackageRepository;
         this.brandRepository = brandRepository;
+        this.walletRepository = walletRepository;
+        this.transactionRepository = transactionRepository;
         this.orderMapper = orderMapper;
     }
 
@@ -153,7 +164,11 @@ public class OrderService {
         }
 
         order.setStatus(newStatus);
-        return orderMapper.toResponse(orderRepository.save(order));
+        Order saved = orderRepository.save(order);
+        if (newStatus == OrderStatus.COMPLETED) {
+            releaseCreatorEarnings(saved);
+        }
+        return orderMapper.toResponse(saved);
     }
 
     @Transactional
@@ -184,5 +199,27 @@ public class OrderService {
                 .map(String::trim)
                 .toList();
         return normalized.isEmpty() ? List.of("Package deliverables") : normalized;
+    }
+
+    private void releaseCreatorEarnings(Order order) {
+        int amount = order.getAmount() == null ? 0 : order.getAmount();
+        if (amount <= 0 || order.getDealType() == DealType.BARTER) {
+            return;
+        }
+        if (transactionRepository.existsByOrderIdAndType(order.getId(), TransactionType.EARNING)) {
+            return;
+        }
+
+        walletRepository.creditCreatorEarnings(order.getCreator().getId(), amount);
+
+        String orderLabel = order.getOrderNumber() == null ? order.getId().toString() : order.getOrderNumber();
+        transactionRepository.save(Transaction.builder()
+                .creator(order.getCreator())
+                .order(order)
+                .type(TransactionType.EARNING)
+                .amount(amount)
+                .description("Order " + orderLabel + " payout credit")
+                .status(TransactionStatus.COMPLETED)
+                .build());
     }
 }
