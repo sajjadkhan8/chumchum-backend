@@ -1,0 +1,352 @@
+package com.chamcham.backend.controller;
+
+import com.chamcham.backend.config.security.AuthenticatedUser;
+import com.chamcham.backend.dto.order.OrderResponse;
+import com.chamcham.backend.dto.user.UserResponse;
+import com.chamcham.backend.entity.AmbassadorApplication;
+import com.chamcham.backend.entity.Brand;
+import com.chamcham.backend.entity.Creator;
+import com.chamcham.backend.entity.Order;
+import com.chamcham.backend.entity.User;
+import com.chamcham.backend.entity.enums.OrderStatus;
+import com.chamcham.backend.entity.enums.UserRole;
+import com.chamcham.backend.exception.ApiException;
+import com.chamcham.backend.mapper.BrandMapper;
+import com.chamcham.backend.mapper.CreatorMapper;
+import com.chamcham.backend.mapper.OrderMapper;
+import com.chamcham.backend.mapper.UserMapper;
+import com.chamcham.backend.repository.BrandRepository;
+import com.chamcham.backend.repository.CreatorRepository;
+import com.chamcham.backend.repository.OrderRepository;
+import com.chamcham.backend.repository.UserRepository;
+import com.chamcham.backend.service.AmbassadorService;
+import com.chamcham.backend.service.OrderService;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.stream.Stream;
+
+@RestController
+@RequestMapping("/api/v1/admin")
+public class AdminController {
+
+    private final UserRepository userRepository;
+    private final CreatorRepository creatorRepository;
+    private final BrandRepository brandRepository;
+    private final OrderRepository orderRepository;
+    private final UserMapper userMapper;
+    private final CreatorMapper creatorMapper;
+    private final BrandMapper brandMapper;
+    private final OrderMapper orderMapper;
+    private final OrderService orderService;
+    private final AmbassadorService ambassadorService;
+
+    public AdminController(UserRepository userRepository,
+                           CreatorRepository creatorRepository,
+                           BrandRepository brandRepository,
+                           OrderRepository orderRepository,
+                           UserMapper userMapper,
+                           CreatorMapper creatorMapper,
+                           BrandMapper brandMapper,
+                           OrderMapper orderMapper,
+                           OrderService orderService,
+                           AmbassadorService ambassadorService) {
+        this.userRepository = userRepository;
+        this.creatorRepository = creatorRepository;
+        this.brandRepository = brandRepository;
+        this.orderRepository = orderRepository;
+        this.userMapper = userMapper;
+        this.creatorMapper = creatorMapper;
+        this.brandMapper = brandMapper;
+        this.orderMapper = orderMapper;
+        this.orderService = orderService;
+        this.ambassadorService = ambassadorService;
+    }
+
+    public record UserStatusRequest(@NotNull Boolean active) {}
+
+    public record CreatorVerificationRequest(@NotNull Boolean verified) {}
+
+    public record BrandVerificationRequest(
+            @Size(max = 50) String status,
+            @Size(max = 255) String contactEmail,
+            @Size(max = 50) String phoneNumber
+    ) {}
+
+    public record OrderStatusRequest(@NotNull String status) {}
+
+    public record AmbassadorReviewRequest(
+            @NotNull @Size(max = 30) String status,
+            @Size(max = 2000) String notes
+    ) {}
+
+    @GetMapping("/dashboard")
+    public ResponseEntity<Map<String, Object>> dashboard(@AuthenticationPrincipal AuthenticatedUser authUser) {
+        requireAdmin(authUser);
+
+        List<Order> orders = orderRepository.findAllForAdmin();
+        long paidRevenue = orders.stream()
+                .filter(order -> order.getStatus() == OrderStatus.COMPLETED)
+                .mapToLong(order -> order.getAmount() == null ? 0 : order.getAmount())
+                .sum();
+
+        Map<String, Object> statusCounts = new LinkedHashMap<>();
+        for (OrderStatus status : OrderStatus.values()) {
+            statusCounts.put(status.name().toLowerCase(), orderRepository.countByStatus(status));
+        }
+
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("users", Map.of(
+                "total", userRepository.count(),
+                "creators", userRepository.countByRole(UserRole.CREATOR),
+                "brands", userRepository.countByRole(UserRole.BRAND),
+                "admins", userRepository.countByRole(UserRole.PLATFORM_ADMIN),
+                "active", userRepository.countByActiveTrue(),
+                "inactive", userRepository.countByActiveFalse()
+        ));
+        data.put("orders", Map.of(
+                "total", orders.size(),
+                "byStatus", statusCounts
+        ));
+        data.put("revenue", Map.of("completedOrderAmount", paidRevenue));
+        return ok(data);
+    }
+
+    @GetMapping("/users")
+    public ResponseEntity<Map<String, Object>> users(
+            @AuthenticationPrincipal AuthenticatedUser authUser,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String role,
+            @RequestParam(required = false) Boolean active,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int limit
+    ) {
+        requireAdmin(authUser);
+        UserRole roleFilter = parseRoleFilter(role);
+        Page<User> result = userRepository.searchForAdmin(blankToNull(search), roleFilter, active, PageRequest.of(safePage(page), safeLimit(limit)));
+        return ok(Map.of(
+                "users", result.getContent().stream().map(userMapper::toResponse).toList(),
+                "total", result.getTotalElements(),
+                "page", result.getNumber(),
+                "limit", result.getSize()
+        ));
+    }
+
+    @PatchMapping("/users/{id}/status")
+    public ResponseEntity<Map<String, Object>> updateUserStatus(
+            @AuthenticationPrincipal AuthenticatedUser authUser,
+            @PathVariable UUID id,
+            @Valid @RequestBody UserStatusRequest request
+    ) {
+        requireAdmin(authUser);
+        if (authUser.userId().equals(id) && !request.active()) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Admins cannot disable their own account");
+        }
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "User not found"));
+        user.setActive(request.active());
+        return ok(userMapper.toResponse(userRepository.save(user)));
+    }
+
+    @GetMapping("/orders")
+    public ResponseEntity<Map<String, Object>> orders(
+            @AuthenticationPrincipal AuthenticatedUser authUser,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String status,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int limit
+    ) {
+        requireAdmin(authUser);
+        OrderStatus statusFilter = parseOrderStatusFilter(status);
+        String searchFilter = blankToNull(search);
+        List<OrderResponse> allOrders = orderRepository.findAllForAdmin().stream()
+                .filter(order -> statusFilter == null || order.getStatus() == statusFilter)
+                .filter(order -> matchesOrderSearch(order, searchFilter))
+                .map(orderMapper::toResponse)
+                .toList();
+        int safePage = safePage(page);
+        int safeLimit = safeLimit(limit);
+        int fromIndex = Math.min(safePage * safeLimit, allOrders.size());
+        int toIndex = Math.min(fromIndex + safeLimit, allOrders.size());
+        return ok(Map.of(
+                "orders", allOrders.subList(fromIndex, toIndex),
+                "total", allOrders.size(),
+                "page", safePage,
+                "limit", safeLimit
+        ));
+    }
+
+    @PatchMapping("/orders/{id}/status")
+    public ResponseEntity<Map<String, Object>> updateOrderStatus(
+            @AuthenticationPrincipal AuthenticatedUser authUser,
+            @PathVariable UUID id,
+            @Valid @RequestBody OrderStatusRequest request
+    ) {
+        requireAdmin(authUser);
+        OrderStatus status;
+        try {
+            status = OrderStatus.valueOf(request.status().trim().toUpperCase());
+        } catch (Exception ex) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Invalid status: " + request.status());
+        }
+        return ok(orderService.updateStatus(id, status, authUser.userId(), authUser.role()));
+    }
+
+    @PatchMapping("/creators/{id}/verification")
+    public ResponseEntity<Map<String, Object>> updateCreatorVerification(
+            @AuthenticationPrincipal AuthenticatedUser authUser,
+            @PathVariable UUID id,
+            @Valid @RequestBody CreatorVerificationRequest request
+    ) {
+        requireAdmin(authUser);
+        Creator creator = creatorRepository.findById(id)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Creator not found"));
+        creator.setVerified(request.verified());
+        return ok(creatorMapper.toResponse(creatorRepository.save(creator)));
+    }
+
+    @PatchMapping("/brands/{id}/verification")
+    public ResponseEntity<Map<String, Object>> updateBrandVerification(
+            @AuthenticationPrincipal AuthenticatedUser authUser,
+            @PathVariable UUID id,
+            @Valid @RequestBody BrandVerificationRequest request
+    ) {
+        requireAdmin(authUser);
+        Brand brand = brandRepository.findById(id)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Brand not found"));
+        if (request.status() != null) brand.setBusinessVerificationStatus(request.status());
+        if (request.contactEmail() != null) brand.setVerificationContactEmail(request.contactEmail());
+        if (request.phoneNumber() != null) brand.setVerificationPhoneNumber(request.phoneNumber());
+        return ok(brandMapper.toResponse(brandRepository.save(brand)));
+    }
+
+    @GetMapping("/ambassador/applications")
+    public ResponseEntity<Map<String, Object>> ambassadorApplications(
+            @AuthenticationPrincipal AuthenticatedUser authUser,
+            @RequestParam(required = false) String status,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int limit
+    ) {
+        requireAdmin(authUser);
+        PageRequest pageable = PageRequest.of(page, limit);
+        var applications = ambassadorService.listApplications(status, pageable);
+        return ok(Map.of(
+                "applications", applications.getContent().stream().map(this::toApplicationMap).toList(),
+                "total", applications.getTotalElements(),
+                "page", applications.getNumber(),
+                "limit", applications.getSize()
+        ));
+    }
+
+    @PatchMapping("/ambassador/applications/{id}")
+    public ResponseEntity<Map<String, Object>> reviewAmbassadorApplication(
+            @AuthenticationPrincipal AuthenticatedUser authUser,
+            @PathVariable UUID id,
+            @Valid @RequestBody AmbassadorReviewRequest request
+    ) {
+        requireAdmin(authUser);
+        try {
+            return ok(toApplicationMap(ambassadorService.reviewApplication(
+                    id,
+                    com.chamcham.backend.entity.enums.AmbassadorAppStatus.valueOf(request.status().trim().toUpperCase()),
+                    authUser.userId(),
+                    request.notes()
+            )));
+        } catch (IllegalArgumentException ex) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Invalid status: " + request.status());
+        }
+    }
+
+    private ResponseEntity<Map<String, Object>> ok(Object data) {
+        return ResponseEntity.ok(Map.of("success", true, "data", data));
+    }
+
+    private void requireAdmin(AuthenticatedUser authUser) {
+        if (authUser == null || !authUser.role().isAdmin()) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "Admin access required");
+        }
+    }
+
+    private String blankToNull(String value) {
+        if (value == null || value.trim().isEmpty()) return null;
+        return value.trim();
+    }
+
+    private int safePage(int page) {
+        return Math.max(page, 0);
+    }
+
+    private int safeLimit(int limit) {
+        return Math.max(1, Math.min(limit, 100));
+    }
+
+    private UserRole parseRoleFilter(String role) {
+        String value = blankToNull(role);
+        if (value == null || value.equalsIgnoreCase("all")) return null;
+        try {
+            return UserRole.valueOf(value.trim().toUpperCase());
+        } catch (Exception ex) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Invalid role: " + role);
+        }
+    }
+
+    private OrderStatus parseOrderStatusFilter(String status) {
+        String value = blankToNull(status);
+        if (value == null || value.equalsIgnoreCase("all")) return null;
+        try {
+            return OrderStatus.valueOf(value.trim().toUpperCase());
+        } catch (Exception ex) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Invalid status: " + status);
+        }
+    }
+
+    private boolean matchesOrderSearch(Order order, String search) {
+        if (search == null) return true;
+        String lowered = search.toLowerCase();
+        return Stream.of(
+                        order.getId() == null ? null : order.getId().toString(),
+                        order.getServicePackage() == null ? null : order.getServicePackage().getTitle(),
+                        order.getServicePackage() == null ? null : order.getServicePackage().getName(),
+                        order.getCreator() == null ? null : order.getCreator().getName(),
+                        order.getCreator() == null ? null : order.getCreator().getEmail(),
+                        order.getBrand() == null ? null : order.getBrand().getName(),
+                        order.getBrand() == null ? null : order.getBrand().getEmail()
+                )
+                .filter(value -> value != null)
+                .anyMatch(value -> value.toLowerCase().contains(lowered));
+    }
+
+    private Map<String, Object> toApplicationMap(AmbassadorApplication app) {
+        Map<String, Object> row = new LinkedHashMap<>();
+        row.put("id", app.getId());
+        row.put("creatorId", app.getCreator().getId());
+        row.put("status", app.getStatus() == null ? null : app.getStatus().name().toLowerCase());
+        row.put("submittedAt", app.getSubmittedAt());
+        row.put("identityVerified", app.isIdentityVerified());
+        row.put("engagementVerified", app.isEngagementVerified());
+        row.put("contentReviewPassed", app.isContentReviewPassed());
+        row.put("backgroundCheckPassed", app.isBackgroundCheckPassed());
+        row.put("notes", app.getNotes());
+        row.put("rejectionReason", app.getRejectionReason());
+        row.put("approvedAt", app.getApprovedAt());
+        row.put("createdAt", app.getCreatedAt());
+        return row;
+    }
+}

@@ -6,6 +6,11 @@ public enum AmbassadorAppStatus {
     UNDER_REVIEW,
     VERIFIED,
     APPROVED,
-    REJECTED
+    REJECTED,
+    draft,
+    submitted,
+    under_review,
+    verified,
+    approved,
+    rejected
 }
-

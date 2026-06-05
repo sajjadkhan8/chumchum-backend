@@ -76,6 +76,8 @@ public class AuthService {
         User user = userRepository.findByEmail(request.email())
                 .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "Invalid credentials"));
 
+        requireActive(user);
+
         if (!passwordEncoder.matches(request.password(), user.getPasswordHash())) {
             throw new ApiException(HttpStatus.UNAUTHORIZED, "Invalid credentials");
         }
@@ -94,7 +96,10 @@ public class AuthService {
         if (entry == null || entry.expiresAt.isBefore(Instant.now()) || !entry.otp.equals(request.otp())) {
             throw new ApiException(HttpStatus.UNAUTHORIZED, "Invalid or expired OTP");
         }
-        User user = userRepository.findByPhone(request.phone()).orElseGet(() -> userRepository.save(User.builder()
+        User user = userRepository.findByPhone(request.phone()).map(existing -> {
+            requireActive(existing);
+            return existing;
+        }).orElseGet(() -> userRepository.save(User.builder()
                 .username(generateUsername(request.phone()))
                 .phone(request.phone())
                 .name(request.phone())
@@ -113,6 +118,7 @@ public class AuthService {
             throw new ApiException(HttpStatus.UNAUTHORIZED, "Invalid or expired refresh token");
         }
         User user = userRepository.findById(userId).orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "Invalid or expired refresh token"));
+        requireActive(user);
         return new AuthTokenPair(jwtService.generateToken(user.getId(), user.getRole()), request.refreshToken());
     }
 
@@ -126,6 +132,7 @@ public class AuthService {
             throw new ApiException(HttpStatus.UNAUTHORIZED, "Invalid/expired reset token");
         }
         User user = userRepository.findById(userId).orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "Invalid/expired reset token"));
+        requireActive(user);
         user.setPasswordHash(passwordEncoder.encode(request.newPassword()));
         userRepository.save(user);
     }
@@ -138,10 +145,12 @@ public class AuthService {
 
     public UserResponse me(UUID userId) {
         User user = userRepository.findById(userId).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "User not found"));
+        requireActive(user);
         return userMapper.toResponse(user);
     }
 
     private AuthTokenResponse issueTokens(User user) {
+        requireActive(user);
         String accessToken = jwtService.generateToken(user.getId(), user.getRole());
         String refreshToken = UUID.randomUUID().toString().replace("-", "") + UUID.randomUUID().toString().replace("-", "");
         refreshStore.put(refreshToken, user.getId());
@@ -154,6 +163,12 @@ public class AuthService {
             normalized = "user" + normalized;
         }
         return normalized.length() > 40 ? normalized.substring(0, 40) : normalized;
+    }
+
+    private void requireActive(User user) {
+        if (!user.isActive() || user.getDeletedAt() != null) {
+            throw new ApiException(HttpStatus.UNAUTHORIZED, "Account is disabled");
+        }
     }
 
     private record OtpEntry(String otp, Instant expiresAt) {}

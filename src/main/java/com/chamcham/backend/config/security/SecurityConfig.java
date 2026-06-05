@@ -44,7 +44,12 @@ public class SecurityConfig {
                                 "/api/v1/packages",
                                 "/api/v1/packages/featured",
                                 "/api/v1/packages/*",
-                                "/api/v1/creators/*/reviews"
+                                "/api/v1/creators/*/reviews",
+                                "/api/v1/metadata/creators",
+                                "/api/v1/ambassador/ambassadors",
+                                "/api/v1/ambassador/benefits",
+                                "/api/v1/ambassador/eligibility",
+                                "/api/v1/ambassador/requirements"
                         ).permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/creators", "/api/v1/creators/*", "/api/v1/brands",
                                 "/api/v1/brands/*")

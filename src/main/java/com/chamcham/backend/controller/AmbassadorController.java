@@ -85,6 +85,51 @@ public class AmbassadorController {
                 ambassadors.stream().map(creatorMapper::toResponse).toList()));
     }
 
+    @GetMapping("/benefits")
+    public ResponseEntity<Map<String, Object>> benefits() {
+        List<Map<String, String>> benefits = List.of(
+                Map.of(
+                        "title", "Monthly Guaranteed Income",
+                        "description", "Starting from PKR 1,250,000/month for eligible ambassadors.",
+                        "icon", "money"
+                ),
+                Map.of(
+                        "title", "Direct Brand Access",
+                        "description", "Priority access to premium and enterprise campaigns.",
+                        "icon", "handshake"
+                ),
+                Map.of(
+                        "title", "Dedicated Account Manager",
+                        "description", "Personalized support for campaign planning and growth.",
+                        "icon", "briefcase"
+                ),
+                Map.of(
+                        "title", "Performance Bonuses",
+                        "description", "Tier-based bonus incentives based on delivery quality.",
+                        "icon", "trophy"
+                )
+        );
+        return ResponseEntity.ok(Map.of("success", true, "data", Map.of("benefits", benefits)));
+    }
+
+    @GetMapping({"/eligibility", "/requirements"})
+    public ResponseEntity<Map<String, Object>> eligibilityRequirements() {
+        Map<String, Object> requirements = Map.of(
+                "minFollowers", 100_000,
+                "minEngagementRate", 5,
+                "minRating", 4.5,
+                "minCompletedDeals", 30,
+                "verificationSteps", List.of(
+                        "Identity Verification (CNIC)",
+                        "Tax Profile Verification (NTN/STRN where applicable)",
+                        "Engagement Metrics Verification",
+                        "Content Quality & Brand Safety Review",
+                        "Background & Compliance Check"
+                )
+        );
+        return ResponseEntity.ok(Map.of("success", true, "data", requirements));
+    }
+
     // ---- Admin endpoints ----
 
     @GetMapping("/applications")
@@ -175,4 +220,3 @@ public class AmbassadorController {
         return m;
     }
 }
-

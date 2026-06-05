@@ -99,7 +99,11 @@ public class UserService {
     }
 
     private User findUser(UUID userId) {
-        return userRepository.findById(userId)
+        User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "User not found"));
+        if (!user.isActive() || user.getDeletedAt() != null) {
+            throw new ApiException(HttpStatus.UNAUTHORIZED, "Account is disabled");
+        }
+        return user;
     }
 }

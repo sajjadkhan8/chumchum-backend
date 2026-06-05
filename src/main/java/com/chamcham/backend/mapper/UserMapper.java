@@ -57,7 +57,8 @@ public class UserMapper {
                 creator.getAvgViews(),
                 creator.getEngagementRate(),
                 creator.getRating(),
-                creator.getTotalReviews()
+                creator.getTotalReviews(),
+                creator.isVerified()
         );
     }
 
@@ -66,7 +67,10 @@ public class UserMapper {
                 brand.getName(),   // was getCompanyName()
                 brand.getWebsite(),
                 brand.getIndustry(),
-                brand.getDescription()
+                brand.getDescription(),
+                brand.getBusinessVerificationStatus(),
+                brand.getVerificationContactEmail(),
+                brand.getVerificationPhoneNumber()
         );
     }
 }

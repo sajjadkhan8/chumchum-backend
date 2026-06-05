@@ -7,6 +7,8 @@ package com.chamcham.backend.entity.enums;
 public enum DealType {
     PAID,
     BARTER,
-    HYBRID
+    HYBRID,
+    paid,
+    barter,
+    hybrid
 }
-

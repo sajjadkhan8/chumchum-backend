@@ -60,4 +60,16 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
     long countDistinctCreatorsByBrand(@Param("brandId") UUID brandId);
 
     Optional<Order> findFirstByServicePackageName(String packageName);
+
+    @Query("""
+            select distinct o from Order o
+            join fetch o.servicePackage
+            join fetch o.creator
+            join fetch o.brand
+            left join fetch o.deliverables
+            order by o.createdAt desc
+            """)
+    List<Order> findAllForAdmin();
+
+    long countByStatus(OrderStatus status);
 }

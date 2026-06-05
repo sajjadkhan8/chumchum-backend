@@ -55,7 +55,13 @@ public class Deliverable extends BaseEntity {
         IN_PROGRESS,
         COMPLETED,
         REVISION,
-        REVIEW
+        REVIEW,
+        APPROVED,
+        pending,
+        in_progress,
+        completed,
+        revision,
+        review,
+        approved
     }
 }
-
