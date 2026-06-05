@@ -15,7 +15,11 @@ import com.chamcham.backend.repository.ServicePackageRepository;
 import com.chamcham.backend.repository.WalletRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -54,6 +58,7 @@ public class AnalyticsService {
             long savedCreators
     ) {}
 
+    @Transactional(readOnly = true)
     public CreatorDashboard creatorDashboard(UUID userId, UserRole role) {
         if (!role.isCreator()) throw new ApiException(HttpStatus.FORBIDDEN, "Access denied");
         Creator creator = creatorRepository.findById(userId)
@@ -75,6 +80,7 @@ public class AnalyticsService {
                 creator.getRating().doubleValue(), creator.getTotalReviews(), repeatBrands);
     }
 
+    @Transactional(readOnly = true)
     public BrandDashboard brandDashboard(UUID userId, UserRole role) {
         if (!role.isBrand()) throw new ApiException(HttpStatus.FORBIDDEN, "Access denied");
 
@@ -89,6 +95,7 @@ public class AnalyticsService {
 
     // ---- Creator Insights ----
 
+    @Transactional(readOnly = true)
     public Map<String, Object> creatorInsights(UUID userId, UserRole role) {
         if (!role.isCreator()) throw new ApiException(HttpStatus.FORBIDDEN, "Access denied");
 
@@ -96,17 +103,40 @@ public class AnalyticsService {
         long totalViews = 0, totalClicks = 0, totalInquiries = 0, totalRepeatBrands = 0;
         double totalConversionRate = 0;
         int packageCount = 0;
+        Map<String, PlatformAccumulator> platformTotals = new HashMap<>();
+        List<Map<String, Object>> topPackages = new ArrayList<>();
 
         for (ServicePackage pkg : packages) {
             PackageAnalytics a = pkg.getAnalytics();
-            if (a != null) {
-                totalViews        += a.getViews();
-                totalClicks       += a.getClicks();
-                totalInquiries    += a.getInquiries();
-                totalRepeatBrands += a.getRepeatBrands();
-                totalConversionRate += a.getConversionRate().doubleValue();
-                packageCount++;
-            }
+            int views = a != null ? a.getViews() : 0;
+            int clicks = a != null ? a.getClicks() : 0;
+            int inquiries = a != null ? a.getInquiries() : 0;
+            int repeatBrands = a != null ? a.getRepeatBrands() : 0;
+            double conversionRate = a != null ? a.getConversionRate().doubleValue() : 0;
+            double completionRate = a != null ? a.getCompletionRate().doubleValue() : 0;
+
+            totalViews        += views;
+            totalClicks       += clicks;
+            totalInquiries    += inquiries;
+            totalRepeatBrands += repeatBrands;
+            totalConversionRate += conversionRate;
+            packageCount++;
+
+            String platform = pkg.getPlatform() != null ? pkg.getPlatform().name().toLowerCase() : "unknown";
+            platformTotals.computeIfAbsent(platform, ignored -> new PlatformAccumulator())
+                    .add(views, clicks, inquiries);
+
+            Map<String, Object> topPackage = new LinkedHashMap<>();
+            topPackage.put("packageId", pkg.getId());
+            topPackage.put("title", pkg.getTitle());
+            topPackage.put("platform", platform);
+            topPackage.put("views", views);
+            topPackage.put("clicks", clicks);
+            topPackage.put("inquiries", inquiries);
+            topPackage.put("conversionRate", conversionRate);
+            topPackage.put("completionRate", completionRate);
+            topPackage.put("repeatBrands", repeatBrands);
+            topPackages.add(topPackage);
         }
 
         double avgConversionRate = packageCount > 0 ? totalConversionRate / packageCount : 0;
@@ -121,11 +151,40 @@ public class AnalyticsService {
         totals.put("avgConversionRate", Math.round(avgConversionRate * 10.0) / 10.0);
         totals.put("avgConversionChange", 0.0);
 
-        return Map.of("totals", totals, "monthlyInquiryTrend", List.of(), "platformContribution", List.of(), "topPackages", List.of());
+        long finalTotalViews = totalViews;
+        List<Map<String, Object>> platformContribution = platformTotals.entrySet().stream()
+                .map(entry -> {
+                    PlatformAccumulator value = entry.getValue();
+                    Map<String, Object> platform = new LinkedHashMap<>();
+                    platform.put("platform", entry.getKey());
+                    platform.put("views", value.views);
+                    platform.put("clicks", value.clicks);
+                    platform.put("inquiries", value.inquiries);
+                    platform.put("packageCount", value.packageCount);
+                    platform.put("score", finalTotalViews > 0
+                            ? Math.round((value.views * 1000.0 / finalTotalViews)) / 10.0
+                            : 0.0);
+                    return platform;
+                })
+                .sorted((a, b) -> Double.compare((double) b.get("score"), (double) a.get("score")))
+                .toList();
+
+        List<Map<String, Object>> sortedTopPackages = topPackages.stream()
+                .sorted(Comparator.comparingDouble((Map<String, Object> item) -> (double) item.get("conversionRate")).reversed())
+                .limit(5)
+                .toList();
+
+        return Map.of(
+                "totals", totals,
+                "monthlyInquiryTrend", List.of(),
+                "platformContribution", platformContribution,
+                "topPackages", sortedTopPackages
+        );
     }
 
     // ---- Creator Performance ----
 
+    @Transactional(readOnly = true)
     public Map<String, Object> creatorPerformance(UUID userId, UserRole role) {
         if (!role.isCreator()) throw new ApiException(HttpStatus.FORBIDDEN, "Access denied");
 
@@ -162,6 +221,7 @@ public class AnalyticsService {
 
     // ---- Brand Campaigns ----
 
+    @Transactional(readOnly = true)
     public Map<String, Object> brandCampaigns(UUID userId, UserRole role) {
         if (!role.isBrand()) throw new ApiException(HttpStatus.FORBIDDEN, "Access denied");
 
@@ -183,5 +243,18 @@ public class AnalyticsService {
 
         return data;
     }
-}
 
+    private static class PlatformAccumulator {
+        private long views = 0;
+        private long clicks = 0;
+        private long inquiries = 0;
+        private long packageCount = 0;
+
+        private void add(int packageViews, int packageClicks, int packageInquiries) {
+            views += packageViews;
+            clicks += packageClicks;
+            inquiries += packageInquiries;
+            packageCount++;
+        }
+    }
+}
