@@ -11,6 +11,10 @@ public record BrandUpdateRequest(
         @Size(max = 100) String industry,
         @Size(max = 1000) String description,
         @Size(max = 500) String logoUrl,
-        Integer monthlyBudget
+        Integer monthlyBudget,
+        @Size(max = 500) String preferredCreatorCategories,
+        @Size(max = 500) String targetCities,
+        @Size(max = 500) String targetPlatforms,
+        @Size(max = 150) String campaignBudgetRange
 ) {
 }

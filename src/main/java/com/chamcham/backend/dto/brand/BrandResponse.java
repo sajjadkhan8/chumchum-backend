@@ -16,6 +16,10 @@ public record BrandResponse(
         String description,
         String logoUrl,
         Integer monthlyBudget,
+        String preferredCreatorCategories,
+        String targetCities,
+        String targetPlatforms,
+        String campaignBudgetRange,
         ProfileUserResponse user,
         Instant createdAt,
         Instant updatedAt

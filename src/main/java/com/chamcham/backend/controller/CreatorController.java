@@ -187,6 +187,16 @@ public class CreatorController {
         return ResponseEntity.ok(Map.of("success", true, "data", updated));
     }
 
+    @GetMapping("/me/payment-settings")
+    public ResponseEntity<Map<String, Object>> getPaymentSettings(
+            @AuthenticationPrincipal AuthenticatedUser authUser
+    ) {
+        return ResponseEntity.ok(Map.of(
+                "success", true,
+                "data", creatorService.getPaymentSettings(authUser.userId(), authUser.role())
+        ));
+    }
+
     @PatchMapping("/me/payment-settings")
     public ResponseEntity<Map<String, Object>> updatePaymentSettings(
             @AuthenticationPrincipal AuthenticatedUser authUser,

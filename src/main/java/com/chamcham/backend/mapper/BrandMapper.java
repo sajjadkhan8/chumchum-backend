@@ -22,6 +22,10 @@ public class BrandMapper {
                 brand.getDescription(),
                 brand.getLogoUrl(),
                 brand.getMonthlyBudget(),
+                brand.getPreferredCreatorCategories(),
+                brand.getTargetCities(),
+                brand.getTargetPlatforms(),
+                brand.getCampaignBudgetRange(),
                 profileUserMapper.toResponse(brand),
                 brand.getCreatedAt(),
                 brand.getUpdatedAt()

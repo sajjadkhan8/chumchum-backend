@@ -35,4 +35,16 @@ public class Brand extends User {
 
     @Column(name = "monthly_budget")
     private Integer monthlyBudget;
+
+    @Column(name = "preferred_creator_categories", length = 500)
+    private String preferredCreatorCategories;
+
+    @Column(name = "target_cities", length = 500)
+    private String targetCities;
+
+    @Column(name = "target_platforms", length = 500)
+    private String targetPlatforms;
+
+    @Column(name = "campaign_budget_range", length = 150)
+    private String campaignBudgetRange;
 }

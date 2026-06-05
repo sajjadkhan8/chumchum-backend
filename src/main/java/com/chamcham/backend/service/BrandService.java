@@ -95,6 +95,10 @@ public class BrandService {
         if (request.description() != null) brand.setDescription(request.description());
         if (request.logoUrl()     != null) brand.setLogoUrl(request.logoUrl());
         if (request.monthlyBudget() != null) brand.setMonthlyBudget(request.monthlyBudget());
+        if (request.preferredCreatorCategories() != null) brand.setPreferredCreatorCategories(request.preferredCreatorCategories());
+        if (request.targetCities() != null) brand.setTargetCities(request.targetCities());
+        if (request.targetPlatforms() != null) brand.setTargetPlatforms(request.targetPlatforms());
+        if (request.campaignBudgetRange() != null) brand.setCampaignBudgetRange(request.campaignBudgetRange());
 
         return brandMapper.toResponse(brandRepository.save(brand));
     }

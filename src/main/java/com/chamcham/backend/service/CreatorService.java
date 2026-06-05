@@ -24,7 +24,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -304,6 +306,22 @@ public class CreatorService {
             String stcPayNumber, String madaCard, String accountTitle,
             String ibanOrAccount, String applePayNumber, String bankTransferIban) {}
 
+    public PaymentSettingsRequest getPaymentSettings(UUID userId, UserRole role) {
+        if (!role.isCreator()) throw new ApiException(HttpStatus.FORBIDDEN, "Only creators can view payment settings");
+        Creator creator = findCreator(userId);
+        Map<PayoutMethodType, PayoutMethod> methods = new EnumMap<>(PayoutMethodType.class);
+        payoutMethodRepository.findByCreatorId(creator.getId()).forEach(method -> methods.put(method.getType(), method));
+        PayoutMethod bankTransfer = methods.get(PayoutMethodType.BANK_TRANSFER);
+        return new PaymentSettingsRequest(
+                accountDetails(methods.get(PayoutMethodType.STCPAY)),
+                accountDetails(methods.get(PayoutMethodType.MADA)),
+                bankTransfer != null ? bankTransfer.getName() : "",
+                bankTransfer != null ? bankTransfer.getAccountDetails() : "",
+                accountDetails(methods.get(PayoutMethodType.APPLEPAY)),
+                bankTransfer != null ? bankTransfer.getAccountDetails() : ""
+        );
+    }
+
     @Transactional
     public void updatePaymentSettings(UUID userId, UserRole role, PaymentSettingsRequest req) {
         if (!role.isCreator()) throw new ApiException(HttpStatus.FORBIDDEN, "Only creators can update payment settings");
@@ -328,6 +346,10 @@ public class CreatorService {
             payoutMethodRepository.save(PayoutMethod.builder()
                     .creator(creator).type(type).name(name).accountDetails(accountDetails).build());
         }
+    }
+
+    private String accountDetails(PayoutMethod method) {
+        return method == null ? "" : method.getAccountDetails();
     }
 
     private Creator findCreator(UUID creatorId) {
