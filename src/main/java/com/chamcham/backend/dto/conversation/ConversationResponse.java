@@ -9,8 +9,9 @@ public record ConversationResponse(
         UUID brandId,
         boolean readByCreator,
         boolean readByBrand,
+        int unreadCountCreator,
+        int unreadCountBrand,
         String lastMessage,
         Instant updatedAt
 ) {
 }
-

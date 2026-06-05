@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 public interface OrderRepository extends JpaRepository<Order, UUID> {
@@ -57,4 +58,6 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
 
     @Query("select count(distinct o.creator.id) from Order o where o.brand.id = :brandId")
     long countDistinctCreatorsByBrand(@Param("brandId") UUID brandId);
+
+    Optional<Order> findFirstByServicePackageName(String packageName);
 }

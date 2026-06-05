@@ -20,6 +20,7 @@ public record MessageResponse(
         UUID offerId,
         Integer offerEstimatedBarterValue,
         String offerCreatorExpectation,
+        UUID offerOrderId,
         Instant createdAt
 ) {
 }

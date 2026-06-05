@@ -14,9 +14,10 @@ public class ConversationMapper {
                 conversation.getBrand().getId(),
                 conversation.isReadByCreator(),
                 conversation.isReadByBrand(),
+                conversation.getUnreadCountCreator(),
+                conversation.getUnreadCountBrand(),
                 conversation.getLastMessage(),
                 conversation.getUpdatedAt()
         );
     }
 }
-

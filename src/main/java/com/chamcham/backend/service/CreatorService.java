@@ -106,15 +106,19 @@ public class CreatorService {
             Boolean ambassadorOnly,
             int page, int limit, String sortBy) {
 
-        String sortField = switch (sortBy == null ? "" : sortBy) {
+        String normalizedSort = sortBy == null ? "" : sortBy;
+        String sortField = switch (normalizedSort) {
             case "top_rated"       -> "rating";
             case "budget_friendly" -> "minPrice";
             default                -> "createdAt";
         };
+        Sort.Direction sortDirection = "budget_friendly".equals(normalizedSort)
+                ? Sort.Direction.ASC
+                : Sort.Direction.DESC;
 
         Boolean isVerified = Boolean.TRUE.equals(ambassadorOnly) ? Boolean.TRUE : null;
 
-        Pageable pageable = cappedPageable(page, limit, sortField);
+        Pageable pageable = cappedPageable(page, limit, sortField, sortDirection);
 
         Page<Creator> result = creatorRepository.search(
                 search, city, minFollowers, maxFollowers, minRating,
@@ -378,8 +382,12 @@ public class CreatorService {
     }
 
     private Pageable cappedPageable(int page, int limit, String sortField) {
+        return cappedPageable(page, limit, sortField, Sort.Direction.DESC);
+    }
+
+    private Pageable cappedPageable(int page, int limit, String sortField, Sort.Direction direction) {
         int safePage = Math.max(page, 0);
         int safeLimit = Math.min(Math.max(limit, 1), 50);
-        return PageRequest.of(safePage, safeLimit, Sort.by(Sort.Direction.DESC, sortField));
+        return PageRequest.of(safePage, safeLimit, Sort.by(direction, sortField));
     }
 }
