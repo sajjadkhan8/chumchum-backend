@@ -26,6 +26,9 @@ public class BrandMapper {
                 brand.getTargetCities(),
                 brand.getTargetPlatforms(),
                 brand.getCampaignBudgetRange(),
+                brand.getBusinessVerificationStatus(),
+                brand.getVerificationContactEmail(),
+                brand.getVerificationPhoneNumber(),
                 profileUserMapper.toResponse(brand),
                 brand.getCreatedAt(),
                 brand.getUpdatedAt()

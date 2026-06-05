@@ -47,4 +47,13 @@ public class Brand extends User {
 
     @Column(name = "campaign_budget_range", length = 150)
     private String campaignBudgetRange;
+
+    @Column(name = "business_verification_status", length = 50)
+    private String businessVerificationStatus;
+
+    @Column(name = "verification_contact_email", length = 255)
+    private String verificationContactEmail;
+
+    @Column(name = "verification_phone_number", length = 50)
+    private String verificationPhoneNumber;
 }

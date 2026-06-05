@@ -20,6 +20,9 @@ public record BrandResponse(
         String targetCities,
         String targetPlatforms,
         String campaignBudgetRange,
+        String businessVerificationStatus,
+        String verificationContactEmail,
+        String verificationPhoneNumber,
         ProfileUserResponse user,
         Instant createdAt,
         Instant updatedAt

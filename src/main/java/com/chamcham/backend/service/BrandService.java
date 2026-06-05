@@ -99,6 +99,9 @@ public class BrandService {
         if (request.targetCities() != null) brand.setTargetCities(request.targetCities());
         if (request.targetPlatforms() != null) brand.setTargetPlatforms(request.targetPlatforms());
         if (request.campaignBudgetRange() != null) brand.setCampaignBudgetRange(request.campaignBudgetRange());
+        if (request.businessVerificationStatus() != null) brand.setBusinessVerificationStatus(request.businessVerificationStatus());
+        if (request.verificationContactEmail() != null) brand.setVerificationContactEmail(request.verificationContactEmail());
+        if (request.verificationPhoneNumber() != null) brand.setVerificationPhoneNumber(request.verificationPhoneNumber());
 
         return brandMapper.toResponse(brandRepository.save(brand));
     }
