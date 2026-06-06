@@ -56,11 +56,11 @@ public class MetadataController {
                         range(1_000_000, Integer.MAX_VALUE, "Mega (1M+)")
                 ),
                 "priceRanges", List.of(
-                        range(0, 625_000, "Under PKR 625,000"),
-                        range(625_000, 1_250_000, "PKR 625,000 - 1,250,000"),
-                        range(1_250_000, 2_500_000, "PKR 1,250,000 - 2,500,000"),
-                        range(2_500_000, 6_250_000, "PKR 2,500,000 - 6,250,000"),
-                        range(6_250_000, Integer.MAX_VALUE, "PKR 6,250,000+")
+                        range(0, 25_000, "Under PKR 25,000"),
+                        range(25_000, 50_000, "PKR 25,000 - 50,000"),
+                        range(50_000, 100_000, "PKR 50,000 - 100,000"),
+                        range(100_000, 200_000, "PKR 100,000 - 200,000"),
+                        range(200_000, Integer.MAX_VALUE, "PKR 200,000+")
                 )
         );
 

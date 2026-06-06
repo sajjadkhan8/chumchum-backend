@@ -7,6 +7,7 @@ import com.chamcham.backend.dto.creator.CreatorUpdateRequest;
 import com.chamcham.backend.dto.review.ReviewResponse;
 import com.chamcham.backend.dto.servicepackage.ServicePackageResponse;
 import com.chamcham.backend.entity.SocialAccount;
+import com.chamcham.backend.entity.enums.CreatorBadgeLevel;
 import com.chamcham.backend.service.CreatorService;
 import com.chamcham.backend.service.ReviewService;
 import com.chamcham.backend.service.ServicePackageService;
@@ -63,6 +64,8 @@ public class CreatorController {
             @RequestParam(required = false) BigDecimal minRating,
             @RequestParam(required = false) Integer minPrice,
             @RequestParam(required = false) Integer maxPrice,
+            @RequestParam(required = false) CreatorBadgeLevel badgeLevel,
+            @RequestParam(required = false) String availabilityStatus,
             @RequestParam(required = false) Boolean acceptsBarter,
             @RequestParam(required = false) Boolean isTrending,
             @RequestParam(required = false) Boolean isFastResponder,
@@ -73,7 +76,8 @@ public class CreatorController {
     ) {
         CreatorService.CreatorSearchResult r = creatorService.search(
                 search, city, minFollowers, maxFollowers, minRating, minPrice, maxPrice,
-                acceptsBarter, isTrending, isFastResponder, ambassadorOnly, page, limit, sortBy);
+                badgeLevel, availabilityStatus, acceptsBarter, isTrending, isFastResponder,
+                ambassadorOnly, page, limit, sortBy);
         return ResponseEntity.ok(Map.of("success", true, "data",
                 Map.of("creators", r.creators(), "total", r.total(),
                         "page", r.page(), "limit", r.limit())));

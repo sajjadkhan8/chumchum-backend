@@ -1,6 +1,7 @@
 package com.chamcham.backend.repository;
 
 import com.chamcham.backend.entity.Creator;
+import com.chamcham.backend.entity.enums.CreatorBadgeLevel;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -56,6 +57,7 @@ public interface CreatorRepository extends JpaRepository<Creator, UUID> {
             where c.active = true
               and (:search is null
                    or lower(c.name) like concat('%', lower(cast(:search as string)), '%')
+                   or lower(c.username) like concat('%', lower(cast(:search as string)), '%')
                    or lower(c.bio)  like concat('%', lower(cast(:search as string)), '%')
                    or lower(c.city) like concat('%', lower(cast(:search as string)), '%'))
               and (:city is null or lower(c.city) = lower(cast(:city as string)))
@@ -64,6 +66,8 @@ public interface CreatorRepository extends JpaRepository<Creator, UUID> {
               and (:minRating is null or c.rating >= :minRating)
               and (:minPrice is null or c.minPrice >= :minPrice)
               and (:maxPrice is null or c.maxPrice <= :maxPrice)
+              and (:badgeLevel is null or c.badgeLevel = :badgeLevel)
+              and (:availabilityStatus is null or lower(c.availabilityStatus) like concat('%', lower(cast(:availabilityStatus as string)), '%'))
               and (:acceptsBarter is null or c.acceptsBarter = :acceptsBarter)
               and (:isTrending is null or c.isTrending = :isTrending)
               and (:isFastResponder is null or c.isFastResponder = :isFastResponder)
@@ -77,6 +81,8 @@ public interface CreatorRepository extends JpaRepository<Creator, UUID> {
             @Param("minRating")       BigDecimal minRating,
             @Param("minPrice")        Integer minPrice,
             @Param("maxPrice")        Integer maxPrice,
+            @Param("badgeLevel")      CreatorBadgeLevel badgeLevel,
+            @Param("availabilityStatus") String availabilityStatus,
             @Param("acceptsBarter")   Boolean acceptsBarter,
             @Param("isTrending")      Boolean isTrending,
             @Param("isFastResponder") Boolean isFastResponder,

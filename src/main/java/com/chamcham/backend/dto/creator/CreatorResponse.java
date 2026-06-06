@@ -49,6 +49,7 @@ public record CreatorResponse(
         BigDecimal rating,
         int totalReviews,
         List<SocialAccountResponse> socialAccounts,
+        List<ContentPreviewResponse> contentPreviews,
         ProfileUserResponse user,
         Instant createdAt,
         Instant updatedAt

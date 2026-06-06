@@ -7,6 +7,7 @@ import com.chamcham.backend.entity.Creator;
 import com.chamcham.backend.entity.PayoutMethod;
 import com.chamcham.backend.entity.SocialAccount;
 import com.chamcham.backend.entity.User;
+import com.chamcham.backend.entity.enums.CreatorBadgeLevel;
 import com.chamcham.backend.entity.enums.PayoutMethodType;
 import com.chamcham.backend.entity.enums.UserRole;
 import com.chamcham.backend.exception.ApiException;
@@ -104,12 +105,14 @@ public class CreatorService {
             String search, String city,
             Integer minFollowers, Integer maxFollowers,
             BigDecimal minRating, Integer minPrice, Integer maxPrice,
+            CreatorBadgeLevel badgeLevel, String availabilityStatus,
             Boolean acceptsBarter, Boolean isTrending, Boolean isFastResponder,
             Boolean ambassadorOnly,
             int page, int limit, String sortBy) {
 
         String normalizedSort = sortBy == null ? "" : sortBy;
         String sortField = switch (normalizedSort) {
+            case "trending"        -> "isTrending";
             case "top_rated"       -> "rating";
             case "budget_friendly" -> "minPrice";
             default                -> "createdAt";
@@ -124,7 +127,9 @@ public class CreatorService {
 
         Page<Creator> result = creatorRepository.search(
                 search, city, minFollowers, maxFollowers, minRating,
-                minPrice, maxPrice, acceptsBarter, isTrending, isFastResponder,
+                minPrice, maxPrice, badgeLevel,
+                availabilityStatus == null || availabilityStatus.isBlank() ? null : availabilityStatus.trim(),
+                acceptsBarter, isTrending, isFastResponder,
                 isVerified, pageable);
 
         return new CreatorSearchResult(
