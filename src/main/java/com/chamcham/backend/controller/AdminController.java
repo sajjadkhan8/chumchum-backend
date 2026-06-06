@@ -9,6 +9,7 @@ import com.chamcham.backend.entity.Creator;
 import com.chamcham.backend.entity.Order;
 import com.chamcham.backend.entity.User;
 import com.chamcham.backend.entity.enums.OrderStatus;
+import com.chamcham.backend.entity.enums.CreatorBadgeLevel;
 import com.chamcham.backend.entity.enums.UserRole;
 import com.chamcham.backend.exception.ApiException;
 import com.chamcham.backend.mapper.BrandMapper;
@@ -20,6 +21,7 @@ import com.chamcham.backend.repository.CreatorRepository;
 import com.chamcham.backend.repository.OrderRepository;
 import com.chamcham.backend.repository.UserRepository;
 import com.chamcham.backend.service.AmbassadorService;
+import com.chamcham.backend.service.AdminOperationsService;
 import com.chamcham.backend.service.OrderService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
@@ -57,6 +59,7 @@ public class AdminController {
     private final OrderMapper orderMapper;
     private final OrderService orderService;
     private final AmbassadorService ambassadorService;
+    private final AdminOperationsService adminOperationsService;
 
     public AdminController(UserRepository userRepository,
                            CreatorRepository creatorRepository,
@@ -67,7 +70,8 @@ public class AdminController {
                            BrandMapper brandMapper,
                            OrderMapper orderMapper,
                            OrderService orderService,
-                           AmbassadorService ambassadorService) {
+                           AmbassadorService ambassadorService,
+                           AdminOperationsService adminOperationsService) {
         this.userRepository = userRepository;
         this.creatorRepository = creatorRepository;
         this.brandRepository = brandRepository;
@@ -78,11 +82,14 @@ public class AdminController {
         this.orderMapper = orderMapper;
         this.orderService = orderService;
         this.ambassadorService = ambassadorService;
+        this.adminOperationsService = adminOperationsService;
     }
 
     public record UserStatusRequest(@NotNull Boolean active) {}
 
     public record CreatorVerificationRequest(@NotNull Boolean verified) {}
+
+    public record CreatorBadgeRequest(@NotNull String badgeLevel) {}
 
     public record BrandVerificationRequest(
             @Size(max = 50) String status,
@@ -162,7 +169,9 @@ public class AdminController {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "User not found"));
         user.setActive(request.active());
-        return ok(userMapper.toResponse(userRepository.save(user)));
+        User saved = userRepository.save(user);
+        adminOperationsService.log(authUser.userId(), "USER_STATUS_CHANGED", "user", id.toString(), "active=" + request.active());
+        return ok(userMapper.toResponse(saved));
     }
 
     @GetMapping("/orders")
@@ -206,7 +215,9 @@ public class AdminController {
         } catch (Exception ex) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Invalid status: " + request.status());
         }
-        return ok(orderService.updateStatus(id, status, authUser.userId(), authUser.role()));
+        var response = orderService.updateStatus(id, status, authUser.userId(), authUser.role());
+        adminOperationsService.log(authUser.userId(), "ORDER_STATUS_CHANGED", "order", id.toString(), "status=" + status.name().toLowerCase());
+        return ok(response);
     }
 
     @PatchMapping("/creators/{id}/verification")
@@ -219,7 +230,61 @@ public class AdminController {
         Creator creator = creatorRepository.findById(id)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Creator not found"));
         creator.setVerified(request.verified());
-        return ok(creatorMapper.toResponse(creatorRepository.save(creator)));
+        creator.setBadgeLevel(request.verified() ? CreatorBadgeLevel.VERIFIED : CreatorBadgeLevel.NONE);
+        Creator saved = creatorRepository.save(creator);
+        adminOperationsService.log(authUser.userId(), "CREATOR_VERIFICATION_CHANGED", "creator", id.toString(),
+                "verified=" + request.verified() + ", badgeLevel=" + saved.getBadgeLevel().name().toLowerCase());
+        return ok(creatorMapper.toResponse(saved));
+    }
+
+    @PatchMapping("/creators/{id}/badge")
+    public ResponseEntity<Map<String, Object>> updateCreatorBadge(
+            @AuthenticationPrincipal AuthenticatedUser authUser,
+            @PathVariable UUID id,
+            @Valid @RequestBody CreatorBadgeRequest request
+    ) {
+        requireAdmin(authUser);
+        Creator creator = creatorRepository.findById(id)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Creator not found"));
+        CreatorBadgeLevel badgeLevel;
+        try {
+            badgeLevel = CreatorBadgeLevel.valueOf(request.badgeLevel().trim().toUpperCase());
+        } catch (Exception ex) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Invalid creator badge level: " + request.badgeLevel());
+        }
+        if (!creator.isVerified() && badgeLevel != CreatorBadgeLevel.NONE) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Verify the creator before assigning a badge");
+        }
+        if (creator.isVerified() && badgeLevel == CreatorBadgeLevel.NONE) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Remove creator verification before clearing the badge");
+        }
+        creator.setBadgeLevel(badgeLevel);
+        Creator saved = creatorRepository.save(creator);
+        adminOperationsService.log(authUser.userId(), "CREATOR_BADGE_CHANGED", "creator", id.toString(),
+                "badgeLevel=" + badgeLevel.name().toLowerCase());
+        return ok(creatorMapper.toResponse(saved));
+    }
+
+    @GetMapping("/creators")
+    public ResponseEntity<Map<String, Object>> creators(
+            @AuthenticationPrincipal AuthenticatedUser authUser,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) Boolean verified,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int limit
+    ) {
+        requireAdmin(authUser);
+        Page<Creator> result = creatorRepository.searchForAdmin(
+                blankToNull(search),
+                verified,
+                PageRequest.of(safePage(page), safeLimit(limit))
+        );
+        return ok(Map.of(
+                "creators", result.getContent().stream().map(creatorMapper::toResponse).toList(),
+                "total", result.getTotalElements(),
+                "page", result.getNumber(),
+                "limit", result.getSize()
+        ));
     }
 
     @PatchMapping("/brands/{id}/verification")
@@ -234,19 +299,46 @@ public class AdminController {
         if (request.status() != null) brand.setBusinessVerificationStatus(request.status());
         if (request.contactEmail() != null) brand.setVerificationContactEmail(request.contactEmail());
         if (request.phoneNumber() != null) brand.setVerificationPhoneNumber(request.phoneNumber());
-        return ok(brandMapper.toResponse(brandRepository.save(brand)));
+        Brand saved = brandRepository.save(brand);
+        adminOperationsService.log(authUser.userId(), "BRAND_VERIFICATION_CHANGED", "brand", id.toString(), "status=" + saved.getBusinessVerificationStatus());
+        return ok(brandMapper.toResponse(saved));
+    }
+
+    @GetMapping("/brands")
+    public ResponseEntity<Map<String, Object>> brands(
+            @AuthenticationPrincipal AuthenticatedUser authUser,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String verificationStatus,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int limit
+    ) {
+        requireAdmin(authUser);
+        Page<Brand> result = brandRepository.searchForAdmin(
+                blankToNull(search),
+                verificationStatus == null || verificationStatus.isBlank() || verificationStatus.equalsIgnoreCase("all")
+                        ? null
+                        : verificationStatus.trim().toLowerCase(),
+                PageRequest.of(safePage(page), safeLimit(limit))
+        );
+        return ok(Map.of(
+                "brands", result.getContent().stream().map(brandMapper::toResponse).toList(),
+                "total", result.getTotalElements(),
+                "page", result.getNumber(),
+                "limit", result.getSize()
+        ));
     }
 
     @GetMapping("/ambassador/applications")
     public ResponseEntity<Map<String, Object>> ambassadorApplications(
             @AuthenticationPrincipal AuthenticatedUser authUser,
+            @RequestParam(required = false) String search,
             @RequestParam(required = false) String status,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "50") int limit
     ) {
         requireAdmin(authUser);
-        PageRequest pageable = PageRequest.of(page, limit);
-        var applications = ambassadorService.listApplications(status, pageable);
+        PageRequest pageable = PageRequest.of(safePage(page), safeLimit(limit));
+        var applications = ambassadorService.listApplications(search, status, pageable);
         return ok(Map.of(
                 "applications", applications.getContent().stream().map(this::toApplicationMap).toList(),
                 "total", applications.getTotalElements(),
@@ -263,12 +355,14 @@ public class AdminController {
     ) {
         requireAdmin(authUser);
         try {
-            return ok(toApplicationMap(ambassadorService.reviewApplication(
+            var reviewed = ambassadorService.reviewApplication(
                     id,
                     com.chamcham.backend.entity.enums.AmbassadorAppStatus.valueOf(request.status().trim().toUpperCase()),
                     authUser.userId(),
                     request.notes()
-            )));
+            );
+            adminOperationsService.log(authUser.userId(), "AMBASSADOR_APPLICATION_REVIEWED", "ambassador_application", id.toString(), "status=" + reviewed.getStatus().name().toLowerCase());
+            return ok(toApplicationMap(reviewed));
         } catch (IllegalArgumentException ex) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Invalid status: " + request.status());
         }
@@ -337,6 +431,8 @@ public class AdminController {
         Map<String, Object> row = new LinkedHashMap<>();
         row.put("id", app.getId());
         row.put("creatorId", app.getCreator().getId());
+        row.put("creatorName", app.getCreator().getName());
+        row.put("creatorEmail", app.getCreator().getEmail());
         row.put("status", app.getStatus() == null ? null : app.getStatus().name().toLowerCase());
         row.put("submittedAt", app.getSubmittedAt());
         row.put("identityVerified", app.isIdentityVerified());

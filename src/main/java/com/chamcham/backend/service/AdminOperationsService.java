@@ -1,0 +1,202 @@
+package com.chamcham.backend.service;
+
+import com.chamcham.backend.entity.AdminAuditLog;
+import com.chamcham.backend.entity.DisputeCase;
+import com.chamcham.backend.entity.Order;
+import com.chamcham.backend.entity.User;
+import com.chamcham.backend.entity.enums.DisputeResolution;
+import com.chamcham.backend.entity.enums.DisputeStatus;
+import com.chamcham.backend.exception.ApiException;
+import com.chamcham.backend.repository.AdminAuditLogRepository;
+import com.chamcham.backend.repository.DisputeCaseRepository;
+import com.chamcham.backend.repository.OrderRepository;
+import com.chamcham.backend.repository.UserRepository;
+import jakarta.transaction.Transactional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+
+import java.time.Instant;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.UUID;
+
+@Service
+public class AdminOperationsService {
+
+    private final DisputeCaseRepository disputeRepository;
+    private final AdminAuditLogRepository auditRepository;
+    private final OrderRepository orderRepository;
+    private final UserRepository userRepository;
+    private final RefundService refundService;
+
+    public AdminOperationsService(DisputeCaseRepository disputeRepository,
+                                  AdminAuditLogRepository auditRepository,
+                                  OrderRepository orderRepository,
+                                  UserRepository userRepository,
+                                  RefundService refundService) {
+        this.disputeRepository = disputeRepository;
+        this.auditRepository = auditRepository;
+        this.orderRepository = orderRepository;
+        this.userRepository = userRepository;
+        this.refundService = refundService;
+    }
+
+    public Page<DisputeCase> listDisputes(String search, DisputeStatus status, int page, int limit) {
+        return disputeRepository.searchForAdmin(blankToNull(search), status, PageRequest.of(safePage(page), safeLimit(limit)));
+    }
+
+    @Transactional
+    public DisputeCase createDispute(UUID adminId, UUID orderId, String title, String description, String priority) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Order not found"));
+        User admin = requireAdmin(adminId);
+        DisputeCase dispute = disputeRepository.save(DisputeCase.builder()
+                .order(order)
+                .title(title.trim())
+                .description(description.trim())
+                .priority(normalizePriority(priority))
+                .assignedAdmin(admin)
+                .build());
+        log(adminId, "DISPUTE_CREATED", "dispute", dispute.getId().toString(), "Order " + orderId + ": " + title.trim());
+        initializeDisputeRelationships(dispute);
+        return dispute;
+    }
+
+    @Transactional
+    public DisputeCase updateDispute(UUID adminId,
+                                     UUID id,
+                                     DisputeStatus status,
+                                     String priority,
+                                     DisputeResolution resolution,
+                                     String resolutionNotes,
+                                     boolean assignToMe) {
+        DisputeCase dispute = disputeRepository.findById(id)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Dispute not found"));
+        User admin = requireAdmin(adminId);
+        if (status != null) dispute.setStatus(status);
+        if (priority != null) dispute.setPriority(normalizePriority(priority));
+        if (assignToMe) dispute.setAssignedAdmin(admin);
+        if (resolution != null) dispute.setResolution(resolution);
+        if (resolutionNotes != null) dispute.setResolutionNotes(resolutionNotes.trim());
+        if (status == DisputeStatus.RESOLVED || status == DisputeStatus.CLOSED) {
+            dispute.setResolvedAt(Instant.now());
+        } else if (status != null) {
+            dispute.setResolvedAt(null);
+        }
+        DisputeCase saved = disputeRepository.save(dispute);
+        log(adminId, "DISPUTE_UPDATED", "dispute", id.toString(),
+                "status=" + saved.getStatus().name().toLowerCase() + ", resolution=" + saved.getResolution().name().toLowerCase());
+        initializeDisputeRelationships(saved);
+        return saved;
+    }
+
+    public Page<AdminAuditLog> listAuditLogs(String search, String action, int page, int limit) {
+        return auditRepository.searchForAdmin(blankToNull(search), blankToNull(action), PageRequest.of(safePage(page), safeLimit(limit)));
+    }
+
+    @Transactional
+    public DisputeCase executeRefund(UUID adminId, UUID disputeId, Integer requestedAmount, String reason) {
+        DisputeCase dispute = disputeRepository.findById(disputeId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Dispute not found"));
+        User admin = requireAdmin(adminId);
+        refundService.requestRefund(dispute, admin, requestedAmount, reason);
+        initializeDisputeRelationships(dispute);
+        return dispute;
+    }
+
+    @Transactional
+    public void log(UUID adminId, String action, String targetType, String targetId, String details) {
+        User admin = requireAdmin(adminId);
+        auditRepository.save(AdminAuditLog.builder()
+                .admin(admin)
+                .action(action)
+                .targetType(targetType)
+                .targetId(targetId)
+                .details(details)
+                .build());
+    }
+
+    public Map<String, Object> toDisputeMap(DisputeCase dispute) {
+        Map<String, Object> row = new LinkedHashMap<>();
+        row.put("id", dispute.getId());
+        row.put("orderId", dispute.getOrder().getId());
+        row.put("orderNumber", dispute.getOrder().getOrderNumber());
+        row.put("packageTitle", dispute.getOrder().getServicePackage().getTitle());
+        row.put("creatorName", dispute.getOrder().getCreator().getName());
+        row.put("brandName", dispute.getOrder().getBrand().getName());
+        row.put("orderAmount", dispute.getOrder().getAmount());
+        row.put("orderStatus", dispute.getOrder().getStatus().name().toLowerCase());
+        row.put("dealType", dispute.getOrder().getDealType().name().toLowerCase());
+        row.put("title", dispute.getTitle());
+        row.put("description", dispute.getDescription());
+        row.put("status", dispute.getStatus().name().toLowerCase());
+        row.put("priority", dispute.getPriority());
+        row.put("assignedAdminId", dispute.getAssignedAdmin() == null ? null : dispute.getAssignedAdmin().getId());
+        row.put("assignedAdminName", dispute.getAssignedAdmin() == null ? null : dispute.getAssignedAdmin().getName());
+        row.put("resolution", dispute.getResolution().name().toLowerCase());
+        row.put("resolutionNotes", dispute.getResolutionNotes());
+        row.put("resolvedAt", dispute.getResolvedAt());
+        row.put("refundExecuted", dispute.getRefund() != null && dispute.getRefund().getStatus().name().equals("COMPLETED"));
+        row.put("refundStatus", dispute.getRefund() == null ? null : dispute.getRefund().getStatus().name().toLowerCase());
+        row.put("refundProvider", dispute.getRefund() == null ? null : dispute.getRefund().getProvider());
+        row.put("providerRefundId", dispute.getRefund() == null ? null : dispute.getRefund().getProviderRefundId());
+        row.put("refundFailureReason", dispute.getRefund() == null ? null : dispute.getRefund().getFailureReason());
+        row.put("refundAmount", dispute.getRefund() == null ? null : dispute.getRefund().getAmount());
+        row.put("creatorClawbackAmount", dispute.getRefund() == null ? null : dispute.getRefund().getCreatorClawbackAmount());
+        row.put("refundReason", dispute.getRefund() == null ? null : dispute.getRefund().getReason());
+        row.put("refundExecutedAt", dispute.getRefund() == null ? null : dispute.getRefund().getConfirmedAt());
+        row.put("createdAt", dispute.getCreatedAt());
+        row.put("updatedAt", dispute.getUpdatedAt());
+        return row;
+    }
+
+    public Map<String, Object> toAuditMap(AdminAuditLog audit) {
+        Map<String, Object> row = new LinkedHashMap<>();
+        row.put("id", audit.getId());
+        row.put("adminId", audit.getAdmin().getId());
+        row.put("adminName", audit.getAdmin().getName());
+        row.put("action", audit.getAction());
+        row.put("targetType", audit.getTargetType());
+        row.put("targetId", audit.getTargetId());
+        row.put("details", audit.getDetails());
+        row.put("createdAt", audit.getCreatedAt());
+        return row;
+    }
+
+    private User requireAdmin(UUID adminId) {
+        User admin = userRepository.findById(adminId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Admin not found"));
+        if (!admin.getRole().isAdmin()) throw new ApiException(HttpStatus.FORBIDDEN, "Admin access required");
+        return admin;
+    }
+
+    private String normalizePriority(String priority) {
+        String normalized = priority == null ? "normal" : priority.trim().toLowerCase();
+        if (!normalized.equals("low") && !normalized.equals("normal") && !normalized.equals("high") && !normalized.equals("urgent")) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Invalid priority: " + priority);
+        }
+        return normalized;
+    }
+
+    private void initializeDisputeRelationships(DisputeCase dispute) {
+        dispute.getOrder().getServicePackage().getTitle();
+        dispute.getOrder().getCreator().getName();
+        dispute.getOrder().getBrand().getName();
+        if (dispute.getAssignedAdmin() != null) dispute.getAssignedAdmin().getName();
+        if (dispute.getRefund() != null) dispute.getRefund().getAmount();
+    }
+
+    private String blankToNull(String value) {
+        return value == null || value.isBlank() ? null : value.trim();
+    }
+
+    private int safePage(int page) {
+        return Math.max(0, page);
+    }
+
+    private int safeLimit(int limit) {
+        return Math.max(1, Math.min(limit, 100));
+    }
+}

@@ -1,5 +1,6 @@
 package com.chamcham.backend.entity;
 
+import com.chamcham.backend.entity.enums.CreatorBadgeLevel;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.JdbcTypeCode;
@@ -48,6 +49,10 @@ public class Creator extends User {
 
     @Column(name = "is_verified", nullable = false)
     private boolean isVerified = false;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "badge_level", nullable = false, length = 30)
+    private CreatorBadgeLevel badgeLevel = CreatorBadgeLevel.NONE;
 
     @Column(name = "is_trending", nullable = false)
     private boolean isTrending = false;

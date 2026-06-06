@@ -43,6 +43,7 @@ public class CreatorMapper {
                 creator.getMinPrice(),
                 creator.getMaxPrice(),
                 creator.isVerified(),
+                creator.getBadgeLevel(),
                 creator.isTrending(),
                 creator.isFastResponder(),
                 creator.getCompletedDeals(),

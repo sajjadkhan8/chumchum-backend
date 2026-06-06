@@ -32,10 +32,10 @@ public interface UserRepository extends JpaRepository<User, UUID> {
             where (:role is null or u.role = :role)
               and (:active is null or u.active = :active)
               and (
-                :search is null
-                or lower(u.name) like lower(concat('%', :search, '%'))
-                or lower(u.email) like lower(concat('%', :search, '%'))
-                or lower(u.username) like lower(concat('%', :search, '%'))
+                cast(:search as string) is null
+                or lower(u.name) like concat('%', lower(cast(:search as string)), '%')
+                or lower(u.email) like concat('%', lower(cast(:search as string)), '%')
+                or lower(u.username) like concat('%', lower(cast(:search as string)), '%')
               )
             order by u.createdAt desc
             """)

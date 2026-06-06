@@ -8,6 +8,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
+import com.chamcham.backend.entity.enums.CreatorBadgeLevel;
 
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public record CreatorResponse(
@@ -28,6 +29,7 @@ public record CreatorResponse(
         Integer minPrice,
         Integer maxPrice,
         boolean isVerified,
+        CreatorBadgeLevel badgeLevel,
         boolean isTrending,
         boolean isFastResponder,
         int completedDeals,

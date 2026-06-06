@@ -29,6 +29,19 @@ public interface CreatorRepository extends JpaRepository<Creator, UUID> {
 
     Page<Creator> findByIsVerifiedTrue(Pageable pageable);
 
+    @Query("""
+            select c from Creator c
+            where (cast(:search as string) is null
+                   or lower(c.name) like concat('%', lower(cast(:search as string)), '%')
+                   or lower(c.email) like concat('%', lower(cast(:search as string)), '%')
+                   or lower(c.username) like concat('%', lower(cast(:search as string)), '%'))
+              and (:verified is null or c.isVerified = :verified)
+            order by c.createdAt desc
+            """)
+    Page<Creator> searchForAdmin(@Param("search") String search,
+                                 @Param("verified") Boolean verified,
+                                 Pageable pageable);
+
     @Query("select c from Creator c where c.city = :city and c.active = true")
     List<Creator> findByCityAndActiveTrue(@Param("city") String city, Pageable pageable);
 

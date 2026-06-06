@@ -101,13 +101,17 @@ public class AmbassadorService {
     }
 
     // ---- Admin ----
-    public Page<AmbassadorApplication> listApplications(String status, Pageable pageable) {
-        if (status == null || status.isBlank()) return applicationRepo.findAll(pageable);
+    public Page<AmbassadorApplication> listApplications(String search, String status, Pageable pageable) {
+        AmbassadorAppStatus statusFilter = null;
         try {
-            return applicationRepo.findByStatus(AmbassadorAppStatus.valueOf(status.trim().toUpperCase()), pageable);
+            if (status != null && !status.isBlank() && !status.equalsIgnoreCase("all")) {
+                statusFilter = AmbassadorAppStatus.valueOf(status.trim().toUpperCase());
+            }
         } catch (IllegalArgumentException e) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Invalid status: " + status);
         }
+        String searchFilter = search == null || search.isBlank() ? null : search.trim();
+        return applicationRepo.searchForAdmin(searchFilter, statusFilter, pageable);
     }
 
     public AmbassadorApplication getApplicationById(UUID id) {
@@ -162,4 +166,3 @@ public class AmbassadorService {
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Creator profile not found"));
     }
 }
-

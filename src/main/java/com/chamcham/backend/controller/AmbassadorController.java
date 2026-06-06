@@ -141,7 +141,7 @@ public class AmbassadorController {
     ) {
         requireAdmin(authUser);
         Page<AmbassadorApplication> result = ambassadorService.listApplications(
-                status, PageRequest.of(page, size, Sort.by("submittedAt").descending()));
+                null, status, PageRequest.of(page, size, Sort.by("submittedAt").descending()));
         return ResponseEntity.ok(Map.of(
                 "success", true,
                 "data", result.getContent().stream().map(this::toApplicationMap).toList(),

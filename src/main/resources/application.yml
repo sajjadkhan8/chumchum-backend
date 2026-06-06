@@ -58,6 +58,9 @@ security:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:4200,http://localhost:5173,http://localhost:4173}
 
 app:
+  refunds:
+    mock:
+      webhook-secret: ${MOCK_REFUND_WEBHOOK_SECRET:mock-webhook-secret}
   uploads:
     dir: ${UPLOAD_DIR:./uploads}
     base-url: ${UPLOAD_BASE_URL:http://localhost:8080/uploads}
