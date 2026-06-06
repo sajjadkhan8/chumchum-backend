@@ -127,6 +127,25 @@ public class AdminOperationsController {
         ));
     }
 
+    @GetMapping("/payment-audit-logs")
+    public ResponseEntity<Map<String, Object>> paymentAuditLogs(
+            @AuthenticationPrincipal AuthenticatedUser authUser,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String action,
+            @RequestParam(required = false) UUID brandId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int limit
+    ) {
+        requireAdmin(authUser);
+        var result = operationsService.listPaymentAuditLogs(search, action, brandId, page, limit);
+        return ok(Map.of(
+                "logs", result.getContent().stream().map(operationsService::toPaymentAuditMap).toList(),
+                "total", result.getTotalElements(),
+                "page", result.getNumber(),
+                "limit", result.getSize()
+        ));
+    }
+
     private DisputeStatus parseStatus(String value) {
         if (value == null || value.isBlank() || value.equalsIgnoreCase("all")) return null;
         try {

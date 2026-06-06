@@ -3,6 +3,7 @@ package com.chamcham.backend.service;
 import com.chamcham.backend.entity.AdminAuditLog;
 import com.chamcham.backend.entity.DisputeCase;
 import com.chamcham.backend.entity.Order;
+import com.chamcham.backend.entity.PaymentAuditLog;
 import com.chamcham.backend.entity.User;
 import com.chamcham.backend.entity.enums.DisputeResolution;
 import com.chamcham.backend.entity.enums.DisputeStatus;
@@ -10,6 +11,7 @@ import com.chamcham.backend.exception.ApiException;
 import com.chamcham.backend.repository.AdminAuditLogRepository;
 import com.chamcham.backend.repository.DisputeCaseRepository;
 import com.chamcham.backend.repository.OrderRepository;
+import com.chamcham.backend.repository.PaymentAuditLogRepository;
 import com.chamcham.backend.repository.UserRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.data.domain.Page;
@@ -27,17 +29,20 @@ public class AdminOperationsService {
 
     private final DisputeCaseRepository disputeRepository;
     private final AdminAuditLogRepository auditRepository;
+    private final PaymentAuditLogRepository paymentAuditLogRepository;
     private final OrderRepository orderRepository;
     private final UserRepository userRepository;
     private final RefundService refundService;
 
     public AdminOperationsService(DisputeCaseRepository disputeRepository,
                                   AdminAuditLogRepository auditRepository,
+                                  PaymentAuditLogRepository paymentAuditLogRepository,
                                   OrderRepository orderRepository,
                                   UserRepository userRepository,
                                   RefundService refundService) {
         this.disputeRepository = disputeRepository;
         this.auditRepository = auditRepository;
+        this.paymentAuditLogRepository = paymentAuditLogRepository;
         this.orderRepository = orderRepository;
         this.userRepository = userRepository;
         this.refundService = refundService;
@@ -94,6 +99,15 @@ public class AdminOperationsService {
 
     public Page<AdminAuditLog> listAuditLogs(String search, String action, int page, int limit) {
         return auditRepository.searchForAdmin(blankToNull(search), blankToNull(action), PageRequest.of(safePage(page), safeLimit(limit)));
+    }
+
+    public Page<PaymentAuditLog> listPaymentAuditLogs(String search, String action, UUID brandId, int page, int limit) {
+        return paymentAuditLogRepository.searchForAdmin(
+                blankToNull(search),
+                blankToNull(action),
+                brandId,
+                PageRequest.of(safePage(page), safeLimit(limit))
+        );
     }
 
     @Transactional
@@ -157,6 +171,21 @@ public class AdminOperationsService {
         row.put("id", audit.getId());
         row.put("adminId", audit.getAdmin().getId());
         row.put("adminName", audit.getAdmin().getName());
+        row.put("action", audit.getAction());
+        row.put("targetType", audit.getTargetType());
+        row.put("targetId", audit.getTargetId());
+        row.put("details", audit.getDetails());
+        row.put("createdAt", audit.getCreatedAt());
+        return row;
+    }
+
+    public Map<String, Object> toPaymentAuditMap(PaymentAuditLog audit) {
+        Map<String, Object> row = new LinkedHashMap<>();
+        row.put("id", audit.getId());
+        row.put("actorId", audit.getActor().getId());
+        row.put("actorName", audit.getActor().getName());
+        row.put("brandId", audit.getBrand() == null ? null : audit.getBrand().getId());
+        row.put("brandName", audit.getBrand() == null ? null : audit.getBrand().getName());
         row.put("action", audit.getAction());
         row.put("targetType", audit.getTargetType());
         row.put("targetId", audit.getTargetId());

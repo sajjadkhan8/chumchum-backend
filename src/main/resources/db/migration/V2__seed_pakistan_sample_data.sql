@@ -228,10 +228,20 @@ values
     ('b7e2aa31-47f1-4c8d-b101-1a8cb4f20102', true, 7, 250000, '2026-06-01 09:00:00+05')
 on conflict (brand_id) do nothing;
 
+insert into users (id, username, email, password_hash, role, name, city, phone, creator_program_status, is_active)
+values
+    ('b7e2aa31-47f1-4c8d-b201-1a8cb4f20111', 'nishat.finance', 'finance@nishatstyle.pk', '$2y$10$gPlvx3weE7hKTU1nf5cN5eT2KGyte9ShYXmf/0qxc0DO/TwPKvM1u', 'BRAND', 'Nishat Finance Manager', 'Lahore', '+92-42-55550001', 'NONE', true),
+    ('b7e2aa31-47f1-4c8d-b201-1a8cb4f20112', 'nishat.ops', 'ops@nishatstyle.pk', '$2y$10$gPlvx3weE7hKTU1nf5cN5eT2KGyte9ShYXmf/0qxc0DO/TwPKvM1u', 'BRAND', 'Nishat Campaign Admin', 'Lahore', '+92-42-55550002', 'NONE', true),
+    ('b7e2aa31-47f1-4c8d-b201-1a8cb4f20113', 'jdot.finance', 'finance@jdot.pk', '$2y$10$gPlvx3weE7hKTU1nf5cN5eT2KGyte9ShYXmf/0qxc0DO/TwPKvM1u', 'BRAND', 'J. Finance Manager', 'Karachi', '+92-21-55550003', 'NONE', true)
+on conflict (id) do nothing;
+
 insert into brand_payment_access (brand_id, user_id, role)
 values
     ('b7e2aa31-47f1-4c8d-b101-1a8cb4f20101', 'b7e2aa31-47f1-4c8d-b101-1a8cb4f20101', 'OWNER'),
+    ('b7e2aa31-47f1-4c8d-b101-1a8cb4f20101', 'b7e2aa31-47f1-4c8d-b201-1a8cb4f20111', 'FINANCE'),
+    ('b7e2aa31-47f1-4c8d-b101-1a8cb4f20101', 'b7e2aa31-47f1-4c8d-b201-1a8cb4f20112', 'ADMIN'),
     ('b7e2aa31-47f1-4c8d-b101-1a8cb4f20102', 'b7e2aa31-47f1-4c8d-b101-1a8cb4f20102', 'OWNER'),
+    ('b7e2aa31-47f1-4c8d-b101-1a8cb4f20102', 'b7e2aa31-47f1-4c8d-b201-1a8cb4f20113', 'FINANCE'),
     ('b7e2aa31-47f1-4c8d-b101-1a8cb4f20103', 'b7e2aa31-47f1-4c8d-b101-1a8cb4f20103', 'OWNER')
 on conflict (brand_id, user_id) do nothing;
 
