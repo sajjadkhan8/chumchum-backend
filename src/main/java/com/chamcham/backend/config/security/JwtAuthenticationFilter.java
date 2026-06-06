@@ -1,6 +1,7 @@
 package com.chamcham.backend.config.security;
 
-import com.chamcham.backend.entity.enums.UserRole;
+import com.chamcham.backend.entity.User;
+import com.chamcham.backend.repository.UserRepository;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -26,9 +27,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private static final Logger log = LoggerFactory.getLogger(JwtAuthenticationFilter.class);
     private final JwtService jwtService;
+    private final UserRepository userRepository;
 
-    public JwtAuthenticationFilter(JwtService jwtService) {
+    public JwtAuthenticationFilter(JwtService jwtService, UserRepository userRepository) {
         this.jwtService = jwtService;
+        this.userRepository = userRepository;
     }
 
     @Override
@@ -40,30 +43,24 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             try {
                 Claims claims = jwtService.parseClaims(token);
                 UUID userId = UUID.fromString(claims.getSubject());
-                UserRole role = resolveRole(claims);
-                AuthenticatedUser principal = new AuthenticatedUser(userId, role);
+                User user = userRepository.findById(userId)
+                        .filter(existing -> existing.isActive() && existing.getDeletedAt() == null)
+                        .orElseThrow(() -> new IllegalArgumentException("JWT user is unavailable"));
+                AuthenticatedUser principal = new AuthenticatedUser(userId, user.getRole());
 
                 UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
                         principal,
                         null,
-                        List.of(new SimpleGrantedAuthority("ROLE_" + role.name()))
+                        List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole().name()))
                 );
                 authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 SecurityContextHolder.getContext().setAuthentication(authentication);
             } catch (Exception ex) {
-                log.debug("Failed to parse JWT", ex);
+                log.debug("Failed to authenticate JWT", ex);
             }
         }
 
         filterChain.doFilter(request, response);
-    }
-
-    private UserRole resolveRole(Claims claims) {
-        String roleClaim = claims.get("role", String.class);
-        if (roleClaim != null && !roleClaim.isBlank()) {
-            return UserRole.valueOf(roleClaim);
-        }
-        throw new IllegalArgumentException("Missing role claim");
     }
 
     private String resolveToken(HttpServletRequest request) {
@@ -82,4 +79,3 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         return null;
     }
 }
-

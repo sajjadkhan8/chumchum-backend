@@ -31,6 +31,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -157,6 +158,7 @@ public class AdminController {
     }
 
     @PatchMapping("/users/{id}/status")
+    @Transactional
     public ResponseEntity<Map<String, Object>> updateUserStatus(
             @AuthenticationPrincipal AuthenticatedUser authUser,
             @PathVariable UUID id,
@@ -203,6 +205,7 @@ public class AdminController {
     }
 
     @PatchMapping("/orders/{id}/status")
+    @Transactional
     public ResponseEntity<Map<String, Object>> updateOrderStatus(
             @AuthenticationPrincipal AuthenticatedUser authUser,
             @PathVariable UUID id,
@@ -221,6 +224,7 @@ public class AdminController {
     }
 
     @PatchMapping("/creators/{id}/verification")
+    @Transactional
     public ResponseEntity<Map<String, Object>> updateCreatorVerification(
             @AuthenticationPrincipal AuthenticatedUser authUser,
             @PathVariable UUID id,
@@ -238,6 +242,7 @@ public class AdminController {
     }
 
     @PatchMapping("/creators/{id}/badge")
+    @Transactional
     public ResponseEntity<Map<String, Object>> updateCreatorBadge(
             @AuthenticationPrincipal AuthenticatedUser authUser,
             @PathVariable UUID id,
@@ -288,6 +293,7 @@ public class AdminController {
     }
 
     @PatchMapping("/brands/{id}/verification")
+    @Transactional
     public ResponseEntity<Map<String, Object>> updateBrandVerification(
             @AuthenticationPrincipal AuthenticatedUser authUser,
             @PathVariable UUID id,
@@ -348,6 +354,7 @@ public class AdminController {
     }
 
     @PatchMapping("/ambassador/applications/{id}")
+    @Transactional
     public ResponseEntity<Map<String, Object>> reviewAmbassadorApplication(
             @AuthenticationPrincipal AuthenticatedUser authUser,
             @PathVariable UUID id,
