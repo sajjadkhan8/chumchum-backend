@@ -2,6 +2,7 @@ package com.chamcham.backend.entity;
 
 import com.chamcham.backend.entity.enums.DealType;
 import com.chamcham.backend.entity.enums.OfferStatus;
+import com.chamcham.backend.entity.enums.OfferStatusConverter;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
@@ -55,7 +56,7 @@ public class QuickDealOffer {
     @Column(name = "message", nullable = false, columnDefinition = "text")
     private String message;
 
-    @Enumerated(EnumType.STRING)
+    @Convert(converter = OfferStatusConverter.class)
     @Column(nullable = false, length = 30)
     @Builder.Default
     private OfferStatus status = OfferStatus.PENDING;

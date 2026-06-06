@@ -19,10 +19,17 @@ public class PayoutMethodService {
 
     private final PayoutMethodRepository payoutMethodRepository;
     private final CreatorRepository creatorRepository;
+    private final PaymentValidationService paymentValidationService;
+    private final PaymentAuditService paymentAuditService;
 
-    public PayoutMethodService(PayoutMethodRepository payoutMethodRepository, CreatorRepository creatorRepository) {
+    public PayoutMethodService(PayoutMethodRepository payoutMethodRepository,
+                               CreatorRepository creatorRepository,
+                               PaymentValidationService paymentValidationService,
+                               PaymentAuditService paymentAuditService) {
         this.payoutMethodRepository = payoutMethodRepository;
         this.creatorRepository = creatorRepository;
+        this.paymentValidationService = paymentValidationService;
+        this.paymentAuditService = paymentAuditService;
     }
 
     public List<PayoutMethod> list(UUID userId, UserRole role) {
@@ -34,6 +41,7 @@ public class PayoutMethodService {
     public PayoutMethod create(UUID userId, UserRole role, PayoutMethodType type, String name,
                                String accountDetails, boolean isDefault) {
         requireCreator(role);
+        paymentValidationService.validateCreatorPayoutDetails(type, accountDetails);
         Creator creator = findCreator(userId);
         if (isDefault) clearDefault(userId);
         PayoutMethod pm = PayoutMethod.builder()
@@ -43,22 +51,32 @@ public class PayoutMethodService {
                 .accountDetails(accountDetails)
                 .isDefault(isDefault)
                 .build();
-        return payoutMethodRepository.save(pm);
+        PayoutMethod saved = payoutMethodRepository.save(pm);
+        paymentAuditService.log(userId, null, "CREATOR_PAYOUT_METHOD_CREATED", "payout_method", saved.getId().toString(),
+                "type=" + saved.getType().name().toLowerCase());
+        return saved;
     }
 
     @Transactional
     public PayoutMethod update(UUID pmId, UUID userId, String name, String accountDetails, Boolean isDefault) {
         PayoutMethod pm = findOwnedByCreator(pmId, userId);
         if (name != null) pm.setName(name);
-        if (accountDetails != null) pm.setAccountDetails(accountDetails);
+        if (accountDetails != null) {
+            paymentValidationService.validateCreatorPayoutDetails(pm.getType(), accountDetails);
+            pm.setAccountDetails(accountDetails);
+        }
         if (Boolean.TRUE.equals(isDefault)) { clearDefault(userId); pm.setDefault(true); }
-        return payoutMethodRepository.save(pm);
+        PayoutMethod saved = payoutMethodRepository.save(pm);
+        paymentAuditService.log(userId, null, "CREATOR_PAYOUT_METHOD_UPDATED", "payout_method", saved.getId().toString(),
+                "isDefault=" + saved.isDefault());
+        return saved;
     }
 
     @Transactional
     public void delete(UUID pmId, UUID userId) {
         PayoutMethod pm = findOwnedByCreator(pmId, userId);
         payoutMethodRepository.delete(pm);
+        paymentAuditService.log(userId, null, "CREATOR_PAYOUT_METHOD_DELETED", "payout_method", pmId.toString(), "deleted=true");
     }
 
     private void clearDefault(UUID creatorId) {

@@ -181,6 +181,60 @@ values
     ('a1f8db5c-6a4b-4d76-a001-0fd5f9c10105', 2960000, 355000, 76000, '2026-05-10 09:00:00+05')
 on conflict (creator_id) do nothing;
 
+insert into creator_payout_preferences (
+    creator_id, auto_withdraw_enabled, payout_schedule, minimum_payout_amount,
+    account_holder_name, ntn_number, cnic_last4, updated_at
+)
+values
+    ('a1f8db5c-6a4b-4d76-a001-0fd5f9c10101', true, 'WEEKLY', 10000, 'Ali Rehmani', '3491827-5', '1122', '2026-05-10 09:00:00+05'),
+    ('a1f8db5c-6a4b-4d76-a001-0fd5f9c10102', false, 'MANUAL', 5000, 'Sana Waqar', '', '6677', '2026-05-10 09:00:00+05')
+on conflict (creator_id) do nothing;
+
+insert into brand_wallets (
+    brand_id, wallet_balance, monthly_spend, pending_escrow, processing_payouts, next_invoice_date, updated_at
+)
+values
+    ('b7e2aa31-47f1-4c8d-b101-1a8cb4f20101', 840000, 1265000, 475000, 135000, '2026-06-10 00:00:00+05', '2026-06-01 09:00:00+05'),
+    ('b7e2aa31-47f1-4c8d-b101-1a8cb4f20102', 620000, 980000, 320000, 95000, '2026-06-12 00:00:00+05', '2026-06-01 09:00:00+05')
+on conflict (brand_id) do nothing;
+
+insert into brand_payment_methods (
+    id, brand_id, type, label, account_mask, holder_name, is_default, status, created_at, updated_at
+)
+values
+    ('d9100000-0000-4000-8000-000000000001', 'b7e2aa31-47f1-4c8d-b101-1a8cb4f20101', 'CARD', 'Visa Corporate Card', '**** **** **** 4242', 'Nishat Linen', true, 'ACTIVE', '2026-04-01 09:00:00+05', '2026-04-01 09:00:00+05'),
+    ('d9100000-0000-4000-8000-000000000002', 'b7e2aa31-47f1-4c8d-b101-1a8cb4f20101', 'BANK_TRANSFER', 'HBL Operating Account', 'PK36HABB0001123456789911', 'Nishat Linen', false, 'ACTIVE', '2026-04-01 09:15:00+05', '2026-04-01 09:15:00+05')
+on conflict (id) do nothing;
+
+insert into brand_invoices (id, brand_id, period_label, amount, status, issued_at, due_at, created_at)
+values
+    ('e9200000-0000-4000-8000-000000000001', 'b7e2aa31-47f1-4c8d-b101-1a8cb4f20101', 'May 2026', 1420000, 'DUE', '2026-06-01 00:00:00+05', '2026-06-10 00:00:00+05', '2026-06-01 00:00:00+05'),
+    ('e9200000-0000-4000-8000-000000000002', 'b7e2aa31-47f1-4c8d-b101-1a8cb4f20101', 'April 2026', 1190000, 'PAID', '2026-05-01 00:00:00+05', '2026-05-10 00:00:00+05', '2026-05-01 00:00:00+05')
+on conflict (id) do nothing;
+
+insert into brand_disbursements (
+    id, brand_id, creator_id, order_id, campaign_name, amount, status, release_date, created_at, updated_at
+)
+values
+    ('f9300000-0000-4000-8000-000000000001', 'b7e2aa31-47f1-4c8d-b101-1a8cb4f20101', 'a1f8db5c-6a4b-4d76-a001-0fd5f9c10101', null, 'Summer Launch UGC', 95000, 'PROCESSING', '2026-06-06 11:00:00+05', '2026-06-05 16:00:00+05', '2026-06-06 11:00:00+05'),
+    ('f9300000-0000-4000-8000-000000000002', 'b7e2aa31-47f1-4c8d-b101-1a8cb4f20101', 'a1f8db5c-6a4b-4d76-a001-0fd5f9c10102', null, 'TikTok Creator Sprint', 65000, 'SCHEDULED', '2026-06-08 12:00:00+05', '2026-06-06 09:00:00+05', '2026-06-06 09:00:00+05')
+on conflict (id) do nothing;
+
+insert into brand_payout_controls (
+    brand_id, require_two_approvals, auto_release_after_days, low_balance_alert_threshold, updated_at
+)
+values
+    ('b7e2aa31-47f1-4c8d-b101-1a8cb4f20101', true, 5, 350000, '2026-06-01 09:00:00+05'),
+    ('b7e2aa31-47f1-4c8d-b101-1a8cb4f20102', true, 7, 250000, '2026-06-01 09:00:00+05')
+on conflict (brand_id) do nothing;
+
+insert into brand_payment_access (brand_id, user_id, role)
+values
+    ('b7e2aa31-47f1-4c8d-b101-1a8cb4f20101', 'b7e2aa31-47f1-4c8d-b101-1a8cb4f20101', 'OWNER'),
+    ('b7e2aa31-47f1-4c8d-b101-1a8cb4f20102', 'b7e2aa31-47f1-4c8d-b101-1a8cb4f20102', 'OWNER'),
+    ('b7e2aa31-47f1-4c8d-b101-1a8cb4f20103', 'b7e2aa31-47f1-4c8d-b101-1a8cb4f20103', 'OWNER')
+on conflict (brand_id, user_id) do nothing;
+
 insert into transactions (id, creator_id, order_id, type, amount, description, status, created_at)
 values
     ('f91d8d67-54af-4e9a-8d01-2ecfcf8b0101', 'a1f8db5c-6a4b-4d76-a001-0fd5f9c10102', 'e5a0a01c-3f34-4e61-9901-0d1ce9b30101', 'ORDER_PAYMENT', 88000, 'Order ORD-PK-24011 payout credit', 'completed', '2026-03-25 10:30:00+05'),

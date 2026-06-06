@@ -209,4 +209,25 @@ public class CreatorController {
         creatorService.updatePaymentSettings(authUser.userId(), authUser.role(), req);
         return ResponseEntity.ok(Map.of("success", true, "message", "Payment settings updated"));
     }
+
+    @GetMapping("/me/payout-preferences")
+    public ResponseEntity<Map<String, Object>> getPayoutPreferences(
+            @AuthenticationPrincipal AuthenticatedUser authUser
+    ) {
+        return ResponseEntity.ok(Map.of(
+                "success", true,
+                "data", creatorService.getPayoutPreferences(authUser.userId(), authUser.role())
+        ));
+    }
+
+    @PatchMapping("/me/payout-preferences")
+    public ResponseEntity<Map<String, Object>> updatePayoutPreferences(
+            @AuthenticationPrincipal AuthenticatedUser authUser,
+            @RequestBody CreatorService.PayoutPreferencesRequest req
+    ) {
+        return ResponseEntity.ok(Map.of(
+                "success", true,
+                "data", creatorService.updatePayoutPreferences(authUser.userId(), authUser.role(), req)
+        ));
+    }
 }

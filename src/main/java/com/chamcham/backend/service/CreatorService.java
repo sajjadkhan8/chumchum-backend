@@ -4,15 +4,18 @@ import com.chamcham.backend.dto.creator.CreatorCreateRequest;
 import com.chamcham.backend.dto.creator.CreatorResponse;
 import com.chamcham.backend.dto.creator.CreatorUpdateRequest;
 import com.chamcham.backend.entity.Creator;
+import com.chamcham.backend.entity.CreatorPayoutPreference;
 import com.chamcham.backend.entity.PayoutMethod;
 import com.chamcham.backend.entity.SocialAccount;
 import com.chamcham.backend.entity.User;
 import com.chamcham.backend.entity.enums.CreatorBadgeLevel;
+import com.chamcham.backend.entity.enums.CreatorPayoutSchedule;
 import com.chamcham.backend.entity.enums.PayoutMethodType;
 import com.chamcham.backend.entity.enums.UserRole;
 import com.chamcham.backend.exception.ApiException;
 import com.chamcham.backend.mapper.CreatorMapper;
 import com.chamcham.backend.repository.CreatorRepository;
+import com.chamcham.backend.repository.CreatorPayoutPreferenceRepository;
 import com.chamcham.backend.repository.PayoutMethodRepository;
 import com.chamcham.backend.repository.SocialAccountRepository;
 import com.chamcham.backend.repository.UserRepository;
@@ -38,16 +41,25 @@ public class CreatorService {
     private final CreatorMapper creatorMapper;
     private final SocialAccountRepository socialAccountRepository;
     private final PayoutMethodRepository payoutMethodRepository;
+    private final CreatorPayoutPreferenceRepository creatorPayoutPreferenceRepository;
+    private final PaymentValidationService paymentValidationService;
+    private final PaymentAuditService paymentAuditService;
 
     public CreatorService(CreatorRepository creatorRepository, UserRepository userRepository,
                           CreatorMapper creatorMapper,
                           SocialAccountRepository socialAccountRepository,
-                          PayoutMethodRepository payoutMethodRepository) {
+                          PayoutMethodRepository payoutMethodRepository,
+                          CreatorPayoutPreferenceRepository creatorPayoutPreferenceRepository,
+                          PaymentValidationService paymentValidationService,
+                          PaymentAuditService paymentAuditService) {
         this.creatorRepository = creatorRepository;
         this.userRepository = userRepository;
         this.creatorMapper = creatorMapper;
         this.socialAccountRepository = socialAccountRepository;
         this.payoutMethodRepository = payoutMethodRepository;
+        this.creatorPayoutPreferenceRepository = creatorPayoutPreferenceRepository;
+        this.paymentValidationService = paymentValidationService;
+        this.paymentAuditService = paymentAuditService;
     }
 
     @Transactional
@@ -311,6 +323,15 @@ public class CreatorService {
             String stcPayNumber, String madaCard, String accountTitle,
             String ibanOrAccount, String applePayNumber, String bankTransferIban) {}
 
+    public record PayoutPreferencesRequest(
+            Boolean autoWithdrawEnabled,
+            CreatorPayoutSchedule payoutSchedule,
+            Integer minimumPayoutAmount,
+            String accountHolderName,
+            String ntnNumber,
+            String cnicLast4
+    ) {}
+
     public PaymentSettingsRequest getPaymentSettings(UUID userId, UserRole role) {
         if (!role.isCreator()) throw new ApiException(HttpStatus.FORBIDDEN, "Only creators can view payment settings");
         Creator creator = findCreator(userId);
@@ -338,8 +359,53 @@ public class CreatorService {
                 req.ibanOrAccount() != null ? req.ibanOrAccount() : req.bankTransferIban());
     }
 
+    @Transactional
+    public PayoutPreferencesRequest getPayoutPreferences(UUID userId, UserRole role) {
+        if (!role.isCreator()) throw new ApiException(HttpStatus.FORBIDDEN, "Only creators can view payout preferences");
+        Creator creator = findCreator(userId);
+        CreatorPayoutPreference prefs = ensurePayoutPreference(creator);
+        return new PayoutPreferencesRequest(
+                prefs.isAutoWithdrawEnabled(),
+                prefs.getPayoutSchedule(),
+                prefs.getMinimumPayoutAmount(),
+                prefs.getAccountHolderName(),
+                prefs.getNtnNumber(),
+                prefs.getCnicLast4()
+        );
+    }
+
+    @Transactional
+    public PayoutPreferencesRequest updatePayoutPreferences(UUID userId, UserRole role, PayoutPreferencesRequest req) {
+        if (!role.isCreator()) throw new ApiException(HttpStatus.FORBIDDEN, "Only creators can update payout preferences");
+        Creator creator = findCreator(userId);
+        CreatorPayoutPreference prefs = ensurePayoutPreference(creator);
+
+        paymentValidationService.validateCnicLast4(req.cnicLast4());
+
+        if (req.autoWithdrawEnabled() != null) prefs.setAutoWithdrawEnabled(req.autoWithdrawEnabled());
+        if (req.payoutSchedule() != null) prefs.setPayoutSchedule(req.payoutSchedule());
+        if (req.minimumPayoutAmount() != null) prefs.setMinimumPayoutAmount(Math.max(1000, req.minimumPayoutAmount()));
+        if (req.accountHolderName() != null) prefs.setAccountHolderName(req.accountHolderName().trim());
+        if (req.ntnNumber() != null) prefs.setNtnNumber(req.ntnNumber().trim());
+        if (req.cnicLast4() != null) prefs.setCnicLast4(req.cnicLast4().trim());
+
+        CreatorPayoutPreference saved = creatorPayoutPreferenceRepository.save(prefs);
+        paymentAuditService.log(userId, null, "CREATOR_PAYOUT_PREFERENCES_UPDATED", "creator_payout_preferences",
+                creator.getId().toString(), "schedule=" + saved.getPayoutSchedule().name().toLowerCase());
+
+        return new PayoutPreferencesRequest(
+                saved.isAutoWithdrawEnabled(),
+                saved.getPayoutSchedule(),
+                saved.getMinimumPayoutAmount(),
+                saved.getAccountHolderName(),
+                saved.getNtnNumber(),
+                saved.getCnicLast4()
+        );
+    }
+
     private void upsertPayoutMethod(Creator creator, PayoutMethodType type, String name, String accountDetails) {
         if (accountDetails == null || accountDetails.isBlank()) return;
+        paymentValidationService.validateCreatorPayoutDetails(type, accountDetails);
         List<PayoutMethod> existing = payoutMethodRepository.findByCreatorId(creator.getId())
                 .stream().filter(p -> p.getType() == type).toList();
         if (!existing.isEmpty()) {
@@ -355,6 +421,13 @@ public class CreatorService {
 
     private String accountDetails(PayoutMethod method) {
         return method == null ? "" : method.getAccountDetails();
+    }
+
+    private CreatorPayoutPreference ensurePayoutPreference(Creator creator) {
+        return creatorPayoutPreferenceRepository.findById(creator.getId())
+                .orElseGet(() -> creatorPayoutPreferenceRepository.save(CreatorPayoutPreference.builder()
+                        .creator(creator)
+                        .build()));
     }
 
     private Creator findCreator(UUID creatorId) {

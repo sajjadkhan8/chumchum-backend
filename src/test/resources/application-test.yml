@@ -1,0 +1,22 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:chamcham_test;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1;INIT=CREATE SCHEMA IF NOT EXISTS core
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  flyway:
+    enabled: false
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    properties:
+      hibernate:
+        default_schema: core
+        hbm2ddl:
+          create_namespaces: true
+
+security:
+  jwt:
+    secret: ZGV2LXNlY3JldC1yZXBsYWNlLXRoaXMtd2l0aC1hdC1sZWFzdC0zMi1ieXRlcy1mb3ItdGVzdA==
+    expiration-ms: 604800000
+

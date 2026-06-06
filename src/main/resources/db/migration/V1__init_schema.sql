@@ -64,6 +64,92 @@ create table brands (
     monthly_budget integer
 );
 
+create table creator_payout_preferences (
+    creator_id uuid primary key references creators(id) on delete cascade,
+    auto_withdraw_enabled boolean not null default false,
+    payout_schedule varchar(20) not null default 'MANUAL' constraint ck_creator_payout_schedule check (payout_schedule in ('WEEKLY', 'BIWEEKLY', 'MONTHLY', 'MANUAL')),
+    minimum_payout_amount integer not null default 5000,
+    account_holder_name varchar(120) not null default '',
+    ntn_number varchar(30) not null default '',
+    cnic_last4 varchar(4) not null default '',
+    updated_at timestamptz not null default now()
+);
+
+create table brand_wallets (
+    brand_id uuid primary key references brands(id) on delete cascade,
+    wallet_balance integer not null default 0,
+    monthly_spend integer not null default 0,
+    pending_escrow integer not null default 0,
+    processing_payouts integer not null default 0,
+    next_invoice_date timestamptz,
+    updated_at timestamptz not null default now()
+);
+
+create table brand_payment_methods (
+    id uuid primary key default gen_random_uuid(),
+    brand_id uuid not null references brands(id) on delete cascade,
+    type varchar(30) not null constraint ck_brand_payment_method_type check (type in ('CARD', 'BANK_TRANSFER', 'JAZZCASH', 'EASYPAISA', 'SADAPAY', 'NAYAPAY')),
+    label varchar(100) not null,
+    account_mask varchar(120) not null,
+    holder_name varchar(120) not null,
+    is_default boolean not null default false,
+    status varchar(30) not null default 'ACTIVE' constraint ck_brand_payment_method_status check (status in ('ACTIVE', 'PENDING_VERIFICATION', 'DISABLED')),
+    created_at timestamptz not null default now(),
+    updated_at timestamptz not null default now()
+);
+
+create table brand_invoices (
+    id uuid primary key default gen_random_uuid(),
+    brand_id uuid not null references brands(id) on delete cascade,
+    period_label varchar(40) not null,
+    amount integer not null,
+    status varchar(20) not null default 'DUE' constraint ck_brand_invoice_status check (status in ('PAID', 'DUE', 'OVERDUE')),
+    issued_at timestamptz not null,
+    due_at timestamptz not null,
+    created_at timestamptz not null default now()
+);
+
+create table brand_disbursements (
+    id uuid primary key default gen_random_uuid(),
+    brand_id uuid not null references brands(id) on delete cascade,
+    creator_id uuid references creators(id) on delete set null,
+    order_id uuid references orders(id) on delete set null,
+    campaign_name varchar(180) not null,
+    amount integer not null,
+    status varchar(30) not null default 'SCHEDULED' constraint ck_brand_disbursement_status check (status in ('SCHEDULED', 'PROCESSING', 'COMPLETED', 'FAILED')),
+    release_date timestamptz not null,
+    created_at timestamptz not null default now(),
+    updated_at timestamptz not null default now()
+);
+
+create table brand_payout_controls (
+    brand_id uuid primary key references brands(id) on delete cascade,
+    require_two_approvals boolean not null default true,
+    auto_release_after_days integer not null default 5,
+    low_balance_alert_threshold integer not null default 300000,
+    updated_at timestamptz not null default now()
+);
+
+create table brand_payment_access (
+    id uuid primary key default gen_random_uuid(),
+    brand_id uuid not null references brands(id) on delete cascade,
+    user_id uuid not null references users(id) on delete cascade,
+    role varchar(20) not null constraint ck_brand_payment_access_role check (role in ('OWNER', 'ADMIN', 'FINANCE', 'VIEWER')),
+    created_at timestamptz not null default now(),
+    unique (brand_id, user_id)
+);
+
+create table payment_audit_logs (
+    id uuid primary key default gen_random_uuid(),
+    actor_id uuid not null references users(id) on delete restrict,
+    brand_id uuid references brands(id) on delete set null,
+    action varchar(80) not null,
+    target_type varchar(60) not null,
+    target_id varchar(100),
+    details text,
+    created_at timestamptz not null default now()
+);
+
 create table packages (
     id uuid primary key default gen_random_uuid(),
     creator_id uuid not null references creators(id) on delete cascade,
@@ -363,3 +449,10 @@ create index idx_payout_methods_creator_id on payout_methods(creator_id);
 create index idx_withdrawals_creator_id on withdrawal_requests(creator_id);
 create index idx_saved_creators_brand_id on saved_creators(brand_id);
 create index idx_quick_deals_conversation on quick_deal_offers(conversation_id);
+create index idx_brand_wallets_brand_id on brand_wallets(brand_id);
+create index idx_brand_payment_methods_brand_id on brand_payment_methods(brand_id);
+create index idx_brand_payment_methods_default on brand_payment_methods(brand_id, is_default);
+create index idx_brand_invoices_brand_id on brand_invoices(brand_id, due_at desc);
+create index idx_brand_disbursements_brand_id on brand_disbursements(brand_id, release_date desc);
+create index idx_brand_payment_access_lookup on brand_payment_access(user_id, brand_id);
+create index idx_payment_audit_logs_brand_created on payment_audit_logs(brand_id, created_at desc);
