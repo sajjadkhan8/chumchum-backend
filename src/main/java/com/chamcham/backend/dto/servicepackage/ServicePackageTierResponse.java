@@ -3,19 +3,23 @@ package com.chamcham.backend.dto.servicepackage;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 
-import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public record ServicePackageTierResponse(
         UUID id,
         String name,
-        BigDecimal price,
-        String deliverables,
+        Integer price,  // PKR amount
+        String description,
+        List<String> deliverables,
         Integer deliveryDays,
         Integer revisions,
-        Instant createdAt
+        Integer position,
+        Boolean isPrimary,
+        Instant createdAt,
+        Instant updatedAt
 ) {
 }
 

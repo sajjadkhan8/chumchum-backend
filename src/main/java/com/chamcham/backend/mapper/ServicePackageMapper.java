@@ -51,10 +51,14 @@ public class ServicePackageMapper {
                                 tier.getId(),
                                 tier.getName(),
                                 tier.getPrice(),
+                                tier.getDescription(),
                                 tier.getDeliverables(),
                                 tier.getDeliveryDays(),
                                 tier.getRevisions(),
-                                tier.getCreatedAt()
+                                tier.getPosition(),
+                                tier.isPrimary(),
+                                tier.getCreatedAt(),
+                                tier.getUpdatedAt()
                         ))
                         .toList(),
                 servicePackage.getCreatedAt(),

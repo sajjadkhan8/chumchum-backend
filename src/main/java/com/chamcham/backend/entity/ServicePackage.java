@@ -144,7 +144,7 @@ public class ServicePackage extends BaseEntity {
 
     @Column(length = 10)
     @Builder.Default
-    private String currency = "SAR";
+    private String currency = "PKR";  // V1: PKR only (mono-currency)
 
     @OneToMany(mappedBy = "servicePackage", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default

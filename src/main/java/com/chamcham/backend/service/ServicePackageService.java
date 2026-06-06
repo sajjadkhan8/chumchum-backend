@@ -96,7 +96,7 @@ public class ServicePackageService {
                 .hybridBarterValue(request.hybridBarterValue())
                 .creatorExpectations(request.creatorExpectations())
                 .price(request.price())
-                .currency(request.currency() == null || request.currency().isBlank() ? "SAR" : request.currency())
+                .currency("PKR")  // V1: PKR only (mono-currency)
                 .deliverables(request.deliverables())
                 .deliveryDays(request.deliveryDays())
                 .revisions(request.revisions() == null ? 1 : request.revisions())
@@ -113,16 +113,21 @@ public class ServicePackageService {
         clearIncompatiblePricingFields(servicePackage);
 
         if (request.tiers() != null && !request.tiers().isEmpty()) {
-            List<PackageTier> tiers = request.tiers().stream()
-                    .map(tier -> PackageTier.builder()
-                            .servicePackage(servicePackage)
-                            .name(tier.name())
-                            .price(tier.price())
-                            .deliverables(tier.deliverables())
-                            .deliveryDays(tier.deliveryDays())
-                            .revisions(tier.revisions() == null ? 1 : tier.revisions())
-                            .build())
-                    .toList();
+            List<PackageTier> tiers = new java.util.ArrayList<>();
+            for (int i = 0; i < request.tiers().size(); i++) {
+                var tier = request.tiers().get(i);
+                tiers.add(PackageTier.builder()
+                        .servicePackage(servicePackage)
+                        .name(tier.name())
+                        .price(tier.price())  // PKR amount
+                        .deliverables(tier.deliverables())  // List of deliverables
+                        .description(tier.description())
+                        .deliveryDays(tier.deliveryDays())
+                        .revisions(tier.revisions() == null ? 1 : tier.revisions())
+                        .position(tier.position() != null ? tier.position() : i)
+                        .isPrimary(tier.isPrimary() != null && tier.isPrimary())
+                        .build());
+            }
             servicePackage.setTiers(tiers);
         }
 
