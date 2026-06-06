@@ -109,47 +109,6 @@ create table brand_invoices (
     created_at timestamptz not null default now()
 );
 
-create table brand_disbursements (
-    id uuid primary key default gen_random_uuid(),
-    brand_id uuid not null references brands(id) on delete cascade,
-    creator_id uuid references creators(id) on delete set null,
-    order_id uuid references orders(id) on delete set null,
-    campaign_name varchar(180) not null,
-    amount integer not null,
-    status varchar(30) not null default 'SCHEDULED' constraint ck_brand_disbursement_status check (status in ('SCHEDULED', 'PROCESSING', 'COMPLETED', 'FAILED')),
-    release_date timestamptz not null,
-    created_at timestamptz not null default now(),
-    updated_at timestamptz not null default now()
-);
-
-create table brand_payout_controls (
-    brand_id uuid primary key references brands(id) on delete cascade,
-    require_two_approvals boolean not null default true,
-    auto_release_after_days integer not null default 5,
-    low_balance_alert_threshold integer not null default 300000,
-    updated_at timestamptz not null default now()
-);
-
-create table brand_payment_access (
-    id uuid primary key default gen_random_uuid(),
-    brand_id uuid not null references brands(id) on delete cascade,
-    user_id uuid not null references users(id) on delete cascade,
-    role varchar(20) not null constraint ck_brand_payment_access_role check (role in ('OWNER', 'ADMIN', 'FINANCE', 'VIEWER')),
-    created_at timestamptz not null default now(),
-    unique (brand_id, user_id)
-);
-
-create table payment_audit_logs (
-    id uuid primary key default gen_random_uuid(),
-    actor_id uuid not null references users(id) on delete restrict,
-    brand_id uuid references brands(id) on delete set null,
-    action varchar(80) not null,
-    target_type varchar(60) not null,
-    target_id varchar(100),
-    details text,
-    created_at timestamptz not null default now()
-);
-
 create table packages (
     id uuid primary key default gen_random_uuid(),
     creator_id uuid not null references creators(id) on delete cascade,
@@ -218,6 +177,47 @@ create table orders (
     deadline_date date,
     created_at timestamptz not null,
     updated_at timestamptz not null
+);
+
+create table brand_disbursements (
+    id uuid primary key default gen_random_uuid(),
+    brand_id uuid not null references brands(id) on delete cascade,
+    creator_id uuid references creators(id) on delete set null,
+    order_id uuid references orders(id) on delete set null,
+    campaign_name varchar(180) not null,
+    amount integer not null,
+    status varchar(30) not null default 'SCHEDULED' constraint ck_brand_disbursement_status check (status in ('SCHEDULED', 'PROCESSING', 'COMPLETED', 'FAILED')),
+    release_date timestamptz not null,
+    created_at timestamptz not null default now(),
+    updated_at timestamptz not null default now()
+);
+
+create table brand_payout_controls (
+    brand_id uuid primary key references brands(id) on delete cascade,
+    require_two_approvals boolean not null default true,
+    auto_release_after_days integer not null default 5,
+    low_balance_alert_threshold integer not null default 300000,
+    updated_at timestamptz not null default now()
+);
+
+create table brand_payment_access (
+    id uuid primary key default gen_random_uuid(),
+    brand_id uuid not null references brands(id) on delete cascade,
+    user_id uuid not null references users(id) on delete cascade,
+    role varchar(20) not null constraint ck_brand_payment_access_role check (role in ('OWNER', 'ADMIN', 'FINANCE', 'VIEWER')),
+    created_at timestamptz not null default now(),
+    unique (brand_id, user_id)
+);
+
+create table payment_audit_logs (
+    id uuid primary key default gen_random_uuid(),
+    actor_id uuid not null references users(id) on delete restrict,
+    brand_id uuid references brands(id) on delete set null,
+    action varchar(80) not null,
+    target_type varchar(60) not null,
+    target_id varchar(100),
+    details text,
+    created_at timestamptz not null default now()
 );
 
 create table reviews (
