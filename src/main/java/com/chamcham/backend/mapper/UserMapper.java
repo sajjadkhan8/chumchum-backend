@@ -32,6 +32,7 @@ public class UserMapper {
         return new UserResponse(
                 user.getId(),
                 user.getEmail(),
+                user.isEmailVerified(),
                 user.getName(),
                 user.getRole().name().toLowerCase(),
                 user.getAvatarUrl() != null ? user.getAvatarUrl() : user.getImage(),

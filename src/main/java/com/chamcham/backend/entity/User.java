@@ -45,6 +45,13 @@ public class User extends BaseEntity {
     @Column(nullable = false, unique = true, length = 120)
     private String email;
 
+    @Column(name = "email_verified", nullable = false)
+    @Builder.Default
+    private boolean emailVerified = false;
+
+    @Column(name = "google_subject", unique = true, length = 128)
+    private String googleSubject;
+
     @Column(unique = true, length = 20)
     private String phone;
 

@@ -56,6 +56,10 @@ security:
     max-age-seconds: ${COOKIE_MAX_AGE:604800}
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:4200,http://localhost:5173,http://localhost:4173}
+  oauth:
+    google:
+      client-ids: ${GOOGLE_CLIENT_IDS:web-client-id.apps.googleusercontent.com}
+      token-info-url: ${GOOGLE_TOKEN_INFO_URL:https://oauth2.googleapis.com/tokeninfo}
 
 app:
   refunds:

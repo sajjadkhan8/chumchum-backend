@@ -19,4 +19,7 @@ security:
   jwt:
     secret: ZGV2LXNlY3JldC1yZXBsYWNlLXRoaXMtd2l0aC1hdC1sZWFzdC0zMi1ieXRlcy1mb3ItdGVzdA==
     expiration-ms: 604800000
+  oauth:
+    google:
+      client-ids: test-google-client-id.apps.googleusercontent.com
 

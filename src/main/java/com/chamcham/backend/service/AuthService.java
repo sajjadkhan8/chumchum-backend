@@ -31,19 +31,27 @@ public class AuthService {
     private final BrandService brandService;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final GoogleTokenVerifierService googleTokenVerifierService;
 
     private final Map<String, OtpEntry> otpStore = new ConcurrentHashMap<>();
     private final Map<String, UUID> refreshStore = new ConcurrentHashMap<>();
     private final Map<String, UUID> resetTokens = new ConcurrentHashMap<>();
     private final SecureRandom secureRandom = new SecureRandom();
 
-    public AuthService(UserRepository userRepository, UserMapper userMapper, CreatorService creatorService, BrandService brandService, PasswordEncoder passwordEncoder, JwtService jwtService) {
+    public AuthService(UserRepository userRepository,
+                       UserMapper userMapper,
+                       CreatorService creatorService,
+                       BrandService brandService,
+                       PasswordEncoder passwordEncoder,
+                       JwtService jwtService,
+                       GoogleTokenVerifierService googleTokenVerifierService) {
         this.userRepository = userRepository;
         this.userMapper = userMapper;
         this.creatorService = creatorService;
         this.brandService = brandService;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
+        this.googleTokenVerifierService = googleTokenVerifierService;
     }
 
     @Transactional
@@ -53,8 +61,9 @@ public class AuthService {
         }
 
         User user = User.builder()
-                .username(generateUsername(request.email()))
+                .username(generateUniqueUsername(request.email()))
                 .email(request.email())
+                .emailVerified(false)
                 .name(request.name())
                 .passwordHash(passwordEncoder.encode(request.password()))
                 .role(request.role())
@@ -77,6 +86,10 @@ public class AuthService {
                 .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "Invalid credentials"));
 
         requireActive(user);
+
+        if (user.getPasswordHash() == null || user.getPasswordHash().isBlank()) {
+            throw new ApiException(HttpStatus.UNAUTHORIZED, "This account uses social login. Continue with Google.");
+        }
 
         if (!passwordEncoder.matches(request.password(), user.getPasswordHash())) {
             throw new ApiException(HttpStatus.UNAUTHORIZED, "Invalid credentials");
@@ -122,6 +135,24 @@ public class AuthService {
         return new AuthTokenPair(jwtService.generateToken(user.getId(), user.getRole()), request.refreshToken());
     }
 
+    @Transactional
+    public AuthTokenResponse authenticateWithGoogle(AuthGoogleRequest request) {
+        if (request.role() == null) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Role is required for Google authentication");
+        }
+
+        GoogleTokenVerifierService.VerifiedGoogleProfile googleProfile = googleTokenVerifierService.verifyIdToken(request.idToken());
+
+        User user = userRepository.findByGoogleSubject(googleProfile.subject())
+                .map(existing -> updateLinkedGoogleUser(existing, googleProfile, request))
+                .orElseGet(() -> userRepository.findByEmail(googleProfile.email())
+                        .map(existing -> linkGoogleToExistingEmail(existing, googleProfile, request))
+                        .orElseGet(() -> createGoogleUser(googleProfile, request)));
+
+        requireActive(user);
+        return issueTokens(user);
+    }
+
     public void forgotPassword(AuthForgotPasswordRequest request) {
         userRepository.findByEmail(request.email()).ifPresent(user -> resetTokens.put(UUID.randomUUID().toString(), user.getId()));
     }
@@ -163,6 +194,97 @@ public class AuthService {
             normalized = "user" + normalized;
         }
         return normalized.length() > 40 ? normalized.substring(0, 40) : normalized;
+    }
+
+    private String generateUniqueUsername(String seed) {
+        String base = generateUsername(seed);
+        if (!userRepository.existsByUsername(base)) {
+            return base;
+        }
+
+        for (int i = 1; i <= 9999; i++) {
+            String suffix = String.valueOf(i);
+            int maxBaseLength = 40 - suffix.length();
+            String candidate = base.substring(0, Math.min(base.length(), maxBaseLength)) + suffix;
+            if (!userRepository.existsByUsername(candidate)) {
+                return candidate;
+            }
+        }
+
+        return base.substring(0, Math.min(base.length(), 32)) + UUID.randomUUID().toString().replace("-", "").substring(0, 8);
+    }
+
+    private User updateLinkedGoogleUser(User existing,
+                                        GoogleTokenVerifierService.VerifiedGoogleProfile googleProfile,
+                                        AuthGoogleRequest request) {
+        requireActive(existing);
+        if (request.role() != null && request.role() != existing.getRole()) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "This Google account is already linked to another role");
+        }
+        if (existing.getEmail() == null || existing.getEmail().isBlank()) {
+            existing.setEmail(googleProfile.email());
+        }
+        existing.setEmailVerified(true);
+        if ((existing.getName() == null || existing.getName().isBlank()) && googleProfile.name() != null && !googleProfile.name().isBlank()) {
+            existing.setName(googleProfile.name());
+        }
+        if ((existing.getAvatarUrl() == null || existing.getAvatarUrl().isBlank()) && googleProfile.picture() != null && !googleProfile.picture().isBlank()) {
+            existing.setAvatarUrl(googleProfile.picture());
+        }
+        return userRepository.save(existing);
+    }
+
+    private User linkGoogleToExistingEmail(User existing,
+                                           GoogleTokenVerifierService.VerifiedGoogleProfile googleProfile,
+                                           AuthGoogleRequest request) {
+        requireActive(existing);
+        if (request.role() != null && request.role() != existing.getRole()) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Email already exists with another role");
+        }
+        if (existing.getGoogleSubject() != null && !existing.getGoogleSubject().equals(googleProfile.subject())) {
+            throw new ApiException(HttpStatus.CONFLICT, "Email already linked with another Google account");
+        }
+
+        existing.setGoogleSubject(googleProfile.subject());
+        existing.setEmailVerified(true);
+        if ((existing.getName() == null || existing.getName().isBlank()) && googleProfile.name() != null && !googleProfile.name().isBlank()) {
+            existing.setName(googleProfile.name());
+        }
+        if ((existing.getAvatarUrl() == null || existing.getAvatarUrl().isBlank()) && googleProfile.picture() != null && !googleProfile.picture().isBlank()) {
+            existing.setAvatarUrl(googleProfile.picture());
+        }
+        return userRepository.save(existing);
+    }
+
+    private User createGoogleUser(GoogleTokenVerifierService.VerifiedGoogleProfile googleProfile,
+                                  AuthGoogleRequest request) {
+        UserRole role = request.role();
+        String displayName = request.name() != null && !request.name().isBlank()
+                ? request.name().trim()
+                : (googleProfile.name() != null && !googleProfile.name().isBlank() ? googleProfile.name().trim() : googleProfile.email());
+
+        User user = User.builder()
+                .username(generateUniqueUsername(googleProfile.email()))
+                .email(googleProfile.email())
+                .emailVerified(true)
+                .googleSubject(googleProfile.subject())
+                .name(displayName)
+                .passwordHash(null)
+                .role(role)
+                .avatarUrl(googleProfile.picture())
+                .creatorProgramStatus(role == UserRole.CREATOR ? CreatorProgramStatus.IN_PATH : CreatorProgramStatus.NONE)
+                .active(true)
+                .build();
+
+        user = userRepository.save(user);
+
+        if (role == UserRole.CREATOR) {
+            creatorService.create(new CreatorCreateRequest(user.getId(), null, null, null, null, null, null));
+        } else if (role == UserRole.BRAND) {
+            brandService.create(new BrandCreateRequest(user.getId(), displayName, null, null, null));
+        }
+
+        return user;
     }
 
     private void requireActive(User user) {

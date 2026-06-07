@@ -35,6 +35,11 @@ public class AuthController {
         return ResponseEntity.ok(ApiResponse.ok(authService.login(request)));
     }
 
+    @PostMapping("/google")
+    public ResponseEntity<ApiResponse<AuthTokenResponse>> google(@Valid @RequestBody AuthGoogleRequest request) {
+        return ResponseEntity.ok(ApiResponse.ok(authService.authenticateWithGoogle(request)));
+    }
+
     @PostMapping("/send-otp")
     public ResponseEntity<ApiResponse<AuthSendOtpResponse>> sendOtp(@Valid @RequestBody AuthSendOtpRequest request) {
         return ResponseEntity.ok(ApiResponse.ok(authService.sendOtp(request)));
