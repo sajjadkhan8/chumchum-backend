@@ -329,7 +329,9 @@ public class CreatorService {
             Integer minimumPayoutAmount,
             String accountHolderName,
             String ntnNumber,
-            String cnicLast4
+            String cnicLast4,
+            Boolean earningsNotificationsEnabled,
+            Boolean weeklyDigestEnabled
     ) {}
 
     public PaymentSettingsRequest getPaymentSettings(UUID userId, UserRole role) {
@@ -370,7 +372,9 @@ public class CreatorService {
                 prefs.getMinimumPayoutAmount(),
                 prefs.getAccountHolderName(),
                 prefs.getNtnNumber(),
-                prefs.getCnicLast4()
+                prefs.getCnicLast4(),
+                prefs.isEarningsNotificationsEnabled(),
+                prefs.isWeeklyDigestEnabled()
         );
     }
 
@@ -388,6 +392,8 @@ public class CreatorService {
         if (req.accountHolderName() != null) prefs.setAccountHolderName(req.accountHolderName().trim());
         if (req.ntnNumber() != null) prefs.setNtnNumber(req.ntnNumber().trim());
         if (req.cnicLast4() != null) prefs.setCnicLast4(req.cnicLast4().trim());
+        if (req.earningsNotificationsEnabled() != null) prefs.setEarningsNotificationsEnabled(req.earningsNotificationsEnabled());
+        if (req.weeklyDigestEnabled() != null) prefs.setWeeklyDigestEnabled(req.weeklyDigestEnabled());
 
         CreatorPayoutPreference saved = creatorPayoutPreferenceRepository.save(prefs);
         paymentAuditService.log(userId, null, "CREATOR_PAYOUT_PREFERENCES_UPDATED", "creator_payout_preferences",
@@ -399,7 +405,9 @@ public class CreatorService {
                 saved.getMinimumPayoutAmount(),
                 saved.getAccountHolderName(),
                 saved.getNtnNumber(),
-                saved.getCnicLast4()
+                saved.getCnicLast4(),
+                saved.isEarningsNotificationsEnabled(),
+                saved.isWeeklyDigestEnabled()
         );
     }
 

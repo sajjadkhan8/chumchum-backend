@@ -47,29 +47,26 @@ public class BrandPaymentsController {
 
     @GetMapping("/summary")
     public ResponseEntity<Map<String, Object>> summary(
-            @AuthenticationPrincipal AuthenticatedUser authUser,
-            @RequestParam(required = false) UUID brandId
+            @AuthenticationPrincipal AuthenticatedUser authUser
     ) {
-        var scope = brandPaymentsService.resolveBrandScope(authUser.userId(), authUser.role(), brandId);
+        var scope = resolveScope(authUser);
         return ok(brandPaymentsService.getSummary(scope));
     }
 
     @GetMapping("/methods")
     public ResponseEntity<Map<String, Object>> methods(
-            @AuthenticationPrincipal AuthenticatedUser authUser,
-            @RequestParam(required = false) UUID brandId
+            @AuthenticationPrincipal AuthenticatedUser authUser
     ) {
-        var scope = brandPaymentsService.resolveBrandScope(authUser.userId(), authUser.role(), brandId);
+        var scope = resolveScope(authUser);
         return ok(brandPaymentsService.getMethods(scope));
     }
 
     @PostMapping("/methods")
     public ResponseEntity<Map<String, Object>> createMethod(
             @AuthenticationPrincipal AuthenticatedUser authUser,
-            @RequestParam(required = false) UUID brandId,
             @Valid @RequestBody CreateMethodRequest request
     ) {
-        var scope = brandPaymentsService.resolveBrandScope(authUser.userId(), authUser.role(), brandId);
+        var scope = resolveScope(authUser);
         BrandPaymentMethodType methodType;
         try {
             methodType = BrandPaymentMethodType.valueOf(request.type().trim().toUpperCase());
@@ -94,11 +91,10 @@ public class BrandPaymentsController {
     @PatchMapping("/methods/{id}")
     public ResponseEntity<Map<String, Object>> updateMethod(
             @AuthenticationPrincipal AuthenticatedUser authUser,
-            @RequestParam(required = false) UUID brandId,
             @PathVariable UUID id,
             @RequestBody UpdateMethodRequest request
     ) {
-        var scope = brandPaymentsService.resolveBrandScope(authUser.userId(), authUser.role(), brandId);
+        var scope = resolveScope(authUser);
         return ok(brandPaymentsService.updateMethod(authUser.userId(), scope, id,
                 new BrandPaymentsService.UpdateBrandPaymentMethodRequest(request.isDefault())));
     }
@@ -106,48 +102,43 @@ public class BrandPaymentsController {
     @DeleteMapping("/methods/{id}")
     public ResponseEntity<Map<String, Object>> deleteMethod(
             @AuthenticationPrincipal AuthenticatedUser authUser,
-            @RequestParam(required = false) UUID brandId,
             @PathVariable UUID id
     ) {
-        var scope = brandPaymentsService.resolveBrandScope(authUser.userId(), authUser.role(), brandId);
+        var scope = resolveScope(authUser);
         brandPaymentsService.deleteMethod(authUser.userId(), scope, id);
         return ResponseEntity.ok(Map.of("success", true, "message", "Payment method deleted"));
     }
 
     @GetMapping("/invoices")
     public ResponseEntity<Map<String, Object>> invoices(
-            @AuthenticationPrincipal AuthenticatedUser authUser,
-            @RequestParam(required = false) UUID brandId
+            @AuthenticationPrincipal AuthenticatedUser authUser
     ) {
-        var scope = brandPaymentsService.resolveBrandScope(authUser.userId(), authUser.role(), brandId);
+        var scope = resolveScope(authUser);
         return ok(brandPaymentsService.getInvoices(scope));
     }
 
     @GetMapping("/disbursements")
     public ResponseEntity<Map<String, Object>> disbursements(
-            @AuthenticationPrincipal AuthenticatedUser authUser,
-            @RequestParam(required = false) UUID brandId
+            @AuthenticationPrincipal AuthenticatedUser authUser
     ) {
-        var scope = brandPaymentsService.resolveBrandScope(authUser.userId(), authUser.role(), brandId);
+        var scope = resolveScope(authUser);
         return ok(brandPaymentsService.getDisbursements(scope));
     }
 
     @GetMapping("/controls")
     public ResponseEntity<Map<String, Object>> controls(
-            @AuthenticationPrincipal AuthenticatedUser authUser,
-            @RequestParam(required = false) UUID brandId
+            @AuthenticationPrincipal AuthenticatedUser authUser
     ) {
-        var scope = brandPaymentsService.resolveBrandScope(authUser.userId(), authUser.role(), brandId);
+        var scope = resolveScope(authUser);
         return ok(brandPaymentsService.getControls(scope));
     }
 
     @PatchMapping("/controls")
     public ResponseEntity<Map<String, Object>> updateControls(
             @AuthenticationPrincipal AuthenticatedUser authUser,
-            @RequestParam(required = false) UUID brandId,
             @Valid @RequestBody UpdateControlsRequest request
     ) {
-        var scope = brandPaymentsService.resolveBrandScope(authUser.userId(), authUser.role(), brandId);
+        var scope = resolveScope(authUser);
         return ok(brandPaymentsService.updateControls(authUser.userId(), scope,
                 new BrandPaymentsService.UpdateControlsRequest(
                         request.requireTwoApprovals(),
@@ -159,11 +150,14 @@ public class BrandPaymentsController {
     @PostMapping("/top-up")
     public ResponseEntity<Map<String, Object>> topUp(
             @AuthenticationPrincipal AuthenticatedUser authUser,
-            @RequestParam(required = false) UUID brandId,
             @Valid @RequestBody TopUpRequest request
     ) {
-        var scope = brandPaymentsService.resolveBrandScope(authUser.userId(), authUser.role(), brandId);
+        var scope = resolveScope(authUser);
         return ok(brandPaymentsService.topUp(authUser.userId(), scope, new BrandPaymentsService.TopUpRequest(request.amount())));
+    }
+
+    private BrandPaymentsService.BrandScope resolveScope(AuthenticatedUser authUser) {
+        return brandPaymentsService.resolveBrandScope(authUser.userId(), authUser.role(), null);
     }
 
     private ResponseEntity<Map<String, Object>> ok(Object data) {

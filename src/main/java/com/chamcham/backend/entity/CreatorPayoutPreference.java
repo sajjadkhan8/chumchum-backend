@@ -67,6 +67,14 @@ public class CreatorPayoutPreference {
     @Builder.Default
     private String cnicLast4 = "";
 
+    @Column(name = "earnings_notifications_enabled", nullable = false)
+    @Builder.Default
+    private boolean earningsNotificationsEnabled = true;
+
+    @Column(name = "weekly_digest_enabled", nullable = false)
+    @Builder.Default
+    private boolean weeklyDigestEnabled = false;
+
     @LastModifiedDate
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;

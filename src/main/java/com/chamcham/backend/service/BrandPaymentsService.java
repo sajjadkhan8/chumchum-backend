@@ -45,7 +45,7 @@ public class BrandPaymentsService {
         this.paymentAuditService = paymentAuditService;
     }
 
-    public record BrandScope(Brand brand, BrandPaymentAccessRole role) {}
+    public record BrandScope(UUID brandId, BrandPaymentAccessRole role) {}
 
     public record BrandPaymentSummaryResponse(
             int walletBalance,
@@ -116,7 +116,7 @@ public class BrandPaymentsService {
                 throw new ApiException(HttpStatus.BAD_REQUEST, "brandId is required for admin context");
             }
             Brand brand = findBrand(requestedBrandId);
-            return new BrandScope(brand, BrandPaymentAccessRole.ADMIN);
+            return new BrandScope(brand.getId(), BrandPaymentAccessRole.ADMIN);
         }
 
         if (!actorRole.isBrand()) {
@@ -125,7 +125,7 @@ public class BrandPaymentsService {
 
         if (brandRepository.findById(actorId).isPresent()) {
             Brand ownBrand = findBrand(actorId);
-            return new BrandScope(ownBrand, BrandPaymentAccessRole.OWNER);
+            return new BrandScope(ownBrand.getId(), BrandPaymentAccessRole.OWNER);
         }
 
         List<BrandPaymentAccess> accessRows = brandPaymentAccessRepository.findByUserId(actorId);
@@ -141,12 +141,13 @@ public class BrandPaymentsService {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Multiple brand access rows found; specify brandId");
         }
 
-        return new BrandScope(access.getBrand(), access.getRole());
+        return new BrandScope(access.getBrand().getId(), access.getRole());
     }
 
     @Transactional
     public BrandPaymentSummaryResponse getSummary(BrandScope scope) {
-        BrandWallet wallet = ensureWallet(scope.brand());
+        Brand brand = managedBrand(scope);
+        BrandWallet wallet = ensureWallet(brand);
         return new BrandPaymentSummaryResponse(
                 wallet.getWalletBalance(),
                 wallet.getMonthlySpend(),
@@ -159,13 +160,14 @@ public class BrandPaymentsService {
     @Transactional
     public List<BrandPaymentMethodResponse> getMethods(BrandScope scope) {
         requireView(scope.role());
-        return brandPaymentMethodRepository.findByBrandIdOrderByCreatedAtDesc(scope.brand().getId())
+        return brandPaymentMethodRepository.findByBrandIdOrderByCreatedAtDesc(scope.brandId())
                 .stream().map(this::toMethodResponse).toList();
     }
 
     @Transactional
     public BrandPaymentMethodResponse createMethod(UUID actorId, BrandScope scope, CreateBrandPaymentMethodRequest request) {
         requireManageFunds(scope.role(), "create payment methods");
+        Brand brand = managedBrand(scope);
 
         if (request.type() == null) throw new ApiException(HttpStatus.BAD_REQUEST, "type is required");
         String label = normalize(request.label());
@@ -176,20 +178,20 @@ public class BrandPaymentsService {
         }
 
         if (Boolean.TRUE.equals(request.isDefault())) {
-            clearDefaultMethod(scope.brand().getId());
+            clearDefaultMethod(scope.brandId());
         }
 
         BrandPaymentMethod method = brandPaymentMethodRepository.save(BrandPaymentMethod.builder()
-                .brand(scope.brand())
+                .brand(brand)
                 .type(request.type())
                 .label(label)
                 .accountMask(accountMask)
                 .holderName(holderName)
-                .isDefault(Boolean.TRUE.equals(request.isDefault()) || noDefault(scope.brand().getId()))
+                .isDefault(Boolean.TRUE.equals(request.isDefault()) || noDefault(scope.brandId()))
                 .status(BrandPaymentMethodStatus.ACTIVE)
                 .build());
 
-        paymentAuditService.log(actorId, scope.brand(), "BRAND_PAYMENT_METHOD_CREATED", "brand_payment_method",
+        paymentAuditService.log(actorId, brand, "BRAND_PAYMENT_METHOD_CREATED", "brand_payment_method",
                 method.getId().toString(), "type=" + method.getType().name().toLowerCase());
 
         return toMethodResponse(method);
@@ -198,15 +200,16 @@ public class BrandPaymentsService {
     @Transactional
     public BrandPaymentMethodResponse updateMethod(UUID actorId, BrandScope scope, UUID methodId, UpdateBrandPaymentMethodRequest request) {
         requireManageFunds(scope.role(), "update payment methods");
+        Brand brand = managedBrand(scope);
 
-        BrandPaymentMethod method = findBrandMethod(scope.brand().getId(), methodId);
+        BrandPaymentMethod method = findBrandMethod(scope.brandId(), methodId);
         if (Boolean.TRUE.equals(request.isDefault())) {
-            clearDefaultMethod(scope.brand().getId());
+            clearDefaultMethod(scope.brandId());
             method.setDefault(true);
         }
         BrandPaymentMethod saved = brandPaymentMethodRepository.save(method);
 
-        paymentAuditService.log(actorId, scope.brand(), "BRAND_PAYMENT_METHOD_UPDATED", "brand_payment_method",
+        paymentAuditService.log(actorId, brand, "BRAND_PAYMENT_METHOD_UPDATED", "brand_payment_method",
                 methodId.toString(), "isDefault=" + saved.isDefault());
 
         return toMethodResponse(saved);
@@ -215,49 +218,52 @@ public class BrandPaymentsService {
     @Transactional
     public void deleteMethod(UUID actorId, BrandScope scope, UUID methodId) {
         requireManageFunds(scope.role(), "delete payment methods");
+        Brand brand = managedBrand(scope);
 
-        BrandPaymentMethod method = findBrandMethod(scope.brand().getId(), methodId);
+        BrandPaymentMethod method = findBrandMethod(scope.brandId(), methodId);
         boolean wasDefault = method.isDefault();
         brandPaymentMethodRepository.delete(method);
 
         if (wasDefault) {
-            brandPaymentMethodRepository.findByBrandIdOrderByCreatedAtDesc(scope.brand().getId()).stream()
+            brandPaymentMethodRepository.findByBrandIdOrderByCreatedAtDesc(scope.brandId()).stream()
                     .findFirst().ifPresent(first -> {
                         first.setDefault(true);
                         brandPaymentMethodRepository.save(first);
                     });
         }
 
-        paymentAuditService.log(actorId, scope.brand(), "BRAND_PAYMENT_METHOD_DELETED", "brand_payment_method",
+        paymentAuditService.log(actorId, brand, "BRAND_PAYMENT_METHOD_DELETED", "brand_payment_method",
                 methodId.toString(), "deleted=true");
     }
 
     @Transactional
     public List<BrandInvoiceResponse> getInvoices(BrandScope scope) {
         requireView(scope.role());
-        return brandInvoiceRepository.findByBrandIdOrderByIssuedAtDesc(scope.brand().getId())
+        return brandInvoiceRepository.findByBrandIdOrderByIssuedAtDesc(scope.brandId())
                 .stream().map(this::toInvoiceResponse).toList();
     }
 
     @Transactional
     public List<BrandDisbursementResponse> getDisbursements(BrandScope scope) {
         requireView(scope.role());
-        return brandDisbursementRepository.findByBrandIdOrderByReleaseDateDesc(scope.brand().getId())
+        return brandDisbursementRepository.findByBrandIdOrderByReleaseDateDesc(scope.brandId())
                 .stream().map(this::toDisbursementResponse).toList();
     }
 
     @Transactional
     public BrandPayoutControlsResponse getControls(BrandScope scope) {
         requireView(scope.role());
-        BrandPayoutControl control = ensureControl(scope.brand());
+        Brand controlBrand = managedBrand(scope);
+        BrandPayoutControl control = ensureControl(controlBrand);
         return toControlsResponse(control);
     }
 
     @Transactional
     public BrandPayoutControlsResponse updateControls(UUID actorId, BrandScope scope, UpdateControlsRequest request) {
         requireManageFunds(scope.role(), "update payout controls");
+        Brand brand = managedBrand(scope);
 
-        BrandPayoutControl control = ensureControl(scope.brand());
+        BrandPayoutControl control = ensureControl(brand);
         if (request.requireTwoApprovals() != null) {
             control.setRequireTwoApprovals(request.requireTwoApprovals());
         }
@@ -269,8 +275,8 @@ public class BrandPaymentsService {
         }
 
         BrandPayoutControl saved = brandPayoutControlRepository.save(control);
-        paymentAuditService.log(actorId, scope.brand(), "BRAND_PAYOUT_CONTROLS_UPDATED", "brand_payout_controls",
-                scope.brand().getId().toString(), "requireTwoApprovals=" + saved.isRequireTwoApprovals());
+        paymentAuditService.log(actorId, brand, "BRAND_PAYOUT_CONTROLS_UPDATED", "brand_payout_controls",
+                scope.brandId().toString(), "requireTwoApprovals=" + saved.isRequireTwoApprovals());
 
         return toControlsResponse(saved);
     }
@@ -278,22 +284,23 @@ public class BrandPaymentsService {
     @Transactional
     public BrandPaymentSummaryResponse topUp(UUID actorId, BrandScope scope, TopUpRequest request) {
         requireManageFunds(scope.role(), "top up wallet");
+        Brand brand = managedBrand(scope);
 
         if (request.amount() < 1000) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Top-up amount must be at least 1000 PKR");
         }
 
-        if (brandPaymentMethodRepository.findByBrandIdOrderByCreatedAtDesc(scope.brand().getId()).isEmpty()) {
+        if (brandPaymentMethodRepository.findByBrandIdOrderByCreatedAtDesc(scope.brandId()).isEmpty()) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Add a payment method before wallet top-up");
         }
 
-        BrandWallet wallet = ensureWallet(scope.brand());
+        BrandWallet wallet = ensureWallet(brand);
         wallet.setWalletBalance(wallet.getWalletBalance() + request.amount());
         wallet.setNextInvoiceDate(Instant.now().plus(10, ChronoUnit.DAYS));
         BrandWallet saved = brandWalletRepository.save(wallet);
 
-        paymentAuditService.log(actorId, scope.brand(), "BRAND_WALLET_TOPUP", "brand_wallet",
-                scope.brand().getId().toString(), "amount=" + request.amount());
+        paymentAuditService.log(actorId, brand, "BRAND_WALLET_TOPUP", "brand_wallet",
+                scope.brandId().toString(), "amount=" + request.amount());
 
         return new BrandPaymentSummaryResponse(
                 saved.getWalletBalance(),
@@ -307,6 +314,10 @@ public class BrandPaymentsService {
     private Brand findBrand(UUID brandId) {
         return brandRepository.findById(brandId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Brand profile not found"));
+    }
+
+    private Brand managedBrand(BrandScope scope) {
+        return findBrand(scope.brandId());
     }
 
     private BrandWallet ensureWallet(Brand brand) {
