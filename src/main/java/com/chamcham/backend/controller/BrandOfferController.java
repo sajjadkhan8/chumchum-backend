@@ -112,6 +112,7 @@ public class BrandOfferController {
             @RequestParam(required = false) String search,
             @RequestParam(required = false) String city,
             @RequestParam(required = false) String offerType,
+            @RequestParam(required = false) String platform,
             @RequestParam(required = false) Integer budgetMin,
             @RequestParam(required = false) Integer budgetMax,
             @RequestParam(required = false) Integer myFollowers,
@@ -119,7 +120,7 @@ public class BrandOfferController {
             @RequestParam(defaultValue = "20") int size
     ) {
         return ResponseEntity.ok(brandOfferService.listCreatorFeed(
-                authUser.role(), search, city, offerType, budgetMin, budgetMax, myFollowers, page, size));
+                authUser.role(), search, city, offerType, platform, budgetMin, budgetMax, myFollowers, page, size));
     }
 
     @GetMapping("/api/v1/creator/offers/{offerId}")

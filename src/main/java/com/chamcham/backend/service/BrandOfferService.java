@@ -75,12 +75,22 @@ public class BrandOfferService {
                 .budgetMax(request.budgetMax())
                 .currency(normalizeCurrency(request.currency()))
                 .deliverables(request.deliverables())
+                .contentFormats(request.contentFormats())
+                .targetPlatforms(request.targetPlatforms())
+                .categories(request.categories())
+                .niches(request.niches())
+                .tags(request.tags())
                 .requirements(request.requirements())
+                .referenceUrls(request.referenceUrls())
+                .coverImageUrl(request.coverImageUrl())
                 .deadlineDate(request.deadlineDate())
                 .targetCity(request.targetCity())
                 .targetLanguage(request.targetLanguage())
                 .minFollowers(request.minFollowers())
                 .minEngagementRate(request.minEngagementRate())
+                .preferredDeliveryDays(request.preferredDeliveryDays())
+                .slots(request.slots())
+                .visibility(normalizeVisibility(request.visibility()))
                 .status(BrandOfferStatus.DRAFT)
                 .build();
 
@@ -106,12 +116,22 @@ public class BrandOfferService {
         if (request.budgetMax() != null) offer.setBudgetMax(request.budgetMax());
         if (request.currency() != null) offer.setCurrency(normalizeCurrency(request.currency()));
         if (request.deliverables() != null) offer.setDeliverables(request.deliverables());
+        if (request.contentFormats() != null) offer.setContentFormats(request.contentFormats());
+        if (request.targetPlatforms() != null) offer.setTargetPlatforms(request.targetPlatforms());
+        if (request.categories() != null) offer.setCategories(request.categories());
+        if (request.niches() != null) offer.setNiches(request.niches());
+        if (request.tags() != null) offer.setTags(request.tags());
         if (request.requirements() != null) offer.setRequirements(request.requirements());
+        if (request.referenceUrls() != null) offer.setReferenceUrls(request.referenceUrls());
+        if (request.coverImageUrl() != null) offer.setCoverImageUrl(request.coverImageUrl());
         if (request.deadlineDate() != null) offer.setDeadlineDate(request.deadlineDate());
         if (request.targetCity() != null) offer.setTargetCity(request.targetCity());
         if (request.targetLanguage() != null) offer.setTargetLanguage(request.targetLanguage());
         if (request.minFollowers() != null) offer.setMinFollowers(request.minFollowers());
         if (request.minEngagementRate() != null) offer.setMinEngagementRate(request.minEngagementRate());
+        if (request.preferredDeliveryDays() != null) offer.setPreferredDeliveryDays(request.preferredDeliveryDays());
+        if (request.slots() != null) offer.setSlots(request.slots());
+        if (request.visibility() != null) offer.setVisibility(normalizeVisibility(request.visibility()));
 
         return toOfferResponse(brandOfferRepository.save(offer));
     }
@@ -221,13 +241,14 @@ public class BrandOfferService {
 
     @Transactional(readOnly = true)
     public PageResponse<BrandOfferResponse> listCreatorFeed(UserRole role,
-                                                             String search, String city, String offerType,
+                                                             String search, String city, String offerType, String platform,
                                                              Integer budgetMin, Integer budgetMax,
                                                              Integer myFollowers, int page, int size) {
         requireCreator(role);
         return PageResponse.from(
                 brandOfferRepository.findPublishedForCreatorFeed(
                         trimToNull(search), trimToNull(city), trimToNull(offerType),
+                        trimToNull(platform),
                         budgetMin, budgetMax, myFollowers, LocalDate.now(), safePage(page, size))
                         .map(this::toOfferResponse)
         );
@@ -415,6 +436,13 @@ public class BrandOfferService {
         return v == null ? "PKR" : v.toUpperCase(Locale.ROOT);
     }
 
+    private String normalizeVisibility(String value) {
+        String v = trimToNull(value);
+        if (v == null) return "public";
+        String next = v.toLowerCase(Locale.ROOT);
+        return "private".equals(next) ? "private" : "public";
+    }
+
     private String trimToNull(String value) {
         if (value == null) return null;
         String t = value.trim();
@@ -438,12 +466,22 @@ public class BrandOfferService {
                 offer.getBudgetMax(),
                 offer.getCurrency(),
                 offer.getDeliverables(),
+                offer.getContentFormats(),
+                offer.getTargetPlatforms(),
+                offer.getCategories(),
+                offer.getNiches(),
+                offer.getTags(),
                 offer.getRequirements(),
+                offer.getReferenceUrls(),
+                offer.getCoverImageUrl(),
                 offer.getDeadlineDate(),
                 offer.getTargetCity(),
                 offer.getTargetLanguage(),
                 offer.getMinFollowers(),
                 offer.getMinEngagementRate(),
+                offer.getPreferredDeliveryDays(),
+                offer.getSlots(),
+                offer.getVisibility(),
                 offer.getStatus().name().toLowerCase(Locale.ROOT),
                 offer.getPublishedAt(),
                 offer.getClosedAt(),

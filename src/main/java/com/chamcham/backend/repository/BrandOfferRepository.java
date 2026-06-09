@@ -27,6 +27,8 @@ public interface BrandOfferRepository extends JpaRepository<BrandOffer, UUID> {
                    or lower(o.brief) like concat('%', lower(cast(:search as string)), '%'))
               and (cast(:city as string) is null or lower(o.targetCity) = lower(cast(:city as string)))
               and (cast(:type as string) is null or lower(o.offerType) = lower(cast(:type as string)))
+              and (cast(:platform as string) is null
+                   or lower(coalesce(o.targetPlatforms, '')) like concat('%', lower(cast(:platform as string)), '%'))
               and (:budgetMin is null or o.budgetMax >= :budgetMin)
               and (:budgetMax is null or o.budgetMin <= :budgetMax)
               and (:minFollowers is null or o.minFollowers is null or o.minFollowers <= :minFollowers)
@@ -36,6 +38,7 @@ public interface BrandOfferRepository extends JpaRepository<BrandOffer, UUID> {
     Page<BrandOffer> findPublishedForCreatorFeed(@Param("search") String search,
                                                  @Param("city") String city,
                                                  @Param("type") String type,
+                                                 @Param("platform") String platform,
                                                  @Param("budgetMin") Integer budgetMin,
                                                  @Param("budgetMax") Integer budgetMax,
                                                  @Param("minFollowers") Integer minFollowers,
