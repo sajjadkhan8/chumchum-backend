@@ -18,6 +18,7 @@ public record BrandOfferUpdateRequest(
         @Size(max = 2000) String deliverables,
         @Size(max = 300) String contentFormats,
         @Size(max = 300) String targetPlatforms,
+        @Size(max = 150) String campaignGoal,
         @Size(max = 400) String categories,
         @Size(max = 400) String niches,
         @Size(max = 400) String tags,

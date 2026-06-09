@@ -29,6 +29,8 @@ public interface BrandOfferRepository extends JpaRepository<BrandOffer, UUID> {
               and (cast(:type as string) is null or lower(o.offerType) = lower(cast(:type as string)))
               and (cast(:platform as string) is null
                    or lower(coalesce(o.targetPlatforms, '')) like concat('%', lower(cast(:platform as string)), '%'))
+              and (cast(:campaignGoal as string) is null
+                   or lower(coalesce(o.campaignGoal, '')) like concat('%', lower(cast(:campaignGoal as string)), '%'))
               and (:budgetMin is null or o.budgetMax >= :budgetMin)
               and (:budgetMax is null or o.budgetMin <= :budgetMax)
               and (:minFollowers is null or o.minFollowers is null or o.minFollowers <= :minFollowers)
@@ -39,6 +41,7 @@ public interface BrandOfferRepository extends JpaRepository<BrandOffer, UUID> {
                                                  @Param("city") String city,
                                                  @Param("type") String type,
                                                  @Param("platform") String platform,
+                                                  @Param("campaignGoal") String campaignGoal,
                                                  @Param("budgetMin") Integer budgetMin,
                                                  @Param("budgetMax") Integer budgetMax,
                                                  @Param("minFollowers") Integer minFollowers,

@@ -77,6 +77,7 @@ public class BrandOfferService {
                 .deliverables(request.deliverables())
                 .contentFormats(request.contentFormats())
                 .targetPlatforms(request.targetPlatforms())
+                .campaignGoal(trimToNull(request.campaignGoal()))
                 .categories(request.categories())
                 .niches(request.niches())
                 .tags(request.tags())
@@ -118,6 +119,7 @@ public class BrandOfferService {
         if (request.deliverables() != null) offer.setDeliverables(request.deliverables());
         if (request.contentFormats() != null) offer.setContentFormats(request.contentFormats());
         if (request.targetPlatforms() != null) offer.setTargetPlatforms(request.targetPlatforms());
+        if (request.campaignGoal() != null) offer.setCampaignGoal(trimToNull(request.campaignGoal()));
         if (request.categories() != null) offer.setCategories(request.categories());
         if (request.niches() != null) offer.setNiches(request.niches());
         if (request.tags() != null) offer.setTags(request.tags());
@@ -241,14 +243,14 @@ public class BrandOfferService {
 
     @Transactional(readOnly = true)
     public PageResponse<BrandOfferResponse> listCreatorFeed(UserRole role,
-                                                             String search, String city, String offerType, String platform,
+                                                             String search, String city, String offerType, String platform, String campaignGoal,
                                                              Integer budgetMin, Integer budgetMax,
                                                              Integer myFollowers, int page, int size) {
         requireCreator(role);
         return PageResponse.from(
                 brandOfferRepository.findPublishedForCreatorFeed(
                         trimToNull(search), trimToNull(city), trimToNull(offerType),
-                        trimToNull(platform),
+                        trimToNull(platform), trimToNull(campaignGoal),
                         budgetMin, budgetMax, myFollowers, LocalDate.now(), safePage(page, size))
                         .map(this::toOfferResponse)
         );
@@ -468,6 +470,7 @@ public class BrandOfferService {
                 offer.getDeliverables(),
                 offer.getContentFormats(),
                 offer.getTargetPlatforms(),
+                offer.getCampaignGoal(),
                 offer.getCategories(),
                 offer.getNiches(),
                 offer.getTags(),

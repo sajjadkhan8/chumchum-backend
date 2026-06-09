@@ -18,6 +18,7 @@ public record BrandOfferResponse(
         String deliverables,
         String contentFormats,
         String targetPlatforms,
+        String campaignGoal,
         String categories,
         String niches,
         String tags,

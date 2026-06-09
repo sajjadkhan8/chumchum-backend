@@ -66,6 +66,9 @@ public class BrandOffer extends BaseEntity {
     @Column(name = "target_platforms", length = 300)
     private String targetPlatforms;
 
+    @Column(name = "campaign_goal", length = 150)
+    private String campaignGoal;
+
     @Column(name = "categories", length = 400)
     private String categories;
 
