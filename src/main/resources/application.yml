@@ -7,8 +7,13 @@ spring:
       max-request-size: 502MB
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/zingzing?currentSchema=core}
-    username: ${DB_USERNAME:postgres}
+#    username: ${DB_USERNAME:postgres}
     password: ${DB_PASSWORD:Haripur@1}
+#    PROD CREDs
+#    url: ${DB_URL:jdbc:postgresql://postgres:5432/zingzing?currentSchema=core}
+    username: ${DB_USERNAME:postgres}
+#    password: ${DB_PASSWORD:dbP@s$4AviaT4@}
+
   jpa:
     hibernate:
       ddl-auto: validate
