@@ -25,7 +25,11 @@ public interface BrandOfferRepository extends JpaRepository<BrandOffer, UUID> {
               and (cast(:search as string) is null
                    or lower(o.title) like concat('%', lower(cast(:search as string)), '%')
                    or lower(o.brief) like concat('%', lower(cast(:search as string)), '%'))
-              and (cast(:city as string) is null or lower(o.targetCity) = lower(cast(:city as string)))
+              and (cast(:city as string) is null
+                   or lower(coalesce(o.locationTargetingMode, 'nationwide')) in ('nationwide', 'remote_only')
+                   or (lower(coalesce(o.locationTargetingMode, '')) = 'cities'
+                       and lower(coalesce(o.targetCities, '')) like concat('%', lower(cast(:city as string)), '%'))
+                   or lower(coalesce(o.targetCity, '')) = lower(cast(:city as string)))
               and (cast(:type as string) is null or lower(o.offerType) = lower(cast(:type as string)))
               and (cast(:platform as string) is null
                    or lower(coalesce(o.targetPlatforms, '')) like concat('%', lower(cast(:platform as string)), '%'))

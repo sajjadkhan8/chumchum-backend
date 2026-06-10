@@ -103,6 +103,15 @@ public class BrandOffer extends BaseEntity {
     @Column(name = "deadline_date")
     private LocalDate deadlineDate;
 
+    @Column(name = "location_targeting_mode", length = 30)
+    private String locationTargetingMode;
+
+    @Column(name = "target_cities", columnDefinition = "text")
+    private String targetCities;
+
+    @Column(name = "target_region", length = 100)
+    private String targetRegion;
+
     @Column(name = "target_city", length = 100)
     private String targetCity;
 

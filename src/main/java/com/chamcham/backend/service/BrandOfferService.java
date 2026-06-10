@@ -30,7 +30,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.Arrays;
 import java.util.Locale;
+import java.util.stream.Collectors;
 import java.util.UUID;
 
 @Service
@@ -64,6 +66,10 @@ public class BrandOfferService {
         String budgetType = normalizeBudgetType(request.budgetType());
         validateBudgetForType(budgetType, request.budgetMin(), request.budgetMax());
         validateTimelineWindow(request.deadlineDate(), request.contentSubmissionDeadline(), request.goLiveDate());
+        String locationMode = normalizeLocationTargetingMode(request.locationTargetingMode());
+        String targetCities = normalizeLocationList(request.targetCities());
+        String targetRegion = trimToNull(request.targetRegion());
+        validateLocationTargeting(locationMode, targetCities, targetRegion);
 
         Brand brand = brandRepository.findById(brandId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Brand profile not found"));
@@ -96,7 +102,10 @@ public class BrandOfferService {
                  .expectedOutcomes(trimToNull(request.expectedOutcomes()))
                  .coverImageUrl(request.coverImageUrl())
                  .deadlineDate(request.deadlineDate())
-                 .targetCity(request.targetCity())
+                 .locationTargetingMode(locationMode)
+                 .targetCities("cities".equals(locationMode) ? targetCities : null)
+                 .targetRegion("region".equals(locationMode) ? targetRegion : null)
+                 .targetCity(deriveLegacyTargetCity(locationMode, targetCities, targetRegion, request.targetCity()))
                  .targetLanguage(request.targetLanguage())
                  .visibility(normalizeVisibility(request.visibility()))
                  .creatorType(request.creatorType())
@@ -138,6 +147,22 @@ public class BrandOfferService {
                 : offer.getContentSubmissionDeadline();
         LocalDate nextGoLiveDate = request.goLiveDate() != null ? request.goLiveDate() : offer.getGoLiveDate();
         validateTimelineWindow(nextDeadline, nextContentSubmissionDeadline, nextGoLiveDate);
+        String nextLocationMode = request.locationTargetingMode() != null
+                ? normalizeLocationTargetingMode(request.locationTargetingMode())
+                : normalizeLocationTargetingMode(offer.getLocationTargetingMode());
+        String existingTargetCities = normalizeLocationList(offer.getTargetCities());
+        if (existingTargetCities == null
+                && "cities".equals(normalizeLocationTargetingMode(offer.getLocationTargetingMode()))
+                && trimToNull(offer.getTargetCity()) != null) {
+            existingTargetCities = trimToNull(offer.getTargetCity());
+        }
+        String nextTargetCities = request.targetCities() != null
+                ? normalizeLocationList(request.targetCities())
+                : existingTargetCities;
+        String nextTargetRegion = request.targetRegion() != null
+                ? trimToNull(request.targetRegion())
+                : trimToNull(offer.getTargetRegion());
+        validateLocationTargeting(nextLocationMode, nextTargetCities, nextTargetRegion);
 
          if (request.title() != null) offer.setTitle(request.title().trim());
          if (request.brief() != null) offer.setBrief(request.brief().trim());
@@ -165,7 +190,12 @@ public class BrandOfferService {
          if (request.expectedOutcomes() != null) offer.setExpectedOutcomes(trimToNull(request.expectedOutcomes()));
          if (request.coverImageUrl() != null) offer.setCoverImageUrl(request.coverImageUrl());
          if (request.deadlineDate() != null) offer.setDeadlineDate(request.deadlineDate());
-         if (request.targetCity() != null) offer.setTargetCity(request.targetCity());
+         if (request.locationTargetingMode() != null || request.targetCities() != null || request.targetRegion() != null || request.targetCity() != null) {
+             offer.setLocationTargetingMode(nextLocationMode);
+             offer.setTargetCities("cities".equals(nextLocationMode) ? nextTargetCities : null);
+             offer.setTargetRegion("region".equals(nextLocationMode) ? nextTargetRegion : null);
+             offer.setTargetCity(deriveLegacyTargetCity(nextLocationMode, nextTargetCities, nextTargetRegion, request.targetCity()));
+         }
          if (request.targetLanguage() != null) offer.setTargetLanguage(request.targetLanguage());
          if (request.visibility() != null) offer.setVisibility(normalizeVisibility(request.visibility()));
          if (request.creatorType() != null) offer.setCreatorType(request.creatorType());
@@ -498,6 +528,51 @@ public class BrandOfferService {
         }
     }
 
+    private String normalizeLocationTargetingMode(String value) {
+        String next = trimToNull(value);
+        if (next == null) return "nationwide";
+        return switch (next.toLowerCase(Locale.ROOT)) {
+            case "region" -> "region";
+            case "cities" -> "cities";
+            case "remote_only" -> "remote_only";
+            default -> "nationwide";
+        };
+    }
+
+    private String normalizeLocationList(String value) {
+        String next = trimToNull(value);
+        if (next == null) return null;
+        return Arrays.stream(next.split("[\\n,]"))
+                .map(String::trim)
+                .filter(entry -> !entry.isEmpty())
+                .distinct()
+                .collect(Collectors.joining(", "));
+    }
+
+    private void validateLocationTargeting(String mode, String targetCities, String targetRegion) {
+        if ("cities".equals(mode) && trimToNull(targetCities) == null) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Select at least one target city when targeting by cities");
+        }
+        if ("region".equals(mode) && trimToNull(targetRegion) == null) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Select a target region when targeting by region");
+        }
+    }
+
+    private String deriveLegacyTargetCity(String mode, String targetCities, String targetRegion, String fallback) {
+        return switch (mode) {
+            case "remote_only" -> "Remote / Online Only";
+            case "region" -> trimToNull(targetRegion);
+            case "cities" -> {
+                String normalized = normalizeLocationList(targetCities);
+                if (normalized == null) yield trimToNull(fallback);
+                String[] entries = normalized.split(",\\s*");
+                if (entries.length == 1) yield entries[0];
+                yield entries.length + " cities";
+            }
+            default -> "Nationwide";
+        };
+    }
+
     private String normalizeBudgetType(String value) {
         if (value == null) return "fixed";
         return switch (value.trim().toLowerCase(Locale.ROOT)) {
@@ -583,6 +658,9 @@ public class BrandOfferService {
                  offer.getExpectedOutcomes(),
                  offer.getCoverImageUrl(),
                  offer.getDeadlineDate(),
+                 offer.getLocationTargetingMode(),
+                 offer.getTargetCities(),
+                 offer.getTargetRegion(),
                  offer.getTargetCity(),
                  offer.getTargetLanguage(),
                  offer.getVisibility(),
