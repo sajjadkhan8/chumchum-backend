@@ -252,7 +252,10 @@ public class BrandOfferService {
         getOwnedOffer(offerId, brandId);
         return PageResponse.from(
                 brandOfferReactionRepository.findByOfferIdWithFilters(
-                        offerId, trimToNull(status), trimToNull(reactionType), safePage(page, size))
+                        offerId,
+                        status != null ? BrandOfferReactionStatus.valueOf(status.trim().toUpperCase()) : null,
+                        reactionType != null ? BrandOfferReactionType.valueOf(reactionType.trim().toUpperCase()) : null,
+                        safePage(page, size))
                         .map(this::toReactionResponse)
         );
     }

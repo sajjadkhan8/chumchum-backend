@@ -1,6 +1,8 @@
 package com.chamcham.backend.repository;
 
 import com.chamcham.backend.entity.BrandOfferReaction;
+import com.chamcham.backend.entity.enums.BrandOfferReactionStatus;
+import com.chamcham.backend.entity.enums.BrandOfferReactionType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -17,13 +19,13 @@ public interface BrandOfferReactionRepository extends JpaRepository<BrandOfferRe
             select r from BrandOfferReaction r
             join fetch r.creator c
             where r.offer.id = :offerId
-              and (cast(:status as string) is null or r.status = cast(:status as com.chamcham.backend.entity.enums.BrandOfferReactionStatus))
-              and (cast(:reactionType as string) is null or r.reactionType = cast(:reactionType as com.chamcham.backend.entity.enums.BrandOfferReactionType))
+              and (:status is null or r.status = :status)
+              and (:reactionType is null or r.reactionType = :reactionType)
             order by r.createdAt desc
             """)
     Page<BrandOfferReaction> findByOfferIdWithFilters(@Param("offerId") UUID offerId,
-                                                      @Param("status") String status,
-                                                      @Param("reactionType") String reactionType,
+                                                      @Param("status") BrandOfferReactionStatus status,
+                                                      @Param("reactionType") BrandOfferReactionType reactionType,
                                                       Pageable pageable);
 
     // Non-paginated used for response mapping during single offer load
