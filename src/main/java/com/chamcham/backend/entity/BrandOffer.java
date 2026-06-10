@@ -75,14 +75,27 @@ public class BrandOffer extends BaseEntity {
     @Column(name = "niches", length = 400)
     private String niches;
 
-    @Column(name = "tags", length = 400)
-    private String tags;
-
-    @Column(name = "requirements", columnDefinition = "text")
-    private String requirements;
 
     @Column(name = "reference_urls", columnDefinition = "text")
     private String referenceUrls;
+
+    @Column(name = "key_message", columnDefinition = "text")
+    private String keyMessage;
+
+    @Column(name = "dos_and_donts", columnDefinition = "text")
+    private String dosAndDonts;
+
+    @Column(name = "hashtags_mentions", columnDefinition = "text")
+    private String hashtagsMentions;
+
+    @Column(name = "usage_rights", columnDefinition = "text")
+    private String usageRights;
+
+    @Column(name = "terms_and_conditions", columnDefinition = "text")
+    private String termsAndConditions;
+
+    @Column(name = "expected_outcomes", columnDefinition = "text")
+    private String expectedOutcomes;
 
     @Column(name = "cover_image_url", length = 600)
     private String coverImageUrl;
@@ -96,31 +109,78 @@ public class BrandOffer extends BaseEntity {
     @Column(name = "target_language", length = 100)
     private String targetLanguage;
 
-    @Column(name = "min_followers")
-    private Integer minFollowers;
 
-    @Column(name = "min_engagement_rate", precision = 5, scale = 2)
-    private java.math.BigDecimal minEngagementRate;
+    @Column(name = "budget_type", length = 30)
+    private String budgetType;
 
-    @Column(name = "preferred_delivery_days")
-    private Integer preferredDeliveryDays;
+    @Column(name = "payment_structure", length = 30)
+    private String paymentStructure;
 
-    @Column(name = "slots")
-    private Integer slots;
+    @Column(name = "barter_product_desc", columnDefinition = "text")
+    private String barterProductDesc;
 
-    @Column(name = "visibility", nullable = false, length = 20)
-    @Builder.Default
-    private String visibility = "public";
+    @Column(name = "barter_estimated_value")
+    private Integer barterEstimatedValue;
 
-    @Column(nullable = false, length = 30)
-    @Enumerated(EnumType.STRING)
-    @Builder.Default
-    private BrandOfferStatus status = BrandOfferStatus.DRAFT;
+     @Column(name = "travel_costs_covered", nullable = false)
+     @Builder.Default
+     private Boolean travelCostsCovered = false;
 
-    @Column(name = "published_at")
-    private Instant publishedAt;
+     @Column(name = "visibility", nullable = false, length = 20)
+     @Builder.Default
+     private String visibility = "public";
 
-    @Column(name = "closed_at")
-    private Instant closedAt;
-}
+     // Control tab fields
+     @Column(name = "creator_type", length = 50)
+     private String creatorType;
+
+     @Column(name = "follower_range", length = 50)
+     private String followerRange;
+
+     @Column(name = "creator_gender_preference", length = 20)
+     private String creatorGenderPreference;
+
+     @Column(name = "min_age")
+     private Integer minAge;
+
+     @Column(name = "max_age")
+     private Integer maxAge;
+
+     @Column(name = "application_type", length = 50)
+     private String applicationType;
+
+     @Column(name = "max_applicants")
+     private Integer maxApplicants;
+
+     @Column(name = "proposal_required", nullable = false)
+     @Builder.Default
+     private Boolean proposalRequired = false;
+
+     @Column(name = "portfolio_required", nullable = false)
+     @Builder.Default
+     private Boolean portfolioRequired = false;
+
+     @Column(name = "custom_screening_questions", columnDefinition = "text")
+     private String customScreeningQuestions;
+
+     @Column(name = "content_submission_deadline")
+     private LocalDate contentSubmissionDeadline;
+
+     @Column(name = "go_live_date")
+     private LocalDate goLiveDate;
+
+     @Column(name = "campaign_duration")
+     private Integer campaignDuration;
+
+     @Column(nullable = false, length = 30)
+     @Enumerated(EnumType.STRING)
+     @Builder.Default
+     private BrandOfferStatus status = BrandOfferStatus.DRAFT;
+
+     @Column(name = "published_at")
+     private Instant publishedAt;
+
+     @Column(name = "closed_at")
+     private Instant closedAt;
+ }
 

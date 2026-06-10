@@ -61,39 +61,59 @@ public class BrandOfferService {
     @Transactional
     public BrandOfferResponse createOffer(UUID brandId, UserRole role, BrandOfferCreateRequest request) {
         requireBrand(role);
-        validateBudget(request.budgetMin(), request.budgetMax());
+        String budgetType = normalizeBudgetType(request.budgetType());
+        validateBudgetForType(budgetType, request.budgetMin(), request.budgetMax());
+        validateTimelineWindow(request.deadlineDate(), request.contentSubmissionDeadline(), request.goLiveDate());
 
         Brand brand = brandRepository.findById(brandId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Brand profile not found"));
 
         BrandOffer offer = BrandOffer.builder()
-                .brand(brand)
-                .title(request.title().trim())
-                .brief(request.brief().trim())
-                .offerType(request.offerType().trim())
-                .budgetMin(request.budgetMin())
-                .budgetMax(request.budgetMax())
-                .currency(normalizeCurrency(request.currency()))
-                .deliverables(request.deliverables())
-                .contentFormats(request.contentFormats())
-                .targetPlatforms(request.targetPlatforms())
-                .campaignGoal(trimToNull(request.campaignGoal()))
-                .categories(request.categories())
-                .niches(request.niches())
-                .tags(request.tags())
-                .requirements(request.requirements())
-                .referenceUrls(request.referenceUrls())
-                .coverImageUrl(request.coverImageUrl())
-                .deadlineDate(request.deadlineDate())
-                .targetCity(request.targetCity())
-                .targetLanguage(request.targetLanguage())
-                .minFollowers(request.minFollowers())
-                .minEngagementRate(request.minEngagementRate())
-                .preferredDeliveryDays(request.preferredDeliveryDays())
-                .slots(request.slots())
-                .visibility(normalizeVisibility(request.visibility()))
-                .status(BrandOfferStatus.DRAFT)
-                .build();
+                 .brand(brand)
+                 .title(request.title().trim())
+                 .brief(request.brief().trim())
+                 .offerType(request.offerType().trim())
+                 .budgetMin(request.budgetMin() != null ? request.budgetMin() : 0)
+                 .budgetMax(request.budgetMax() != null ? request.budgetMax() : 0)
+                 .currency(normalizeCurrency(request.currency()))
+                 .budgetType(budgetType)
+                 .paymentStructure(normalizePaymentStructure(request.paymentStructure(), budgetType))
+                 .barterProductDesc(request.barterProductDesc())
+                 .barterEstimatedValue(request.barterEstimatedValue())
+                 .travelCostsCovered(request.travelCostsCovered() != null && request.travelCostsCovered())
+                 .deliverables(request.deliverables())
+                 .contentFormats(request.contentFormats())
+                 .targetPlatforms(request.targetPlatforms())
+                 .campaignGoal(trimToNull(request.campaignGoal()))
+                 .categories(request.categories())
+                 .niches(request.niches())
+                 .referenceUrls(request.referenceUrls())
+                 .keyMessage(trimToNull(request.keyMessage()))
+                 .dosAndDonts(trimToNull(request.dosAndDonts()))
+                 .hashtagsMentions(trimToNull(request.hashtagsMentions()))
+                 .usageRights(trimToNull(request.usageRights()))
+                 .termsAndConditions(trimToNull(request.termsAndConditions()))
+                 .expectedOutcomes(trimToNull(request.expectedOutcomes()))
+                 .coverImageUrl(request.coverImageUrl())
+                 .deadlineDate(request.deadlineDate())
+                 .targetCity(request.targetCity())
+                 .targetLanguage(request.targetLanguage())
+                 .visibility(normalizeVisibility(request.visibility()))
+                 .creatorType(request.creatorType())
+                 .followerRange(request.followerRange())
+                 .creatorGenderPreference(request.creatorGenderPreference())
+                 .minAge(request.minAge())
+                 .maxAge(request.maxAge())
+                 .applicationType(request.applicationType())
+                 .maxApplicants(request.maxApplicants())
+                 .proposalRequired(request.proposalRequired() != null && request.proposalRequired())
+                 .portfolioRequired(request.portfolioRequired() != null && request.portfolioRequired())
+                 .customScreeningQuestions(request.customScreeningQuestions())
+                 .contentSubmissionDeadline(request.contentSubmissionDeadline())
+                 .goLiveDate(request.goLiveDate())
+                 .campaignDuration(request.campaignDuration())
+                 .status(BrandOfferStatus.DRAFT)
+                 .build();
 
         return toOfferResponse(brandOfferRepository.save(offer));
     }
@@ -106,34 +126,61 @@ public class BrandOfferService {
             throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY, "Closed or archived offers cannot be edited");
         }
 
+        String nextBudgetType = request.budgetType() != null
+                ? normalizeBudgetType(request.budgetType())
+                : offer.getBudgetType();
         Integer nextMin = request.budgetMin() != null ? request.budgetMin() : offer.getBudgetMin();
         Integer nextMax = request.budgetMax() != null ? request.budgetMax() : offer.getBudgetMax();
-        validateBudget(nextMin, nextMax);
+        validateBudgetForType(nextBudgetType, nextMin, nextMax);
+        LocalDate nextDeadline = request.deadlineDate() != null ? request.deadlineDate() : offer.getDeadlineDate();
+        LocalDate nextContentSubmissionDeadline = request.contentSubmissionDeadline() != null
+                ? request.contentSubmissionDeadline()
+                : offer.getContentSubmissionDeadline();
+        LocalDate nextGoLiveDate = request.goLiveDate() != null ? request.goLiveDate() : offer.getGoLiveDate();
+        validateTimelineWindow(nextDeadline, nextContentSubmissionDeadline, nextGoLiveDate);
 
-        if (request.title() != null) offer.setTitle(request.title().trim());
-        if (request.brief() != null) offer.setBrief(request.brief().trim());
-        if (request.offerType() != null) offer.setOfferType(request.offerType().trim());
-        if (request.budgetMin() != null) offer.setBudgetMin(request.budgetMin());
-        if (request.budgetMax() != null) offer.setBudgetMax(request.budgetMax());
-        if (request.currency() != null) offer.setCurrency(normalizeCurrency(request.currency()));
-        if (request.deliverables() != null) offer.setDeliverables(request.deliverables());
-        if (request.contentFormats() != null) offer.setContentFormats(request.contentFormats());
-        if (request.targetPlatforms() != null) offer.setTargetPlatforms(request.targetPlatforms());
-        if (request.campaignGoal() != null) offer.setCampaignGoal(trimToNull(request.campaignGoal()));
-        if (request.categories() != null) offer.setCategories(request.categories());
-        if (request.niches() != null) offer.setNiches(request.niches());
-        if (request.tags() != null) offer.setTags(request.tags());
-        if (request.requirements() != null) offer.setRequirements(request.requirements());
-        if (request.referenceUrls() != null) offer.setReferenceUrls(request.referenceUrls());
-        if (request.coverImageUrl() != null) offer.setCoverImageUrl(request.coverImageUrl());
-        if (request.deadlineDate() != null) offer.setDeadlineDate(request.deadlineDate());
-        if (request.targetCity() != null) offer.setTargetCity(request.targetCity());
-        if (request.targetLanguage() != null) offer.setTargetLanguage(request.targetLanguage());
-        if (request.minFollowers() != null) offer.setMinFollowers(request.minFollowers());
-        if (request.minEngagementRate() != null) offer.setMinEngagementRate(request.minEngagementRate());
-        if (request.preferredDeliveryDays() != null) offer.setPreferredDeliveryDays(request.preferredDeliveryDays());
-        if (request.slots() != null) offer.setSlots(request.slots());
-        if (request.visibility() != null) offer.setVisibility(normalizeVisibility(request.visibility()));
+         if (request.title() != null) offer.setTitle(request.title().trim());
+         if (request.brief() != null) offer.setBrief(request.brief().trim());
+         if (request.offerType() != null) offer.setOfferType(request.offerType().trim());
+         if (request.budgetMin() != null) offer.setBudgetMin(request.budgetMin());
+         if (request.budgetMax() != null) offer.setBudgetMax(request.budgetMax());
+         if (request.currency() != null) offer.setCurrency(normalizeCurrency(request.currency()));
+         if (request.budgetType() != null) offer.setBudgetType(normalizeBudgetType(request.budgetType()));
+         if (request.paymentStructure() != null) offer.setPaymentStructure(normalizePaymentStructure(request.paymentStructure(), offer.getBudgetType()));
+         if (request.barterProductDesc() != null) offer.setBarterProductDesc(request.barterProductDesc());
+         if (request.barterEstimatedValue() != null) offer.setBarterEstimatedValue(request.barterEstimatedValue());
+         if (request.travelCostsCovered() != null) offer.setTravelCostsCovered(request.travelCostsCovered());
+         if (request.deliverables() != null) offer.setDeliverables(request.deliverables());
+         if (request.contentFormats() != null) offer.setContentFormats(request.contentFormats());
+         if (request.targetPlatforms() != null) offer.setTargetPlatforms(request.targetPlatforms());
+         if (request.campaignGoal() != null) offer.setCampaignGoal(trimToNull(request.campaignGoal()));
+         if (request.categories() != null) offer.setCategories(request.categories());
+         if (request.niches() != null) offer.setNiches(request.niches());
+         if (request.referenceUrls() != null) offer.setReferenceUrls(request.referenceUrls());
+         if (request.keyMessage() != null) offer.setKeyMessage(trimToNull(request.keyMessage()));
+         if (request.dosAndDonts() != null) offer.setDosAndDonts(trimToNull(request.dosAndDonts()));
+         if (request.hashtagsMentions() != null) offer.setHashtagsMentions(trimToNull(request.hashtagsMentions()));
+         if (request.usageRights() != null) offer.setUsageRights(trimToNull(request.usageRights()));
+         if (request.termsAndConditions() != null) offer.setTermsAndConditions(trimToNull(request.termsAndConditions()));
+         if (request.expectedOutcomes() != null) offer.setExpectedOutcomes(trimToNull(request.expectedOutcomes()));
+         if (request.coverImageUrl() != null) offer.setCoverImageUrl(request.coverImageUrl());
+         if (request.deadlineDate() != null) offer.setDeadlineDate(request.deadlineDate());
+         if (request.targetCity() != null) offer.setTargetCity(request.targetCity());
+         if (request.targetLanguage() != null) offer.setTargetLanguage(request.targetLanguage());
+         if (request.visibility() != null) offer.setVisibility(normalizeVisibility(request.visibility()));
+         if (request.creatorType() != null) offer.setCreatorType(request.creatorType());
+         if (request.followerRange() != null) offer.setFollowerRange(request.followerRange());
+         if (request.creatorGenderPreference() != null) offer.setCreatorGenderPreference(request.creatorGenderPreference());
+         if (request.minAge() != null) offer.setMinAge(request.minAge());
+         if (request.maxAge() != null) offer.setMaxAge(request.maxAge());
+         if (request.applicationType() != null) offer.setApplicationType(request.applicationType());
+         if (request.maxApplicants() != null) offer.setMaxApplicants(request.maxApplicants());
+         if (request.proposalRequired() != null) offer.setProposalRequired(request.proposalRequired());
+         if (request.portfolioRequired() != null) offer.setPortfolioRequired(request.portfolioRequired());
+         if (request.customScreeningQuestions() != null) offer.setCustomScreeningQuestions(request.customScreeningQuestions());
+         if (request.contentSubmissionDeadline() != null) offer.setContentSubmissionDeadline(request.contentSubmissionDeadline());
+         if (request.goLiveDate() != null) offer.setGoLiveDate(request.goLiveDate());
+         if (request.campaignDuration() != null) offer.setCampaignDuration(request.campaignDuration());
 
         return toOfferResponse(brandOfferRepository.save(offer));
     }
@@ -245,13 +292,13 @@ public class BrandOfferService {
     public PageResponse<BrandOfferResponse> listCreatorFeed(UserRole role,
                                                              String search, String city, String offerType, String platform, String campaignGoal,
                                                              Integer budgetMin, Integer budgetMax,
-                                                             Integer myFollowers, int page, int size) {
+                                                             int page, int size) {
         requireCreator(role);
         return PageResponse.from(
                 brandOfferRepository.findPublishedForCreatorFeed(
                         trimToNull(search), trimToNull(city), trimToNull(offerType),
                         trimToNull(platform), trimToNull(campaignGoal),
-                        budgetMin, budgetMax, myFollowers, LocalDate.now(), safePage(page, size))
+                        budgetMin, budgetMax, LocalDate.now(), safePage(page, size))
                         .map(this::toOfferResponse)
         );
     }
@@ -419,6 +466,52 @@ public class BrandOfferService {
         }
     }
 
+    private void validateBudgetForType(String budgetType, Integer min, Integer max) {
+        // Barter-only offers don't need a monetary budget
+        if ("barter_only".equals(budgetType)) return;
+        if (min == null || max == null || min < 0 || max < 0 || min > max) {
+            throw new ApiException(HttpStatus.BAD_REQUEST,
+                    "budgetMin and budgetMax must be valid and budgetMin <= budgetMax");
+        }
+    }
+
+    private void validateTimelineWindow(LocalDate applicationDeadline,
+                                        LocalDate contentSubmissionDeadline,
+                                        LocalDate goLiveDate) {
+        if (applicationDeadline != null && contentSubmissionDeadline != null
+                && applicationDeadline.isAfter(contentSubmissionDeadline)) {
+            throw new ApiException(HttpStatus.BAD_REQUEST,
+                    "Application deadline must be on or before content submission deadline");
+        }
+        if (contentSubmissionDeadline != null && goLiveDate != null
+                && contentSubmissionDeadline.isAfter(goLiveDate)) {
+            throw new ApiException(HttpStatus.BAD_REQUEST,
+                    "Content submission deadline must be on or before go-live date");
+        }
+        if (applicationDeadline != null && goLiveDate != null
+                && applicationDeadline.isAfter(goLiveDate)) {
+            throw new ApiException(HttpStatus.BAD_REQUEST,
+                    "Application deadline must be on or before go-live date");
+        }
+    }
+
+    private String normalizeBudgetType(String value) {
+        if (value == null) return "fixed";
+        return switch (value.trim().toLowerCase(Locale.ROOT)) {
+            case "open_to_bids" -> "open_to_bids";
+            case "paid_and_barter" -> "paid_and_barter";
+            case "barter_only" -> "barter_only";
+            default -> "fixed";
+        };
+    }
+
+    private String normalizePaymentStructure(String value, String budgetType) {
+        // Barter-only offers don't have a cash payment structure
+        if ("barter_only".equals(budgetType)) return null;
+        if (value == null) return "full_upfront";
+        return "split_50_50".equals(value.trim().toLowerCase(Locale.ROOT)) ? "split_50_50" : "full_upfront";
+    }
+
     private void validateReactionPayload(BrandOfferReactionType type, Integer proposedPrice,
                                          Integer proposedDeliveryDays, String message) {
         if (type == BrandOfferReactionType.PROPOSAL) {
@@ -456,43 +549,61 @@ public class BrandOfferService {
         return text.length() <= maxLen ? text : text.substring(0, maxLen) + "\u2026";
     }
 
-    private BrandOfferResponse toOfferResponse(BrandOffer offer) {
-        return new BrandOfferResponse(
-                offer.getId(),
-                offer.getBrand().getId(),
-                offer.getBrand().getName(),
-                offer.getTitle(),
-                offer.getBrief(),
-                offer.getOfferType(),
-                offer.getBudgetMin(),
-                offer.getBudgetMax(),
-                offer.getCurrency(),
-                offer.getDeliverables(),
-                offer.getContentFormats(),
-                offer.getTargetPlatforms(),
-                offer.getCampaignGoal(),
-                offer.getCategories(),
-                offer.getNiches(),
-                offer.getTags(),
-                offer.getRequirements(),
-                offer.getReferenceUrls(),
-                offer.getCoverImageUrl(),
-                offer.getDeadlineDate(),
-                offer.getTargetCity(),
-                offer.getTargetLanguage(),
-                offer.getMinFollowers(),
-                offer.getMinEngagementRate(),
-                offer.getPreferredDeliveryDays(),
-                offer.getSlots(),
-                offer.getVisibility(),
-                offer.getStatus().name().toLowerCase(Locale.ROOT),
-                offer.getPublishedAt(),
-                offer.getClosedAt(),
-                offer.getCreatedAt(),
-                offer.getUpdatedAt(),
-                brandOfferReactionRepository.countByOfferId(offer.getId())
-        );
-    }
+     private BrandOfferResponse toOfferResponse(BrandOffer offer) {
+         return new BrandOfferResponse(
+                 offer.getId(),
+                 offer.getBrand().getId(),
+                 offer.getBrand().getName(),
+                 offer.getTitle(),
+                 offer.getBrief(),
+                 offer.getOfferType(),
+                 offer.getBudgetMin(),
+                 offer.getBudgetMax(),
+                 offer.getCurrency(),
+                 offer.getBudgetType(),
+                 offer.getPaymentStructure(),
+                 offer.getBarterProductDesc(),
+                 offer.getBarterEstimatedValue(),
+                 offer.getTravelCostsCovered(),
+                 offer.getDeliverables(),
+                 offer.getContentFormats(),
+                 offer.getTargetPlatforms(),
+                 offer.getCampaignGoal(),
+                 offer.getCategories(),
+                 offer.getNiches(),
+                 offer.getReferenceUrls(),
+                 offer.getKeyMessage(),
+                 offer.getDosAndDonts(),
+                 offer.getHashtagsMentions(),
+                 offer.getUsageRights(),
+                 offer.getTermsAndConditions(),
+                 offer.getExpectedOutcomes(),
+                 offer.getCoverImageUrl(),
+                 offer.getDeadlineDate(),
+                 offer.getTargetCity(),
+                 offer.getTargetLanguage(),
+                 offer.getVisibility(),
+                 offer.getCreatorType(),
+                 offer.getFollowerRange(),
+                 offer.getCreatorGenderPreference(),
+                 offer.getMinAge(),
+                 offer.getMaxAge(),
+                 offer.getApplicationType(),
+                 offer.getMaxApplicants(),
+                 offer.getProposalRequired(),
+                 offer.getPortfolioRequired(),
+                 offer.getCustomScreeningQuestions(),
+                 offer.getContentSubmissionDeadline(),
+                 offer.getGoLiveDate(),
+                 offer.getCampaignDuration(),
+                 offer.getStatus().name().toLowerCase(Locale.ROOT),
+                 offer.getPublishedAt(),
+                 offer.getClosedAt(),
+                 offer.getCreatedAt(),
+                 offer.getUpdatedAt(),
+                 brandOfferReactionRepository.countByOfferId(offer.getId())
+         );
+     }
 
     private BrandOfferReactionResponse toReactionResponse(BrandOfferReaction reaction) {
         return new BrandOfferReactionResponse(

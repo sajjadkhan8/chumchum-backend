@@ -33,7 +33,6 @@ public interface BrandOfferRepository extends JpaRepository<BrandOffer, UUID> {
                    or lower(coalesce(o.campaignGoal, '')) like concat('%', lower(cast(:campaignGoal as string)), '%'))
               and (:budgetMin is null or o.budgetMax >= :budgetMin)
               and (:budgetMax is null or o.budgetMin <= :budgetMax)
-              and (:minFollowers is null or o.minFollowers is null or o.minFollowers <= :minFollowers)
               and (o.deadlineDate is null or o.deadlineDate >= :today)
             order by o.publishedAt desc nulls last, o.createdAt desc
             """)
@@ -44,7 +43,6 @@ public interface BrandOfferRepository extends JpaRepository<BrandOffer, UUID> {
                                                   @Param("campaignGoal") String campaignGoal,
                                                  @Param("budgetMin") Integer budgetMin,
                                                  @Param("budgetMax") Integer budgetMax,
-                                                 @Param("minFollowers") Integer minFollowers,
                                                  @Param("today") LocalDate today,
                                                  Pageable pageable);
 

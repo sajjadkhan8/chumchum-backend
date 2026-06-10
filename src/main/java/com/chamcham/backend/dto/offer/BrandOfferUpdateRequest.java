@@ -1,38 +1,55 @@
 package com.chamcham.backend.dto.offer;
 
 import jakarta.validation.constraints.DecimalMax;
-import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Size;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
 
 public record BrandOfferUpdateRequest(
-        @Size(max = 160) String title,
-        @Size(max = 2000) String brief,
-        @Size(max = 40) String offerType,
-        @Min(0) Integer budgetMin,
-        @Min(0) Integer budgetMax,
-        @Size(max = 10) String currency,
-        @Size(max = 2000) String deliverables,
-        @Size(max = 300) String contentFormats,
-        @Size(max = 300) String targetPlatforms,
-        @Size(max = 150) String campaignGoal,
-        @Size(max = 400) String categories,
-        @Size(max = 400) String niches,
-        @Size(max = 400) String tags,
-        @Size(max = 2000) String requirements,
-        String referenceUrls,
-        @Size(max = 600) String coverImageUrl,
-        LocalDate deadlineDate,
-        @Size(max = 100) String targetCity,
-        @Size(max = 100) String targetLanguage,
-        @Min(0) Integer minFollowers,
-        @DecimalMin("0.00") @DecimalMax("100.00") BigDecimal minEngagementRate,
-        @Min(1) Integer preferredDeliveryDays,
-        @Min(1) Integer slots,
-        @Size(max = 20) String visibility
-) {
-}
+         @Size(max = 160) String title,
+         @Size(max = 2000) String brief,
+         @Size(max = 40) String offerType,
+         @Min(0) Integer budgetMin,
+         @Min(0) Integer budgetMax,
+         @Size(max = 10) String currency,
+         @Size(max = 30) String budgetType,
+         @Size(max = 30) String paymentStructure,
+         @Size(max = 2000) String barterProductDesc,
+         @Min(0) Integer barterEstimatedValue,
+         Boolean travelCostsCovered,
+         @Size(max = 2000) String deliverables,
+         @Size(max = 300) String contentFormats,
+         @Size(max = 300) String targetPlatforms,
+         @Size(max = 150) String campaignGoal,
+         @Size(max = 400) String categories,
+         @Size(max = 400) String niches,
+         String referenceUrls,
+         @Size(max = 4000) String keyMessage,
+         @Size(max = 4000) String dosAndDonts,
+         @Size(max = 2000) String hashtagsMentions,
+         @Size(max = 4000) String usageRights,
+         @Size(max = 4000) String termsAndConditions,
+         @Size(max = 4000) String expectedOutcomes,
+         @Size(max = 600) String coverImageUrl,
+         LocalDate deadlineDate,
+         @Size(max = 100) String targetCity,
+         @Size(max = 100) String targetLanguage,
+         @Size(max = 20) String visibility,
+         // Control tab fields
+         @Size(max = 50) String creatorType,
+         @Size(max = 50) String followerRange,
+         @Size(max = 20) String creatorGenderPreference,
+         @Min(13) @DecimalMax("120") Integer minAge,
+         @Min(13) @DecimalMax("120") Integer maxAge,
+         @Size(max = 50) String applicationType,
+         @Min(1) Integer maxApplicants,
+         Boolean proposalRequired,
+         Boolean portfolioRequired,
+         String customScreeningQuestions,
+         LocalDate contentSubmissionDeadline,
+         LocalDate goLiveDate,
+         @Min(1) Integer campaignDuration
+ ) {
+ }
 
