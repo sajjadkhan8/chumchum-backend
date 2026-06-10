@@ -90,9 +90,9 @@ on conflict (id) do nothing;
 
 insert into package_tiers (id, package_id, name, price, deliverables, delivery_days, revisions)
 values
-    ('d4e9f39b-1a40-4e72-b001-f8a02f8a0101', 'c3b5d1f4-88de-4ac2-9101-3f01b8d90101', 'Standard', 185000, 'Single long-form review video', 7, 2),
-    ('d4e9f39b-1a40-4e72-b001-f8a02f8a0102', 'c3b5d1f4-88de-4ac2-9101-3f01b8d90101', 'Premium', 245000, 'Review video + 2 reminder stories + community post', 8, 3),
-    ('d4e9f39b-1a40-4e72-b001-f8a02f8a0103', 'c3b5d1f4-88de-4ac2-9101-3f01b8d90103', 'Standard', 88000, 'One reel and story sequence', 5, 2)
+    ('d4e9f39b-1a40-4e72-b001-f8a02f8a0101', 'c3b5d1f4-88de-4ac2-9101-3f01b8d90101', 'Standard', 185000, '["Single long-form review video"]'::jsonb, 7, 2),
+    ('d4e9f39b-1a40-4e72-b001-f8a02f8a0102', 'c3b5d1f4-88de-4ac2-9101-3f01b8d90101', 'Premium', 245000, '["Review video", "2 reminder stories", "community post"]'::jsonb, 8, 3),
+    ('d4e9f39b-1a40-4e72-b001-f8a02f8a0103', 'c3b5d1f4-88de-4ac2-9101-3f01b8d90103', 'Standard', 88000, '["One reel", "story sequence"]'::jsonb, 5, 2)
 on conflict (id) do nothing;
 
 insert into orders (
@@ -137,7 +137,7 @@ insert into quick_deal_offers (
     estimated_barter_value, creator_expectation, message, status, created_at, updated_at
 )
 values
-    ('be1fd4e3-8f90-4d8b-b701-72f94a550101', 'ab8e68e2-7e1f-47d0-a601-4a0e6f330101', 'aa7d7f61-5dd2-4bdb-a501-bd1f4f220101', 'paid', 95000, null, null, null, 'Caption approval within 24h', 'Fast-track booking for Friday launch slot.', 'accepted', '2026-05-01 09:33:00+05', '2026-05-01 12:05:00+05')
+    ('be1fd4e3-8f90-4d8b-b701-72f94a550101', 'ab8e68e2-7e1f-47d0-a601-4a0e6f330101', 'aa7d7f61-5dd2-4bdb-a501-bd1f4f220101', 'paid', 95000, null, null, null, 'Caption approval within 24h', 'Fast-track booking for Friday launch slot.', 'ACCEPTED', '2026-05-01 09:33:00+05', '2026-05-01 12:05:00+05')
 on conflict (id) do nothing;
 
 insert into deliverables (id, order_id, name, status, file_url, submitted_at, created_at, updated_at)
@@ -642,3 +642,8 @@ values
     ('31000000-0000-4000-8000-000000000001', false, true, true, true, true, true, true, false),
     ('31000000-0000-4000-8000-000000000002', true, true, true, false, true, true, true, false)
 on conflict (user_id) do nothing;
+
+update creators
+set badge_level = 'VERIFIED'
+where is_verified = true;
+

@@ -15,6 +15,8 @@ create table users (
     city varchar(80),
     phone varchar(30),
     creator_program_status varchar(40) not null default 'NONE',
+    email_verified boolean not null default false,
+    google_subject varchar(128),
     is_active boolean not null default true,
     deleted_at timestamptz,
     created_at timestamptz not null default now(),
@@ -46,6 +48,7 @@ create table creators (
     rating numeric(3,2) not null default 0,
     total_reviews int not null default 0,
     completed_deals integer not null default 0,
+    badge_level varchar(30) not null default 'NONE',
     accepts_barter boolean not null default true,
     accepts_hybrid_deals boolean not null default true,
     minimum_budget integer,
@@ -61,7 +64,14 @@ create table brands (
     website varchar(255),
     industry varchar(100),
     description varchar(1000),
-    monthly_budget integer
+    monthly_budget integer,
+    preferred_creator_categories varchar(500),
+    target_cities varchar(500),
+    target_platforms varchar(500),
+    campaign_budget_range varchar(150),
+    business_verification_status varchar(50),
+    verification_contact_email varchar(255),
+    verification_phone_number varchar(50)
 );
 
 create table creator_payout_preferences (
@@ -72,6 +82,8 @@ create table creator_payout_preferences (
     account_holder_name varchar(120) not null default '',
     ntn_number varchar(30) not null default '',
     cnic_last4 varchar(4) not null default '',
+    earnings_notifications_enabled boolean not null default true,
+    weekly_digest_enabled boolean not null default false,
     updated_at timestamptz not null default now()
 );
 
@@ -122,7 +134,7 @@ create table packages (
     deal_type varchar(30),
     barter_details varchar(1000),
     price integer,
-    currency varchar(10) default 'SAR',
+    currency varchar(10) default 'PKR',
     deliverables jsonb not null default '[]'::jsonb,
     delivery_days int not null,
     duration_days int,
@@ -152,13 +164,17 @@ create table packages (
 
 create table package_tiers (
     id uuid primary key default gen_random_uuid(),
-    package_id uuid references packages(id) on delete cascade,
+    package_id uuid not null references packages(id) on delete cascade,
     name varchar(50) not null,
-    price numeric(10,2),
-    deliverables varchar(1000),
+    description text,
+    price integer,
+    deliverables jsonb not null default '[]'::jsonb,
     delivery_days int,
     revisions int default 1,
-    created_at timestamptz default now()
+    position integer not null default 0,
+    is_primary boolean not null default false,
+    created_at timestamptz default now(),
+    updated_at timestamptz not null default now()
 );
 
 create table orders (
@@ -423,9 +439,143 @@ create table quick_deal_offers (
     estimated_barter_value integer,
     creator_expectation text,
     message text not null,
-    status varchar(30) not null default 'pending',
+    status varchar(30) not null default 'PENDING',
     created_at timestamptz not null default now(),
     updated_at timestamptz not null default now()
+);
+
+create table brand_offers (
+    id uuid primary key default gen_random_uuid(),
+    brand_id uuid not null references brands(id) on delete cascade,
+    title varchar(160) not null,
+    brief varchar(2000) not null,
+    offer_type varchar(40) not null,
+    budget_min integer not null,
+    budget_max integer not null,
+    currency varchar(10) not null default 'PKR',
+    deliverables text,
+    deadline_date date,
+    target_city varchar(100),
+    target_language varchar(100),
+    status varchar(30) not null default 'DRAFT',
+    published_at timestamptz,
+    closed_at timestamptz,
+    content_formats varchar(300),
+    target_platforms varchar(300),
+    categories varchar(400),
+    niches varchar(400),
+    reference_urls text,
+    cover_image_url varchar(600),
+    visibility varchar(20) not null default 'public',
+    campaign_goal varchar(150),
+    budget_type varchar(30),
+    payment_structure varchar(30),
+    barter_product_desc text,
+    barter_estimated_value integer,
+    travel_costs_covered boolean not null default false,
+    creator_type varchar(50),
+    follower_range varchar(50),
+    creator_gender_preference varchar(20),
+    min_age int,
+    max_age int,
+    application_type varchar(50),
+    max_applicants int,
+    proposal_required boolean not null default false,
+    portfolio_required boolean not null default false,
+    custom_screening_questions text,
+    content_submission_deadline date,
+    go_live_date date,
+    campaign_duration int,
+    key_message text,
+    dos_and_donts text,
+    hashtags_mentions text,
+    usage_rights text,
+    terms_and_conditions text,
+    expected_outcomes text,
+    location_targeting_mode varchar(30),
+    target_cities text,
+    target_region varchar(100),
+    created_at timestamptz not null default now(),
+    updated_at timestamptz not null default now(),
+    constraint ck_brand_offers_budget check (budget_min >= 0 and budget_max >= 0 and budget_min <= budget_max),
+    constraint ck_brand_offers_status check (status in ('DRAFT', 'PUBLISHED', 'PAUSED', 'CLOSED', 'ARCHIVED')),
+    constraint ck_brand_offers_visibility check (visibility in ('public', 'private'))
+);
+
+create table brand_offer_reactions (
+    id uuid primary key default gen_random_uuid(),
+    offer_id uuid not null references brand_offers(id) on delete cascade,
+    creator_id uuid not null references creators(id) on delete cascade,
+    reaction_type varchar(30) not null,
+    status varchar(30) not null default 'SUBMITTED',
+    message text,
+    proposed_price integer,
+    proposed_currency varchar(10) not null default 'PKR',
+    proposed_delivery_days integer,
+    brand_note text,
+    creator_note text,
+    created_at timestamptz not null default now(),
+    updated_at timestamptz not null default now(),
+    constraint ck_offer_reactions_type check (reaction_type in ('INTERESTED', 'PROPOSAL', 'QUESTION', 'DECLINE')),
+    constraint ck_offer_reactions_status check (status in ('SUBMITTED', 'SHORTLISTED', 'IN_REVIEW', 'ACCEPTED', 'REJECTED', 'WITHDRAWN')),
+    constraint ck_offer_reactions_proposed_price check (proposed_price is null or proposed_price >= 0),
+    constraint ck_offer_reactions_proposed_days check (proposed_delivery_days is null or proposed_delivery_days > 0),
+    constraint uk_offer_creator unique (offer_id, creator_id)
+);
+
+create table notifications (
+    id uuid primary key default gen_random_uuid(),
+    user_id uuid not null references users(id) on delete cascade,
+    type varchar(60) not null,
+    title varchar(200) not null,
+    body varchar(500),
+    entity_type varchar(60),
+    entity_id uuid,
+    is_read boolean not null default false,
+    created_at timestamptz not null default now()
+);
+
+create table dispute_cases (
+    id uuid primary key default gen_random_uuid(),
+    order_id uuid not null references orders(id) on delete cascade,
+    title varchar(200) not null,
+    description text not null,
+    status varchar(40) not null default 'OPEN',
+    priority varchar(20) not null default 'normal',
+    assigned_admin_id uuid references users(id) on delete set null,
+    resolution varchar(40) not null default 'NONE',
+    resolution_notes text,
+    resolved_at timestamptz,
+    created_at timestamptz not null default now(),
+    updated_at timestamptz not null default now()
+);
+
+create table admin_audit_logs (
+    id uuid primary key default gen_random_uuid(),
+    admin_id uuid not null references users(id) on delete restrict,
+    action varchar(80) not null,
+    target_type varchar(60) not null,
+    target_id varchar(100),
+    details text,
+    created_at timestamptz not null default now()
+);
+
+create table payment_refunds (
+    id uuid primary key default gen_random_uuid(),
+    dispute_id uuid not null unique references dispute_cases(id) on delete restrict,
+    order_id uuid not null references orders(id) on delete restrict,
+    executed_by_admin_id uuid not null references users(id) on delete restrict,
+    amount integer not null check (amount > 0),
+    reason varchar(500) not null,
+    status varchar(30) not null,
+    creator_clawback_amount integer not null default 0,
+    provider varchar(40) not null,
+    provider_refund_id varchar(100) not null,
+    failure_reason varchar(500),
+    confirmed_at timestamptz,
+    created_at timestamptz not null default now(),
+    updated_at timestamptz not null default now(),
+    constraint uq_payment_refunds_provider_refund_id unique (provider_refund_id)
 );
 
 create index idx_packages_creator_id on packages (creator_id);
@@ -434,6 +584,7 @@ create index idx_packages_status on packages (status);
 create index idx_packages_deal_type on packages (deal_type);
 create index idx_packages_creator_status on packages (creator_id, status);
 create index idx_package_tiers_package_id on package_tiers (package_id);
+create index idx_package_tiers_package_id_position on package_tiers(package_id, position);
 create index idx_orders_creator_status on orders (creator_id, status);
 create index idx_orders_brand_status on orders (brand_id, status);
 create index idx_conversations_creator on conversations (creator_id, updated_at desc);
@@ -449,6 +600,8 @@ create index idx_payout_methods_creator_id on payout_methods(creator_id);
 create index idx_withdrawals_creator_id on withdrawal_requests(creator_id);
 create index idx_saved_creators_brand_id on saved_creators(brand_id);
 create index idx_quick_deals_conversation on quick_deal_offers(conversation_id);
+create unique index uk_users_google_subject on users(google_subject) where google_subject is not null;
+create index idx_creators_badge_level on creators(badge_level);
 create index idx_brand_wallets_brand_id on brand_wallets(brand_id);
 create index idx_brand_payment_methods_brand_id on brand_payment_methods(brand_id);
 create index idx_brand_payment_methods_default on brand_payment_methods(brand_id, is_default);
@@ -456,3 +609,15 @@ create index idx_brand_invoices_brand_id on brand_invoices(brand_id, due_at desc
 create index idx_brand_disbursements_brand_id on brand_disbursements(brand_id, release_date desc);
 create index idx_brand_payment_access_lookup on brand_payment_access(user_id, brand_id);
 create index idx_payment_audit_logs_brand_created on payment_audit_logs(brand_id, created_at desc);
+create index idx_brand_offers_brand_status on brand_offers(brand_id, status, created_at desc);
+create index idx_brand_offers_feed on brand_offers(status, deadline_date, published_at desc);
+create index idx_brand_offer_reactions_offer on brand_offer_reactions(offer_id, created_at desc);
+create index idx_brand_offer_reactions_creator on brand_offer_reactions(creator_id, updated_at desc);
+create index idx_notifications_user_unread on notifications(user_id, is_read, created_at desc);
+create index idx_notifications_user_created on notifications(user_id, created_at desc);
+create index idx_dispute_cases_status_created on dispute_cases(status, created_at desc);
+create index idx_dispute_cases_order on dispute_cases(order_id);
+create index idx_admin_audit_logs_created on admin_audit_logs(created_at desc);
+create index idx_admin_audit_logs_action on admin_audit_logs(action);
+create index idx_payment_refunds_order on payment_refunds(order_id);
+create index idx_payment_refunds_created on payment_refunds(created_at desc);
