@@ -1,0 +1,18 @@
+# VCS and IDE
+.git
+.gitignore
+.idea
+.vscode
+
+# Build outputs
+build
+.gradle
+out
+
+# Local runtime artifacts
+uploads
+*.log
+
+# OS files
+.DS_Store
+
