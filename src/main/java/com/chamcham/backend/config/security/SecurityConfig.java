@@ -46,6 +46,7 @@ public class SecurityConfig {
                                 "/api/v1/packages/featured",
                                 "/api/v1/packages/*",
                                 "/api/v1/creators/*/reviews",
+                                "/api/v1/creators/*/packages",
                                 "/api/v1/metadata/creators",
                                 "/api/v1/ambassador/ambassadors",
                                 "/api/v1/ambassador/benefits",
