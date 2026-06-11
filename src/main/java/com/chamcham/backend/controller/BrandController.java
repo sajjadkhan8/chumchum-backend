@@ -1,17 +1,14 @@
 package com.chamcham.backend.controller;
 
 import com.chamcham.backend.config.security.AuthenticatedUser;
-import com.chamcham.backend.dto.brand.BrandCreateRequest;
 import com.chamcham.backend.dto.brand.BrandUpdateRequest;
 import com.chamcham.backend.dto.brand.BrandResponse;
 import com.chamcham.backend.service.BrandService;
 import jakarta.validation.Valid;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -29,14 +26,6 @@ public class BrandController {
 
     public BrandController(BrandService brandService) {
         this.brandService = brandService;
-    }
-
-    @PostMapping
-    public ResponseEntity<BrandResponse> create(
-            @Valid @RequestBody BrandCreateRequest request
-    ) {
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(brandService.create(request));
     }
 
     @GetMapping
@@ -79,4 +68,3 @@ public class BrandController {
         return ResponseEntity.ok(brandService.update(authUser.userId(), authUser.role(), authUser.userId(), request));
     }
 }
-

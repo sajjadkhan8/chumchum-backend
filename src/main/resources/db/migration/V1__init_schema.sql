@@ -23,6 +23,40 @@ create table users (
     updated_at timestamptz not null default now()
 );
 
+create table auth_refresh_tokens (
+    token_hash varchar(64) primary key,
+    user_id uuid not null references users(id) on delete cascade,
+    expires_at timestamptz not null,
+    revoked_at timestamptz,
+    created_at timestamptz not null default now()
+);
+
+create table auth_password_reset_tokens (
+    token_hash varchar(64) primary key,
+    user_id uuid not null references users(id) on delete cascade,
+    expires_at timestamptz not null,
+    used_at timestamptz,
+    created_at timestamptz not null default now()
+);
+
+create table auth_otp_challenges (
+    phone varchar(30) primary key,
+    otp_hash varchar(64) not null,
+    attempts integer not null default 0,
+    expires_at timestamptz not null,
+    sent_at timestamptz not null default now()
+);
+
+create table auth_rate_limits (
+    id uuid primary key default gen_random_uuid(),
+    action varchar(40) not null,
+    identifier varchar(160) not null,
+    attempts integer not null default 0,
+    window_started_at timestamptz not null,
+    blocked_until timestamptz,
+    unique (action, identifier)
+);
+
 create table creators (
     id uuid primary key references users(id) on delete cascade,
     username varchar(50),
@@ -591,6 +625,11 @@ create index idx_conversations_creator on conversations (creator_id, updated_at 
 create index idx_conversations_brand on conversations (brand_id, updated_at desc);
 create index idx_messages_conversation_created on messages (conversation_id, created_at);
 create index idx_users_deleted_at on users (deleted_at) where deleted_at is not null;
+create index idx_auth_refresh_tokens_user on auth_refresh_tokens(user_id);
+create index idx_auth_refresh_tokens_expires on auth_refresh_tokens(expires_at);
+create index idx_auth_password_reset_tokens_user on auth_password_reset_tokens(user_id);
+create index idx_auth_password_reset_tokens_expires on auth_password_reset_tokens(expires_at);
+create index idx_auth_rate_limits_blocked on auth_rate_limits(blocked_until);
 create index idx_deliverables_order_id on deliverables(order_id);
 create index idx_social_accounts_creator_id on social_accounts(creator_id);
 create index idx_content_previews_creator_id on content_previews(creator_id);

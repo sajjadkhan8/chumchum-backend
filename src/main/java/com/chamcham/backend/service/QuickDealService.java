@@ -146,10 +146,9 @@ public class QuickDealService {
 
         if (response == OfferStatus.ACCEPTED) {
             ServicePackage quickDealPackage = createQuickDealPackage(saved);
-            orderId = orderService.createOrder(
+            orderId = orderService.createPrivateDealOrder(
                     quickDealPackage.getId(),
                     saved.getConversation().getBrand().getId(),
-                    UserRole.BRAND,
                     saved.getAmount(),
                     saved.getBarterDetails(),
                     saved.getMessage(),

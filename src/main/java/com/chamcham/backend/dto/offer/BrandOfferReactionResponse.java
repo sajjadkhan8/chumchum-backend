@@ -19,8 +19,8 @@ public record BrandOfferReactionResponse(
         Integer proposedDeliveryDays,
         String brandNote,
         String creatorNote,
+        UUID orderId,
         Instant createdAt,
         Instant updatedAt
 ) {
 }
-

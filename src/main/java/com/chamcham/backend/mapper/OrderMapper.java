@@ -24,7 +24,7 @@ public class OrderMapper {
                 order.getCreator().getId(),
                 order.getCreator().getName(),
                 order.getBrand().getId(),
-                order.getBrand().getName(),
+                order.getBrand().getDisplayName(),
                 order.getDealType() != null ? order.getDealType().name().toLowerCase() : "paid",
                 order.getAmount(),
                 order.getBarterDetails(),

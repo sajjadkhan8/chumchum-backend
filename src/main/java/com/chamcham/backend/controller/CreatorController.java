@@ -1,7 +1,6 @@
 package com.chamcham.backend.controller;
 
 import com.chamcham.backend.config.security.AuthenticatedUser;
-import com.chamcham.backend.dto.creator.CreatorCreateRequest;
 import com.chamcham.backend.dto.creator.CreatorResponse;
 import com.chamcham.backend.dto.creator.CreatorUpdateRequest;
 import com.chamcham.backend.dto.review.ReviewResponse;
@@ -13,12 +12,10 @@ import com.chamcham.backend.service.ReviewService;
 import com.chamcham.backend.service.ServicePackageService;
 import com.chamcham.backend.util.PageResponse;
 import jakarta.validation.Valid;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -45,14 +42,6 @@ public class CreatorController {
         this.creatorService = creatorService;
         this.reviewService = reviewService;
         this.packageService = packageService;
-    }
-
-    @PostMapping
-    public ResponseEntity<CreatorResponse> create(
-            @Valid @RequestBody CreatorCreateRequest request
-    ) {
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(creatorService.create(request));
     }
 
     @GetMapping

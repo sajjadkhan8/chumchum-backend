@@ -68,12 +68,12 @@ public class BrandService {
     @Transactional
     public List<BrandResponse> getAll() {
         return brandRepository.findAll(Sort.by(Sort.Direction.DESC, "createdAt"))
-                .stream().map(brandMapper::toResponse).toList();
+                .stream().map(brandMapper::toPublicResponse).toList();
     }
 
     @Transactional
     public BrandResponse getById(UUID brandId) {
-        return brandMapper.toResponse(findBrand(brandId));
+        return brandMapper.toPublicResponse(findBrand(brandId));
     }
 
     @Transactional

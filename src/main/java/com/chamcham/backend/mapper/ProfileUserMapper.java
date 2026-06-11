@@ -18,5 +18,16 @@ public class ProfileUserMapper {
                 user.getPhone()
         );
     }
-}
 
+    public ProfileUserResponse toPublicResponse(User user) {
+        return new ProfileUserResponse(
+                user.getId(),
+                user.getName(),
+                user.getUsername(),
+                user.getImage(),
+                user.getCity(),
+                null,
+                null
+        );
+    }
+}

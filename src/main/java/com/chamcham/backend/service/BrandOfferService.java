@@ -12,15 +12,22 @@ import com.chamcham.backend.entity.Brand;
 import com.chamcham.backend.entity.BrandOffer;
 import com.chamcham.backend.entity.BrandOfferReaction;
 import com.chamcham.backend.entity.Creator;
+import com.chamcham.backend.entity.ServicePackage;
 import com.chamcham.backend.entity.enums.BrandOfferReactionStatus;
 import com.chamcham.backend.entity.enums.BrandOfferReactionType;
 import com.chamcham.backend.entity.enums.BrandOfferStatus;
+import com.chamcham.backend.entity.enums.DealType;
+import com.chamcham.backend.entity.enums.PackagePlatform;
+import com.chamcham.backend.entity.enums.PackageStatus;
+import com.chamcham.backend.entity.enums.PackageType;
 import com.chamcham.backend.entity.enums.UserRole;
 import com.chamcham.backend.exception.ApiException;
 import com.chamcham.backend.repository.BrandOfferReactionRepository;
 import com.chamcham.backend.repository.BrandOfferRepository;
 import com.chamcham.backend.repository.BrandRepository;
 import com.chamcham.backend.repository.CreatorRepository;
+import com.chamcham.backend.repository.OrderRepository;
+import com.chamcham.backend.repository.ServicePackageRepository;
 import com.chamcham.backend.util.PageResponse;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -31,6 +38,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Locale;
 import java.util.stream.Collectors;
 import java.util.UUID;
@@ -45,17 +53,26 @@ public class BrandOfferService {
     private final BrandRepository brandRepository;
     private final CreatorRepository creatorRepository;
     private final NotificationService notificationService;
+    private final ServicePackageRepository servicePackageRepository;
+    private final OrderRepository orderRepository;
+    private final OrderService orderService;
 
     public BrandOfferService(BrandOfferRepository brandOfferRepository,
                              BrandOfferReactionRepository brandOfferReactionRepository,
                              BrandRepository brandRepository,
                              CreatorRepository creatorRepository,
-                             NotificationService notificationService) {
+                             NotificationService notificationService,
+                             ServicePackageRepository servicePackageRepository,
+                             OrderRepository orderRepository,
+                             OrderService orderService) {
         this.brandOfferRepository = brandOfferRepository;
         this.brandOfferReactionRepository = brandOfferReactionRepository;
         this.brandRepository = brandRepository;
         this.creatorRepository = creatorRepository;
         this.notificationService = notificationService;
+        this.servicePackageRepository = servicePackageRepository;
+        this.orderRepository = orderRepository;
+        this.orderService = orderService;
     }
 
     // ── Brand: create / update ────────────────────────────────────────────────
@@ -301,6 +318,11 @@ public class BrandOfferService {
         if (!reaction.getOffer().getId().equals(offerId)) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Reaction does not belong to this offer");
         }
+        if (reaction.getStatus() == BrandOfferReactionStatus.ACCEPTED
+                || reaction.getStatus() == BrandOfferReactionStatus.REJECTED
+                || reaction.getStatus() == BrandOfferReactionStatus.WITHDRAWN) {
+            throw new ApiException(HttpStatus.CONFLICT, "Finalized reactions cannot be updated");
+        }
 
         BrandOfferReactionStatus targetStatus = switch (request.action().trim().toUpperCase(Locale.ROOT)) {
             case "SHORTLIST"           -> BrandOfferReactionStatus.SHORTLISTED;
@@ -310,13 +332,31 @@ public class BrandOfferService {
             default -> throw new ApiException(HttpStatus.BAD_REQUEST,
                     "action must be SHORTLIST, REVIEW, ACCEPT, or REJECT");
         };
+        if (targetStatus == BrandOfferReactionStatus.ACCEPTED
+                && reaction.getReactionType() != BrandOfferReactionType.PROPOSAL
+                && reaction.getReactionType() != BrandOfferReactionType.INTERESTED) {
+            throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY,
+                    "Only interested or proposal responses can be accepted into an order");
+        }
 
         reaction.setStatus(targetStatus);
         if (request.brandNote() != null) reaction.setBrandNote(request.brandNote());
 
         BrandOfferReaction saved = brandOfferReactionRepository.save(reaction);
+        UUID orderId = null;
+        if (targetStatus == BrandOfferReactionStatus.ACCEPTED) {
+            ServicePackage offerPackage = createAcceptedOfferPackage(saved);
+            orderId = orderService.createPrivateDealOrder(
+                    offerPackage.getId(),
+                    offer.getBrand().getId(),
+                    effectiveAmount(saved, offer),
+                    effectiveBarterDetails(offer),
+                    acceptedOfferMessage(saved, offer),
+                    effectiveDealType(offer)
+            ).id();
+        }
         notifyCreatorOfReactionAction(saved, offer, targetStatus, request.brandNote());
-        return toReactionResponse(saved);
+        return toReactionResponse(saved, orderId);
     }
 
     // ── Creator: discovery feed ───────────────────────────────────────────────
@@ -453,11 +493,11 @@ public class BrandOfferService {
     private void notifyCreatorOfReactionAction(BrandOfferReaction reaction, BrandOffer offer,
                                                BrandOfferReactionStatus status, String brandNote) {
         String title = switch (status) {
-            case SHORTLISTED -> offer.getBrand().getName() + " shortlisted your pitch";
-            case IN_REVIEW   -> offer.getBrand().getName() + " is reviewing your proposal";
-            case ACCEPTED    -> "\uD83C\uDF89 " + offer.getBrand().getName() + " accepted your proposal!";
-            case REJECTED    -> offer.getBrand().getName() + " passed on your pitch";
-            default          -> offer.getBrand().getName() + " updated your reaction";
+            case SHORTLISTED -> offer.getBrand().getDisplayName() + " shortlisted your pitch";
+            case IN_REVIEW   -> offer.getBrand().getDisplayName() + " is reviewing your proposal";
+            case ACCEPTED    -> "\uD83C\uDF89 " + offer.getBrand().getDisplayName() + " accepted your proposal!";
+            case REJECTED    -> offer.getBrand().getDisplayName() + " passed on your pitch";
+            default          -> offer.getBrand().getDisplayName() + " updated your reaction";
         };
         String body = "Offer: \"" + offer.getTitle() + "\""
                 + (brandNote != null && !brandNote.isBlank() ? " — Note: " + truncate(brandNote, 120) : "");
@@ -627,11 +667,103 @@ public class BrandOfferService {
         return text.length() <= maxLen ? text : text.substring(0, maxLen) + "\u2026";
     }
 
+    private ServicePackage createAcceptedOfferPackage(BrandOfferReaction reaction) {
+        BrandOffer offer = reaction.getOffer();
+        Creator creator = reaction.getCreator();
+        String packageName = "brand-offer-" + reaction.getId();
+
+        return servicePackageRepository.save(ServicePackage.builder()
+                .creator(creator)
+                .name(packageName)
+                .title(truncate(offer.getTitle(), 200))
+                .shortDescription("Accepted brand offer")
+                .description(offer.getBrief())
+                .fullDescription(offer.getBrief())
+                .platform(resolvePlatform(offer.getTargetPlatforms()))
+                .category(trimToNull(offer.getCategories()) != null ? truncate(offer.getCategories(), 80) : "Brand Offer")
+                .type(PackageType.ONE_TIME)
+                .dealType(effectiveDealType(offer))
+                .status(PackageStatus.ACTIVE)
+                .visibility("private")
+                .price(effectiveAmount(reaction, offer))
+                .barterDetails(effectiveBarterDetails(offer))
+                .barterDescription(effectiveBarterDetails(offer))
+                .estimatedBarterValue(offer.getBarterEstimatedValue())
+                .hybridCashAmount(effectiveDealType(offer) == DealType.HYBRID ? effectiveAmount(reaction, offer) : null)
+                .hybridBarterValue(offer.getBarterEstimatedValue())
+                .creatorExpectations(reaction.getCreatorNote())
+                .deliverables(parseDeliverables(offer.getDeliverables()))
+                .deliveryDays(effectiveDeliveryDays(reaction, offer))
+                .revisions(1)
+                .tags(List.of("brand-offer"))
+                .currency(normalizeCurrency(reaction.getProposedCurrency() != null
+                        ? reaction.getProposedCurrency() : offer.getCurrency()))
+                .responseTime("Within 24 hours")
+                .active(true)
+                .build());
+    }
+
+    private DealType effectiveDealType(BrandOffer offer) {
+        return switch (normalizeBudgetType(offer.getBudgetType())) {
+            case "barter_only" -> DealType.BARTER;
+            case "paid_and_barter" -> DealType.HYBRID;
+            default -> DealType.PAID;
+        };
+    }
+
+    private int effectiveAmount(BrandOfferReaction reaction, BrandOffer offer) {
+        if (effectiveDealType(offer) == DealType.BARTER) return 0;
+        if (reaction.getProposedPrice() != null && reaction.getProposedPrice() > 0) return reaction.getProposedPrice();
+        if (offer.getBudgetMax() != null && offer.getBudgetMax() > 0) return offer.getBudgetMax();
+        throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY, "Accepted paid offers require a valid amount");
+    }
+
+    private String effectiveBarterDetails(BrandOffer offer) {
+        return effectiveDealType(offer) == DealType.PAID ? null : trimToNull(offer.getBarterProductDesc());
+    }
+
+    private int effectiveDeliveryDays(BrandOfferReaction reaction, BrandOffer offer) {
+        if (reaction.getProposedDeliveryDays() != null && reaction.getProposedDeliveryDays() > 0) {
+            return reaction.getProposedDeliveryDays();
+        }
+        if (offer.getCampaignDuration() != null && offer.getCampaignDuration() > 0) {
+            return offer.getCampaignDuration();
+        }
+        return 7;
+    }
+
+    private List<String> parseDeliverables(String value) {
+        String normalized = trimToNull(value);
+        if (normalized == null) return List.of("Campaign deliverable");
+        List<String> result = Arrays.stream(normalized.split("[\\n,]"))
+                .map(String::trim)
+                .filter(entry -> !entry.isEmpty())
+                .distinct()
+                .toList();
+        return result.isEmpty() ? List.of("Campaign deliverable") : result;
+    }
+
+    private PackagePlatform resolvePlatform(String value) {
+        String normalized = trimToNull(value);
+        if (normalized == null) return PackagePlatform.INSTAGRAM;
+        String first = normalized.split("[\\n,]")[0].trim().toUpperCase(Locale.ROOT);
+        try {
+            return PackagePlatform.valueOf(first);
+        } catch (IllegalArgumentException ex) {
+            return PackagePlatform.INSTAGRAM;
+        }
+    }
+
+    private String acceptedOfferMessage(BrandOfferReaction reaction, BrandOffer offer) {
+        String proposal = trimToNull(reaction.getMessage());
+        return proposal == null ? "Accepted response for " + offer.getTitle() : proposal;
+    }
+
      private BrandOfferResponse toOfferResponse(BrandOffer offer) {
          return new BrandOfferResponse(
                  offer.getId(),
                  offer.getBrand().getId(),
-                 offer.getBrand().getName(),
+                 offer.getBrand().getDisplayName(),
                  offer.getTitle(),
                  offer.getBrief(),
                  offer.getOfferType(),
@@ -687,11 +819,18 @@ public class BrandOfferService {
      }
 
     private BrandOfferReactionResponse toReactionResponse(BrandOfferReaction reaction) {
+        UUID orderId = orderRepository.findFirstByServicePackageName("brand-offer-" + reaction.getId())
+                .map(order -> order.getId())
+                .orElse(null);
+        return toReactionResponse(reaction, orderId);
+    }
+
+    private BrandOfferReactionResponse toReactionResponse(BrandOfferReaction reaction, UUID orderId) {
         return new BrandOfferReactionResponse(
                 reaction.getId(),
                 reaction.getOffer().getId(),
                 reaction.getOffer().getTitle(),
-                reaction.getOffer().getBrand().getName(),
+                reaction.getOffer().getBrand().getDisplayName(),
                 reaction.getCreator().getId(),
                 reaction.getCreator().getName(),
                 reaction.getCreator().getAvatarUrl(),
@@ -703,6 +842,7 @@ public class BrandOfferService {
                 reaction.getProposedDeliveryDays(),
                 reaction.getBrandNote(),
                 reaction.getCreatorNote(),
+                orderId,
                 reaction.getCreatedAt(),
                 reaction.getUpdatedAt()
         );

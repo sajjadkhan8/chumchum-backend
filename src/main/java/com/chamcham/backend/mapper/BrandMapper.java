@@ -14,9 +14,17 @@ public class BrandMapper {
     }
 
     public BrandResponse toResponse(Brand brand) {
+        return toResponse(brand, false);
+    }
+
+    public BrandResponse toPublicResponse(Brand brand) {
+        return toResponse(brand, true);
+    }
+
+    private BrandResponse toResponse(Brand brand, boolean publicView) {
         return new BrandResponse(
                 brand.getId(),
-                brand.getName(),
+                brand.getDisplayName(),
                 brand.getWebsite(),
                 brand.getIndustry(),
                 brand.getDescription(),
@@ -27,9 +35,9 @@ public class BrandMapper {
                 brand.getTargetPlatforms(),
                 brand.getCampaignBudgetRange(),
                 brand.getBusinessVerificationStatus(),
-                brand.getVerificationContactEmail(),
-                brand.getVerificationPhoneNumber(),
-                profileUserMapper.toResponse(brand),
+                publicView ? null : brand.getVerificationContactEmail(),
+                publicView ? null : brand.getVerificationPhoneNumber(),
+                publicView ? profileUserMapper.toPublicResponse(brand) : profileUserMapper.toResponse(brand),
                 brand.getCreatedAt(),
                 brand.getUpdatedAt()
         );

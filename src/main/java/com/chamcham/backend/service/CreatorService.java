@@ -106,7 +106,7 @@ public class CreatorService {
     @Transactional
     public List<CreatorResponse> getAll() {
         return creatorRepository.findAll(Sort.by(Sort.Direction.DESC, "createdAt")).stream()
-                .map(creatorMapper::toResponse)
+                .map(creatorMapper::toPublicResponse)
                 .toList();
     }
 
@@ -145,13 +145,13 @@ public class CreatorService {
                 isVerified, pageable);
 
         return new CreatorSearchResult(
-                result.getContent().stream().map(creatorMapper::toResponse).toList(),
+                result.getContent().stream().map(creatorMapper::toPublicResponse).toList(),
                 result.getTotalElements(), page, limit);
     }
 
     @Transactional
     public CreatorResponse getById(UUID creatorId) {
-        return creatorMapper.toResponse(findCreator(creatorId));
+        return creatorMapper.toPublicResponse(findCreator(creatorId));
     }
 
     @Transactional
@@ -464,28 +464,28 @@ public class CreatorService {
     public List<CreatorResponse> getTrending(int limit) {
         Pageable pageable = cappedPageable(0, limit, "createdAt");
         return creatorRepository.findByIsTrendingTrue(pageable).stream()
-                .map(creatorMapper::toResponse)
+                .map(creatorMapper::toPublicResponse)
                 .toList();
     }
 
     public List<CreatorResponse> getBarterFriendly(int limit) {
         Pageable pageable = cappedPageable(0, limit, "createdAt");
         return creatorRepository.findByAcceptsBarterTrue(pageable).stream()
-                .map(creatorMapper::toResponse)
+                .map(creatorMapper::toPublicResponse)
                 .toList();
     }
 
     public List<CreatorResponse> getFastResponders(int limit) {
         Pageable pageable = cappedPageable(0, limit, "createdAt");
         return creatorRepository.findByIsFastResponderTrue(pageable).stream()
-                .map(creatorMapper::toResponse)
+                .map(creatorMapper::toPublicResponse)
                 .toList();
     }
 
     public List<CreatorResponse> getByCity(String city, int limit) {
         Pageable pageable = cappedPageable(0, limit, "createdAt");
         return creatorRepository.findByCityIgnoreCaseAndActiveTrue(city, pageable).stream()
-                .map(creatorMapper::toResponse)
+                .map(creatorMapper::toPublicResponse)
                 .toList();
     }
 

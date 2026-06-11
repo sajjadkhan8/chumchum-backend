@@ -30,6 +30,9 @@ services:
       DB_USERNAME: postgres
       DB_PASSWORD: postgres
       JWT_SECRET_BASE64: ZGV2LXNlY3JldC1yZXBsYWNlLXRoaXMtd2l0aC1hdC1sZWFzdC0zMi1ieXRlcy1mb3ItcHJvZA==
+      MOCK_REFUND_WEBHOOK_SECRET: local-mock-refund-secret
+      FRONTEND_BASE_URL: http://localhost:3000
+      EMAIL_LOG_CONTENT: "true"
       UPLOAD_DIR: /app/uploads
       UPLOAD_BASE_URL: http://localhost:8080/uploads
     ports:
@@ -41,4 +44,3 @@ services:
 volumes:
   postgres_data:
   app_uploads:
-

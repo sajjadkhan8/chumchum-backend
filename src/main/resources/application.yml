@@ -3,16 +3,12 @@ spring:
     name: zingzing-backend
   servlet:
     multipart:
-      max-file-size: 500MB
-      max-request-size: 502MB
+      max-file-size: ${MAX_FILE_SIZE:100MB}
+      max-request-size: ${MAX_REQUEST_SIZE:102MB}
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/zingzing?currentSchema=core}
     username: ${DB_USERNAME:postgres}
-    password: ${DB_PASSWORD:Haripur@1}
-#    PROD CREDs
-#    url: ${DB_URL:jdbc:postgresql://postgres:5432/zingzing?currentSchema=core}
-#    username: ${DB_USERNAME:postgres}
-#    password: ${DB_PASSWORD:dbP@s$4AviaT4@}
+    password: ${DB_PASSWORD}
 
   jpa:
     hibernate:
@@ -34,9 +30,10 @@ server:
 
 springdoc:
   api-docs:
+    enabled: ${SWAGGER_ENABLED:false}
     path: /v3/api-docs
   swagger-ui:
-    enabled: true
+    enabled: ${SWAGGER_ENABLED:false}
     path: /swagger-ui.html
     operations-sorter: method
     tags-sorter: alpha
@@ -52,13 +49,14 @@ logging:
 
 security:
   jwt:
-    # Base64-encoded HMAC secret. Replace in production.
-    secret: ${JWT_SECRET_BASE64:ZGV2LXNlY3JldC1yZXBsYWNlLXRoaXMtd2l0aC1hdC1sZWFzdC0zMi1ieXRlcy1mb3ItcHJvZA==}
-    expiration-ms: ${JWT_EXPIRATION_MS:604800000}
+    secret: ${JWT_SECRET_BASE64}
+    expiration-ms: ${JWT_EXPIRATION_MS:900000}
+  refresh:
+    expiration-seconds: ${REFRESH_EXPIRATION_SECONDS:2592000}
   cookie:
     secure: ${COOKIE_SECURE:false}
     same-site: ${COOKIE_SAME_SITE:Strict}
-    max-age-seconds: ${COOKIE_MAX_AGE:604800}
+    max-age-seconds: ${COOKIE_MAX_AGE:2592000}
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:4200,http://localhost:5173,http://localhost:4173,https://chumchum-frontend.vercel.app}
   oauth:
@@ -67,9 +65,12 @@ security:
       token-info-url: ${GOOGLE_TOKEN_INFO_URL:https://oauth2.googleapis.com/tokeninfo}
 
 app:
+  frontend-base-url: ${FRONTEND_BASE_URL:http://localhost:3000}
+  email:
+    log-content: ${EMAIL_LOG_CONTENT:false}
   refunds:
     mock:
-      webhook-secret: ${MOCK_REFUND_WEBHOOK_SECRET:mock-webhook-secret}
+      webhook-secret: ${MOCK_REFUND_WEBHOOK_SECRET}
   uploads:
     dir: ${UPLOAD_DIR:./uploads}
     base-url: ${UPLOAD_BASE_URL:http://localhost:8080/uploads}

@@ -56,4 +56,8 @@ public class Brand extends User {
 
     @Column(name = "verification_phone_number", length = 50)
     private String verificationPhoneNumber;
+
+    public String getDisplayName() {
+        return name != null && !name.isBlank() ? name : super.getName();
+    }
 }

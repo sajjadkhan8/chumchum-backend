@@ -27,6 +27,14 @@ public class CreatorMapper {
     }
 
     public CreatorResponse toResponse(Creator creator) {
+        return toResponse(creator, false);
+    }
+
+    public CreatorResponse toPublicResponse(Creator creator) {
+        return toResponse(creator, true);
+    }
+
+    private CreatorResponse toResponse(Creator creator, boolean publicView) {
         List<SocialAccountResponse> socialAccounts = socialAccountRepository.findByCreatorId(creator.getId()).stream()
                 .map(this::toSocialAccountResponse)
                 .toList();
@@ -38,8 +46,8 @@ public class CreatorMapper {
                 creator.getId(),
                 creator.getName(),
                 creator.getUsername(),
-                creator.getEmail(),
-                creator.getPhone(),
+                publicView ? null : creator.getEmail(),
+                publicView ? null : creator.getPhone(),
                 creator.getCity(),
                 creator.getAvatarUrl(),
                 creator.getBio(),
@@ -73,7 +81,7 @@ public class CreatorMapper {
                 creator.getTotalReviews(),
                 socialAccounts,
                 contentPreviews,
-                profileUserMapper.toResponse(creator),
+                publicView ? profileUserMapper.toPublicResponse(creator) : profileUserMapper.toResponse(creator),
                 creator.getCreatedAt(),
                 creator.getUpdatedAt()
         );

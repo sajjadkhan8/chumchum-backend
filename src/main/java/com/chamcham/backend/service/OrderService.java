@@ -28,7 +28,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicLong;
 
 @Service
 public class OrderService {
@@ -55,8 +54,6 @@ public class OrderService {
     private final WalletRepository walletRepository;
     private final TransactionRepository transactionRepository;
     private final OrderMapper orderMapper;
-    private final AtomicLong orderNumberCounter = new AtomicLong(1000);
-
     public OrderService(OrderRepository orderRepository,
                         ServicePackageRepository servicePackageRepository,
                         BrandRepository brandRepository,
@@ -94,16 +91,32 @@ public class OrderService {
     public OrderResponse createOrder(UUID packageId, UUID brandUserId, UserRole role,
                                      Integer amount, String barterDetails, String message,
                                      DealType dealType) {
+        return createOrder(packageId, brandUserId, role, amount, barterDetails, message, dealType, false);
+    }
+
+    @Transactional
+    public OrderResponse createPrivateDealOrder(UUID packageId, UUID brandUserId, Integer amount,
+                                                String barterDetails, String message, DealType dealType) {
+        return createOrder(packageId, brandUserId, UserRole.BRAND, amount, barterDetails, message, dealType, true);
+    }
+
+    private OrderResponse createOrder(UUID packageId, UUID brandUserId, UserRole role,
+                                      Integer amount, String barterDetails, String message,
+                                      DealType dealType, boolean allowPrivatePackage) {
         if (!role.isBrand() && !role.isAdmin()) {
             throw new ApiException(HttpStatus.FORBIDDEN, "Only brands can place orders");
         }
         ServicePackage pkg = servicePackageRepository.findById(packageId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Package not found"));
+        if (!allowPrivatePackage && "private".equalsIgnoreCase(pkg.getVisibility())) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "Private deal packages cannot be ordered directly");
+        }
         Brand brand = brandRepository.findById(brandUserId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Brand profile not found"));
 
         DealType effectiveDealType = dealType != null ? dealType : DealType.PAID;
-        String orderNumber = "ORD-" + String.format("%06d", orderNumberCounter.getAndIncrement());
+        validateDealPayload(effectiveDealType, amount, barterDetails);
+        String orderNumber = "ORD-" + UUID.randomUUID().toString().replace("-", "").substring(0, 12).toUpperCase();
 
         Order order = Order.builder()
                 .id(UUID.randomUUID())
@@ -135,6 +148,7 @@ public class OrderService {
     @Transactional
     public OrderResponse updateStatus(UUID orderId, OrderStatus newStatus, UUID userId, UserRole role) {
         Order order = findOrder(orderId);
+        requireParticipant(order, userId, role);
 
         // Role-based transition guards
         switch (newStatus) {
@@ -187,6 +201,26 @@ public class OrderService {
     private Order findOrder(UUID id) {
         return orderRepository.findById(id)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Order not found"));
+    }
+
+    private void requireParticipant(Order order, UUID userId, UserRole role) {
+        if (role.isAdmin()) return;
+        if (!order.getCreator().getId().equals(userId) && !order.getBrand().getId().equals(userId)) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "Access denied");
+        }
+    }
+
+    private void validateDealPayload(DealType dealType, Integer amount, String barterDetails) {
+        if ((dealType == DealType.PAID || dealType == DealType.paid
+                || dealType == DealType.HYBRID || dealType == DealType.hybrid)
+                && (amount == null || amount <= 0)) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "amount is required for paid and hybrid orders");
+        }
+        if ((dealType == DealType.BARTER || dealType == DealType.barter
+                || dealType == DealType.HYBRID || dealType == DealType.hybrid)
+                && (barterDetails == null || barterDetails.isBlank())) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "barterDetails is required for barter and hybrid orders");
+        }
     }
 
     private List<String> packageDeliverables(ServicePackage pkg) {

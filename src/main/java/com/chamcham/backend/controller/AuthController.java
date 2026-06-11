@@ -1,43 +1,56 @@
 package com.chamcham.backend.controller;
 
-import com.chamcham.backend.config.security.AuthenticatedUser;
 import com.chamcham.backend.dto.auth.*;
+import com.chamcham.backend.exception.ApiException;
 import com.chamcham.backend.service.AuthService;
 import com.chamcham.backend.util.ApiResponse;
 import jakarta.validation.Valid;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
+import java.time.Duration;
 import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/auth")
 public class AuthController {
 
-    private final AuthService authService;
+    private static final String REFRESH_COOKIE = "zingzing-refresh-token";
 
-    public AuthController(AuthService authService) {
+    private final AuthService authService;
+    private final boolean cookieSecure;
+    private final String cookieSameSite;
+    private final long cookieMaxAgeSeconds;
+
+    public AuthController(
+            AuthService authService,
+            @Value("${security.cookie.secure:false}") boolean cookieSecure,
+            @Value("${security.cookie.same-site:Strict}") String cookieSameSite,
+            @Value("${security.cookie.max-age-seconds:2592000}") long cookieMaxAgeSeconds
+    ) {
         this.authService = authService;
+        this.cookieSecure = cookieSecure;
+        this.cookieSameSite = cookieSameSite;
+        this.cookieMaxAgeSeconds = cookieMaxAgeSeconds;
     }
 
     @PostMapping("/register")
     public ResponseEntity<ApiResponse<AuthTokenResponse>> register(@Valid @RequestBody AuthRegisterRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(authService.register(request)));
+        return tokenResponse(authService.register(request), HttpStatus.CREATED);
     }
 
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<AuthTokenResponse>> login(@Valid @RequestBody AuthLoginRequest request) {
-        return ResponseEntity.ok(ApiResponse.ok(authService.login(request)));
+        return tokenResponse(authService.login(request), HttpStatus.OK);
     }
 
     @PostMapping("/google")
     public ResponseEntity<ApiResponse<AuthTokenResponse>> google(@Valid @RequestBody AuthGoogleRequest request) {
-        return ResponseEntity.ok(ApiResponse.ok(authService.authenticateWithGoogle(request)));
+        return tokenResponse(authService.authenticateWithGoogle(request), HttpStatus.OK);
     }
 
     @PostMapping("/send-otp")
@@ -47,12 +60,20 @@ public class AuthController {
 
     @PostMapping("/verify-otp")
     public ResponseEntity<ApiResponse<AuthTokenResponse>> verifyOtp(@Valid @RequestBody AuthVerifyOtpRequest request) {
-        return ResponseEntity.ok(ApiResponse.ok(authService.verifyOtp(request)));
+        return tokenResponse(authService.verifyOtp(request), HttpStatus.OK);
     }
 
     @PostMapping("/refresh")
-    public ResponseEntity<ApiResponse<AuthService.AuthTokenPair>> refresh(@Valid @RequestBody AuthRefreshRequest request) {
-        return ResponseEntity.ok(ApiResponse.ok(authService.refresh(request)));
+    public ResponseEntity<ApiResponse<AuthService.AuthTokenPair>> refresh(
+            @CookieValue(name = REFRESH_COOKIE, required = false) String cookieToken,
+            @RequestBody(required = false) AuthRefreshRequest request
+    ) {
+        String refreshToken = cookieToken != null ? cookieToken : request == null ? null : request.refreshToken();
+        if (refreshToken == null || refreshToken.isBlank()) {
+            throw new ApiException(HttpStatus.UNAUTHORIZED, "Invalid or expired refresh token");
+        }
+        AuthService.AuthTokenPair pair = authService.refresh(new AuthRefreshRequest(refreshToken));
+        return ResponseEntity.ok(ApiResponse.ok(new AuthService.AuthTokenPair(pair.accessToken(), null)));
     }
 
     @PostMapping("/forgot-password")
@@ -68,9 +89,31 @@ public class AuthController {
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<ApiResponse<Void>> logout(@AuthenticationPrincipal AuthenticatedUser authUser) {
-        authService.logout(null);
-        return ResponseEntity.ok(ApiResponse.<Void>ok(null));
+    public ResponseEntity<ApiResponse<Void>> logout(
+            @CookieValue(name = REFRESH_COOKIE, required = false) String cookieToken,
+            @RequestBody(required = false) AuthRefreshRequest request
+    ) {
+        String refreshToken = cookieToken != null ? cookieToken : request == null ? null : request.refreshToken();
+        authService.logout(refreshToken);
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, refreshCookie("", Duration.ZERO).toString())
+                .body(ApiResponse.<Void>ok(null));
+    }
+
+    private ResponseEntity<ApiResponse<AuthTokenResponse>> tokenResponse(AuthTokenResponse token, HttpStatus status) {
+        AuthTokenResponse browserResponse = new AuthTokenResponse(token.accessToken(), null, token.user());
+        return ResponseEntity.status(status)
+                .header(HttpHeaders.SET_COOKIE, refreshCookie(token.refreshToken(), Duration.ofSeconds(cookieMaxAgeSeconds)).toString())
+                .body(ApiResponse.ok(browserResponse));
+    }
+
+    private ResponseCookie refreshCookie(String value, Duration maxAge) {
+        return ResponseCookie.from(REFRESH_COOKIE, value)
+                .httpOnly(true)
+                .secure(cookieSecure)
+                .sameSite(cookieSameSite)
+                .path("/api/v1/auth")
+                .maxAge(maxAge)
+                .build();
     }
 }
-
