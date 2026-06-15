@@ -219,6 +219,10 @@ public class OrderService {
         if (fileUrl == null || fileUrl.isBlank()) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "fileUrl is required");
         }
+        String requiredPrefix = "/api/v1/files/deliverables/" + orderId + "/" + deliverableId + "/";
+        if (!fileUrl.startsWith(requiredPrefix) || fileUrl.substring(requiredPrefix.length()).contains("/")) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Upload the file for this deliverable before submitting it");
+        }
 
         Deliverable deliverable = findOrderDeliverable(orderId, deliverableId);
         if (!hasStatus(deliverable, Deliverable.DeliverableStatus.PENDING,

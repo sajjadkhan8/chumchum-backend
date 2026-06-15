@@ -20,7 +20,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import static com.chamcham.backend.service.FileStorageService.MB;
+import static com.chamcham.backend.service.FileStorageService.PRIVATE_FILE_TYPES;
 
 import java.util.List;
 import java.util.UUID;
@@ -130,10 +130,8 @@ public class MessageService {
         validateParticipant(userId, conversation);
         User sender = findUser(userId);
 
-        if (file.getSize() > 100 * MB)
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Attachment must be under 100 MB");
-
-        String attachmentUrl = fileStorageService.store(file, "attachments");
+        String attachmentUrl = fileStorageService.validateAndStoreProtected(
+                file, PRIVATE_FILE_TYPES, 100, "attachments/" + conversationId);
 
         Message message = Message.builder()
                 .conversation(conversation)

@@ -2,6 +2,11 @@ package com.chamcham.backend.controller;
 
 import com.chamcham.backend.config.security.AuthenticatedUser;
 import com.chamcham.backend.service.FileStorageService;
+import com.chamcham.backend.entity.Deliverable;
+import com.chamcham.backend.entity.Order;
+import com.chamcham.backend.entity.enums.OrderStatus;
+import com.chamcham.backend.repository.DeliverableRepository;
+import com.chamcham.backend.repository.OrderRepository;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -14,9 +19,10 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 import static com.chamcham.backend.service.FileStorageService.IMAGE_TYPES;
-import static com.chamcham.backend.service.FileStorageService.MB;
+import static com.chamcham.backend.service.FileStorageService.PRIVATE_FILE_TYPES;
 import static com.chamcham.backend.service.FileStorageService.VIDEO_TYPES;
 import com.chamcham.backend.exception.ApiException;
 import org.springframework.http.HttpStatus;
@@ -26,15 +32,21 @@ import org.springframework.http.HttpStatus;
 public class UploadController {
 
     private final FileStorageService fileStorageService;
+    private final OrderRepository orderRepository;
+    private final DeliverableRepository deliverableRepository;
 
-    public UploadController(FileStorageService fileStorageService) {
+    public UploadController(FileStorageService fileStorageService, OrderRepository orderRepository,
+                            DeliverableRepository deliverableRepository) {
         this.fileStorageService = fileStorageService;
+        this.orderRepository = orderRepository;
+        this.deliverableRepository = deliverableRepository;
     }
 
     @PostMapping(value = "/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Map<String, Object>> avatar(
             @RequestParam("file") MultipartFile file,
             @AuthenticationPrincipal AuthenticatedUser authUser) {
+        requireCreator(authUser);
         return ok(fileStorageService.validateAndStore(file, IMAGE_TYPES, 5, "avatars"));
     }
 
@@ -42,6 +54,7 @@ public class UploadController {
     public ResponseEntity<Map<String, Object>> coverImage(
             @RequestParam("file") MultipartFile file,
             @AuthenticationPrincipal AuthenticatedUser authUser) {
+        requireCreator(authUser);
         return ok(fileStorageService.validateAndStore(file, IMAGE_TYPES, 10, "covers"));
     }
 
@@ -50,6 +63,7 @@ public class UploadController {
             @RequestParam("file") MultipartFile file,
             @RequestParam(required = false) String platform,
             @AuthenticationPrincipal AuthenticatedUser authUser) {
+        requireCreator(authUser);
         Set<String> allowed = new HashSet<>(IMAGE_TYPES);
         allowed.addAll(VIDEO_TYPES);
         return ok(fileStorageService.validateAndStore(file, allowed, 100, "previews"));
@@ -65,21 +79,41 @@ public class UploadController {
     @PostMapping(value = "/deliverable", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Map<String, Object>> deliverable(
             @RequestParam("file") MultipartFile file,
-            @RequestParam(required = false) String orderId,
-            @RequestParam(required = false) String deliverableId,
+            @RequestParam UUID orderId,
+            @RequestParam UUID deliverableId,
             @AuthenticationPrincipal AuthenticatedUser authUser) {
-        if (file.isEmpty())
-            throw new ApiException(HttpStatus.BAD_REQUEST, "File must not be empty");
-        if (file.getSize() > 500 * MB)
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Deliverable files must be under 500 MB");
-        return ok(fileStorageService.store(file, "deliverables"));
+        requireCreator(authUser);
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Order not found"));
+        if (!order.getCreator().getId().equals(authUser.userId())) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "Only the order creator can upload deliverables");
+        }
+        if (order.getStatus() != OrderStatus.IN_PROGRESS && order.getStatus() != OrderStatus.REVISION) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Deliverables can only be uploaded while work is in progress or revision");
+        }
+        Deliverable deliverable = deliverableRepository.findById(deliverableId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Deliverable not found"));
+        if (!deliverable.getOrder().getId().equals(orderId)) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Deliverable does not belong to this order");
+        }
+        String folder = "deliverables/" + orderId + "/" + deliverableId;
+        return ok(fileStorageService.validateAndStoreProtected(file, PRIVATE_FILE_TYPES, 500, folder));
     }
 
     @PostMapping(value = "/brand-logo", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Map<String, Object>> brandLogo(
             @RequestParam("file") MultipartFile file,
             @AuthenticationPrincipal AuthenticatedUser authUser) {
+        if (!authUser.role().isBrand() && !authUser.role().isAdmin()) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "Only brands can upload brand logos");
+        }
         return ok(fileStorageService.validateAndStore(file, IMAGE_TYPES, 5, "brands"));
+    }
+
+    private void requireCreator(AuthenticatedUser authUser) {
+        if (!authUser.role().isCreator() && !authUser.role().isAdmin()) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "Only creators can upload this media");
+        }
     }
 
     private ResponseEntity<Map<String, Object>> ok(String url) {
