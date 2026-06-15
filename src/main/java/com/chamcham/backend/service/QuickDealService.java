@@ -38,6 +38,7 @@ public class QuickDealService {
     private final MessageRepository messageRepository;
     private final ServicePackageRepository servicePackageRepository;
     private final OrderService orderService;
+    private final NotificationService notificationService;
 
     public QuickDealService(QuickDealOfferRepository offerRepository,
                             ConversationRepository conversationRepository,
@@ -45,7 +46,8 @@ public class QuickDealService {
                             BrandRepository brandRepository,
                             MessageRepository messageRepository,
                             ServicePackageRepository servicePackageRepository,
-                            OrderService orderService) {
+                            OrderService orderService,
+                            NotificationService notificationService) {
         this.offerRepository = offerRepository;
         this.conversationRepository = conversationRepository;
         this.creatorRepository = creatorRepository;
@@ -53,6 +55,7 @@ public class QuickDealService {
         this.messageRepository = messageRepository;
         this.servicePackageRepository = servicePackageRepository;
         this.orderService = orderService;
+        this.notificationService = notificationService;
     }
 
     @Transactional
@@ -69,6 +72,7 @@ public class QuickDealService {
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Brand profile not found"));
 
         Conversation conversation = conversationRepository.findByCreatorIdAndBrandId(creator.getId(), brand.getId())
+                .map(existing -> conversationRepository.findByIdForUpdate(existing.getId()).orElse(existing))
                 .orElseGet(() -> conversationRepository.save(Conversation.builder()
                         .id(UUID.randomUUID())
                         .creator(creator)
@@ -116,6 +120,9 @@ public class QuickDealService {
         conversation.setLastMessage("[Offer]");
         conversation.setLastMessageId(message.getId());
         conversationRepository.save(conversation);
+        notificationService.sendMessageNotification(creator.getId(), "New deal offer from " + brand.getDisplayName(),
+                request.message() == null || request.message().isBlank() ? "New deal offer" : request.message(),
+                conversation.getId());
 
         return new QuickDealCreateResponse(conversation.getId(), message.getId(), offer.getId());
     }

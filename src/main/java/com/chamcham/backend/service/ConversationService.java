@@ -84,19 +84,12 @@ public class ConversationService {
         return conversations.stream().map(conversationMapper::toResponse).toList();
     }
 
-    public ConversationResponse getSingleConversation(UUID creatorId, UUID brandId) {
+    public ConversationResponse getSingleConversation(UUID creatorId, UUID brandId, UUID userId, UserRole role) {
+        if (role.isAdmin() || (!creatorId.equals(userId) && !brandId.equals(userId))) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "Cannot access this conversation");
+        }
         Conversation conversation = conversationRepository.findByCreatorIdAndBrandId(creatorId, brandId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "No such conversation found!"));
         return conversationMapper.toResponse(conversation);
-    }
-
-    public ConversationResponse markAsRead(UUID conversationId) {
-        Conversation conversation = conversationRepository.findById(conversationId)
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Conversation not found"));
-
-        conversation.setReadByCreator(true);
-        conversation.setReadByBrand(true);
-
-        return conversationMapper.toResponse(conversationRepository.save(conversation));
     }
 }

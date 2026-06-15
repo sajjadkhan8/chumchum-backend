@@ -4,6 +4,7 @@ import com.chamcham.backend.dto.notification.NotificationResponse;
 import com.chamcham.backend.entity.Notification;
 import com.chamcham.backend.entity.User;
 import com.chamcham.backend.repository.NotificationRepository;
+import com.chamcham.backend.repository.NotificationPreferenceRepository;
 import com.chamcham.backend.repository.UserRepository;
 import com.chamcham.backend.util.PageResponse;
 import org.slf4j.Logger;
@@ -25,13 +26,41 @@ public class NotificationService {
     private final NotificationRepository notificationRepository;
     private final UserRepository userRepository;
     private final EmailNotificationService emailNotificationService;
+    private final NotificationPreferenceRepository notificationPreferenceRepository;
 
     public NotificationService(NotificationRepository notificationRepository,
                                 UserRepository userRepository,
-                                EmailNotificationService emailNotificationService) {
+                                EmailNotificationService emailNotificationService,
+                                NotificationPreferenceRepository notificationPreferenceRepository) {
         this.notificationRepository = notificationRepository;
         this.userRepository = userRepository;
         this.emailNotificationService = emailNotificationService;
+        this.notificationPreferenceRepository = notificationPreferenceRepository;
+    }
+
+    @Async
+    public void sendMessageNotification(UUID userId, String title, String body, UUID conversationId) {
+        try {
+            User user = userRepository.findById(userId).orElse(null);
+            if (user == null) return;
+            var preference = notificationPreferenceRepository.findByUserId(userId).orElse(null);
+            if (preference != null && !preference.isMessages()) return;
+
+            notificationRepository.save(Notification.builder()
+                    .user(user)
+                    .type("message")
+                    .title(title)
+                    .body(body)
+                    .entityType("conversation")
+                    .entityId(conversationId)
+                    .build());
+
+            if (preference == null || preference.isEmailNotifications()) {
+                emailNotificationService.send(user.getEmail(), user.getName(), title, body);
+            }
+        } catch (Exception ex) {
+            log.error("Failed to send message notification for user {}: {}", userId, ex.getMessage(), ex);
+        }
     }
 
     /**
@@ -105,4 +134,3 @@ public class NotificationService {
         );
     }
 }
-

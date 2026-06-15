@@ -34,19 +34,22 @@ public class MessageService {
     private final QuickDealOfferRepository quickDealOfferRepository;
     private final MessageMapper messageMapper;
     private final FileStorageService fileStorageService;
+    private final NotificationService notificationService;
 
     public MessageService(MessageRepository messageRepository,
                           ConversationRepository conversationRepository,
                           UserRepository userRepository,
                           QuickDealOfferRepository quickDealOfferRepository,
                           MessageMapper messageMapper,
-                          FileStorageService fileStorageService) {
+                          FileStorageService fileStorageService,
+                          NotificationService notificationService) {
         this.messageRepository = messageRepository;
         this.conversationRepository = conversationRepository;
         this.userRepository = userRepository;
         this.quickDealOfferRepository = quickDealOfferRepository;
         this.messageMapper = messageMapper;
         this.fileStorageService = fileStorageService;
+        this.notificationService = notificationService;
     }
 
     @Transactional
@@ -55,7 +58,10 @@ public class MessageService {
         if (role.isAdmin()) {
             throw new ApiException(HttpStatus.FORBIDDEN, "Admin cannot send messages");
         }
-        Conversation conversation = findConversation(conversationId);
+        if (request.content() == null || request.content().isBlank()) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Message content is required");
+        }
+        Conversation conversation = findConversationForUpdate(conversationId);
         validateParticipant(userId, conversation);
         User sender = findUser(userId);
 
@@ -77,7 +83,7 @@ public class MessageService {
         if (role.isAdmin()) {
             throw new ApiException(HttpStatus.FORBIDDEN, "Admin cannot send offers");
         }
-        Conversation conversation = findConversation(conversationId);
+        Conversation conversation = findConversationForUpdate(conversationId);
         validateParticipant(userId, conversation);
         User sender = findUser(userId);
 
@@ -126,7 +132,7 @@ public class MessageService {
     @Transactional
     public MessageResponse sendAttachmentMessage(UUID userId, UserRole role, UUID conversationId, MultipartFile file) {
         if (role.isAdmin()) throw new ApiException(HttpStatus.FORBIDDEN, "Admin cannot send messages");
-        Conversation conversation = findConversation(conversationId);
+        Conversation conversation = findConversationForUpdate(conversationId);
         validateParticipant(userId, conversation);
         User sender = findUser(userId);
 
@@ -150,13 +156,11 @@ public class MessageService {
         Conversation conversation = findConversation(conversationId);
         validateParticipant(userId, conversation);
         if (role.isCreator()) {
-            conversation.setUnreadCountCreator(0);
-            conversation.setReadByCreator(true);
+            conversationRepository.markReadForCreator(conversationId);
         } else {
-            conversation.setUnreadCountBrand(0);
-            conversation.setReadByBrand(true);
+            conversationRepository.markReadForBrand(conversationId);
         }
-        conversationRepository.save(conversation);
+        messageRepository.markIncomingRead(conversationId, userId);
     }
 
     // ---- helpers ----
@@ -182,6 +186,14 @@ public class MessageService {
                 ? preview.substring(0, 200) : preview);
         conversation.setLastMessageId(messageId);
         conversationRepository.save(conversation);
+        UUID recipientId = senderRole.isCreator()
+                ? conversation.getBrand().getId()
+                : conversation.getCreator().getId();
+        String senderName = senderRole.isCreator()
+                ? conversation.getCreator().getName()
+                : conversation.getBrand().getDisplayName();
+        notificationService.sendMessageNotification(recipientId, "New message from " + senderName,
+                preview == null ? "New message" : preview, conversation.getId());
     }
 
     private DealType parseDealType(String rawValue) {
@@ -203,6 +215,11 @@ public class MessageService {
 
     private Conversation findConversation(UUID id) {
         return conversationRepository.findById(id)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Conversation not found"));
+    }
+
+    private Conversation findConversationForUpdate(UUID id) {
+        return conversationRepository.findByIdForUpdate(id)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Conversation not found"));
     }
 
