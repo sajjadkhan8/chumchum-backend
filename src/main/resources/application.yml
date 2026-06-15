@@ -8,7 +8,7 @@ spring:
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/zingzing?currentSchema=core}
     username: ${DB_USERNAME:postgres}
-    password: ${DB_PASSWORD}
+    password: ${DB_PASSWORD:Haripur@1}
 
   jpa:
     hibernate:
@@ -49,7 +49,7 @@ logging:
 
 security:
   jwt:
-    secret: ${JWT_SECRET_BASE64}
+    secret: ${JWT_SECRET_BASE64:441065381746aeq9li8fbjg81d0lb4jjatpp72earjgk}
     expiration-ms: ${JWT_EXPIRATION_MS:900000}
   refresh:
     expiration-seconds: ${REFRESH_EXPIRATION_SECONDS:2592000}
@@ -61,7 +61,7 @@ security:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:4200,http://localhost:5173,http://localhost:4173,https://chumchum-frontend.vercel.app}
   oauth:
     google:
-      client-ids: ${GOOGLE_CLIENT_IDS:web-client-id.apps.googleusercontent.com}
+      client-ids: ${GOOGLE_CLIENT_IDS:44085381746-geq9li8fbig81d0lb4jjatpp72earjgk.apps.googleusercontent.com}
       token-info-url: ${GOOGLE_TOKEN_INFO_URL:https://oauth2.googleapis.com/tokeninfo}
 
 app:
@@ -70,7 +70,7 @@ app:
     log-content: ${EMAIL_LOG_CONTENT:false}
   refunds:
     mock:
-      webhook-secret: ${MOCK_REFUND_WEBHOOK_SECRET}
+      webhook-secret: ${MOCK_REFUND_WEBHOOK_SECRET:JustSomeRandSecretForSMSRefund}
   uploads:
     dir: ${UPLOAD_DIR:./uploads}
     base-url: ${UPLOAD_BASE_URL:http://localhost:8080/uploads}
