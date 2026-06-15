@@ -77,3 +77,4 @@ docker-compose.override.yml
 # =========================
 *.bak
 *.orig
+bin
