@@ -1,6 +1,7 @@
 package com.chamcham.backend.service;
 
 import com.chamcham.backend.dto.order.OrderResponse;
+import com.chamcham.backend.dto.order.DeliverableResponse;
 import com.chamcham.backend.entity.Brand;
 import com.chamcham.backend.entity.Deliverable;
 import com.chamcham.backend.entity.Order;
@@ -14,6 +15,7 @@ import com.chamcham.backend.entity.enums.UserRole;
 import com.chamcham.backend.exception.ApiException;
 import com.chamcham.backend.mapper.OrderMapper;
 import com.chamcham.backend.repository.BrandRepository;
+import com.chamcham.backend.repository.DeliverableRepository;
 import com.chamcham.backend.repository.OrderRepository;
 import com.chamcham.backend.repository.ServicePackageRepository;
 import com.chamcham.backend.repository.TransactionRepository;
@@ -23,6 +25,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.OffsetDateTime;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
@@ -41,7 +44,7 @@ public class OrderService {
             OrderStatus.PENDING,    EnumSet.of(OrderStatus.ACCEPTED, OrderStatus.CANCELLED),
             OrderStatus.ACCEPTED,   EnumSet.of(OrderStatus.IN_PROGRESS, OrderStatus.CANCELLED),
             OrderStatus.IN_PROGRESS,EnumSet.of(OrderStatus.DELIVERED),
-            OrderStatus.DELIVERED,  EnumSet.of(OrderStatus.REVIEW, OrderStatus.COMPLETED),
+            OrderStatus.DELIVERED,  EnumSet.of(OrderStatus.REVIEW, OrderStatus.REVISION, OrderStatus.COMPLETED),
             OrderStatus.REVIEW,     EnumSet.of(OrderStatus.COMPLETED, OrderStatus.REVISION),
             OrderStatus.REVISION,   EnumSet.of(OrderStatus.IN_PROGRESS),
             OrderStatus.COMPLETED,  EnumSet.noneOf(OrderStatus.class),
@@ -51,21 +54,27 @@ public class OrderService {
     private final OrderRepository orderRepository;
     private final ServicePackageRepository servicePackageRepository;
     private final BrandRepository brandRepository;
+    private final DeliverableRepository deliverableRepository;
     private final WalletRepository walletRepository;
     private final TransactionRepository transactionRepository;
     private final OrderMapper orderMapper;
+    private final NotificationService notificationService;
     public OrderService(OrderRepository orderRepository,
                         ServicePackageRepository servicePackageRepository,
                         BrandRepository brandRepository,
+                        DeliverableRepository deliverableRepository,
                         WalletRepository walletRepository,
                         TransactionRepository transactionRepository,
-                        OrderMapper orderMapper) {
+                        OrderMapper orderMapper,
+                        NotificationService notificationService) {
         this.orderRepository = orderRepository;
         this.servicePackageRepository = servicePackageRepository;
         this.brandRepository = brandRepository;
+        this.deliverableRepository = deliverableRepository;
         this.walletRepository = walletRepository;
         this.transactionRepository = transactionRepository;
         this.orderMapper = orderMapper;
+        this.notificationService = notificationService;
     }
 
     @Transactional(readOnly = true)
@@ -162,6 +171,11 @@ public class OrderService {
                     throw new ApiException(HttpStatus.FORBIDDEN, "Only brands can set status: " + newStatus);
                 }
             }
+            case REVIEW -> {
+                if (!role.isAdmin()) {
+                    throw new ApiException(HttpStatus.FORBIDDEN, "Review status is managed from deliverable approvals");
+                }
+            }
             case CANCELLED -> {
                 if (role.isAdmin()) break;
                 if (role.isBrand() && order.getStatus() != OrderStatus.PENDING) {
@@ -177,12 +191,102 @@ public class OrderService {
                     "Cannot transition from " + order.getStatus() + " to " + newStatus);
         }
 
+        validateDeliverableTransition(order, newStatus);
         order.setStatus(newStatus);
+        if (newStatus == OrderStatus.IN_PROGRESS && order.getProgress() == 0) {
+            order.setProgress(5);
+        } else if (newStatus == OrderStatus.COMPLETED) {
+            order.setProgress(100);
+        }
         Order saved = orderRepository.save(order);
         if (newStatus == OrderStatus.COMPLETED) {
             releaseCreatorEarnings(saved);
         }
+        notifyStatusChange(saved, newStatus);
         return orderMapper.toResponse(saved);
+    }
+
+    @Transactional
+    public DeliverableResponse submitDeliverable(UUID orderId, UUID deliverableId, String fileUrl, String note,
+                                                 UUID userId, UserRole role) {
+        Order order = findOrder(orderId);
+        if (!role.isAdmin() && (!role.isCreator() || !order.getCreator().getId().equals(userId))) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "Only the order creator can submit deliverables");
+        }
+        if (order.getStatus() != OrderStatus.IN_PROGRESS && order.getStatus() != OrderStatus.REVISION) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Deliverables can only be submitted while work is in progress or revision");
+        }
+        if (fileUrl == null || fileUrl.isBlank()) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "fileUrl is required");
+        }
+
+        Deliverable deliverable = findOrderDeliverable(orderId, deliverableId);
+        if (!hasStatus(deliverable, Deliverable.DeliverableStatus.PENDING,
+                Deliverable.DeliverableStatus.IN_PROGRESS, Deliverable.DeliverableStatus.REVISION)) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "This deliverable is not awaiting a submission");
+        }
+
+        deliverable.setFileUrl(fileUrl.trim());
+        deliverable.setStatus(Deliverable.DeliverableStatus.REVIEW);
+        deliverable.setSubmittedAt(OffsetDateTime.now());
+        Deliverable saved = deliverableRepository.save(deliverable);
+
+        List<Deliverable> deliverables = deliverableRepository.findByOrderId(orderId);
+        updateDerivedProgress(order, deliverables);
+        if (deliverables.stream().allMatch(this::isSubmittedOrApproved)) {
+            order.setStatus(OrderStatus.DELIVERED);
+        }
+        orderRepository.save(order);
+
+        String detail = note == null || note.isBlank() ? saved.getName() : saved.getName() + ": " + note.trim();
+        notificationService.send(order.getBrand().getId(), "deliverable_submitted", "Deliverable submitted",
+                detail, "order", order.getId());
+        return toDeliverableResponse(saved);
+    }
+
+    @Transactional
+    public DeliverableResponse reviewDeliverable(UUID orderId, UUID deliverableId, String rawStatus,
+                                                 UUID userId, UserRole role) {
+        Order order = findOrder(orderId);
+        if (!role.isAdmin() && (!role.isBrand() || !order.getBrand().getId().equals(userId))) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "Only the order brand can review deliverables");
+        }
+        if (order.getStatus() != OrderStatus.DELIVERED && order.getStatus() != OrderStatus.REVIEW) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Deliverables can only be reviewed after delivery");
+        }
+
+        Deliverable.DeliverableStatus requested;
+        try {
+            requested = Deliverable.DeliverableStatus.valueOf(rawStatus.trim().toUpperCase());
+        } catch (Exception exception) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Invalid status: " + rawStatus);
+        }
+        if (requested != Deliverable.DeliverableStatus.COMPLETED
+                && requested != Deliverable.DeliverableStatus.REVISION) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Brand review can only approve or request revision");
+        }
+
+        Deliverable deliverable = findOrderDeliverable(orderId, deliverableId);
+        if (!hasStatus(deliverable, Deliverable.DeliverableStatus.REVIEW)) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "This deliverable is not awaiting review");
+        }
+        deliverable.setStatus(requested);
+        Deliverable saved = deliverableRepository.save(deliverable);
+
+        List<Deliverable> deliverables = deliverableRepository.findByOrderId(orderId);
+        updateDerivedProgress(order, deliverables);
+        if (requested == Deliverable.DeliverableStatus.REVISION) {
+            order.setStatus(OrderStatus.REVISION);
+        } else if (deliverables.stream().allMatch(this::isApproved)) {
+            order.setStatus(OrderStatus.REVIEW);
+        }
+        orderRepository.save(order);
+
+        notificationService.send(order.getCreator().getId(),
+                requested == Deliverable.DeliverableStatus.REVISION ? "deliverable_revision" : "deliverable_approved",
+                requested == Deliverable.DeliverableStatus.REVISION ? "Revision requested" : "Deliverable approved",
+                saved.getName(), "order", order.getId());
+        return toDeliverableResponse(saved);
     }
 
     @Transactional
@@ -208,6 +312,69 @@ public class OrderService {
         if (!order.getCreator().getId().equals(userId) && !order.getBrand().getId().equals(userId)) {
             throw new ApiException(HttpStatus.FORBIDDEN, "Access denied");
         }
+    }
+
+    private Deliverable findOrderDeliverable(UUID orderId, UUID deliverableId) {
+        Deliverable deliverable = deliverableRepository.findById(deliverableId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Deliverable not found"));
+        if (!deliverable.getOrder().getId().equals(orderId)) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Deliverable does not belong to this order");
+        }
+        return deliverable;
+    }
+
+    private void validateDeliverableTransition(Order order, OrderStatus newStatus) {
+        List<Deliverable> deliverables = deliverableRepository.findByOrderId(order.getId());
+        if (newStatus == OrderStatus.DELIVERED && !deliverables.stream().allMatch(this::isSubmittedOrApproved)) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Submit every deliverable before marking the order delivered");
+        }
+        if (newStatus == OrderStatus.COMPLETED && !deliverables.stream().allMatch(this::isApproved)) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Approve every deliverable before completing the order");
+        }
+        if (newStatus == OrderStatus.REVISION
+                && deliverables.stream().noneMatch(deliverable -> hasStatus(deliverable, Deliverable.DeliverableStatus.REVISION))) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Request revision on a deliverable first");
+        }
+    }
+
+    private void updateDerivedProgress(Order order, List<Deliverable> deliverables) {
+        if (deliverables.isEmpty()) {
+            order.setProgress(0);
+            return;
+        }
+        long submitted = deliverables.stream().filter(this::isSubmittedOrApproved).count();
+        order.setProgress((int) Math.round(submitted * 100.0 / deliverables.size()));
+    }
+
+    private boolean isSubmittedOrApproved(Deliverable deliverable) {
+        return hasStatus(deliverable, Deliverable.DeliverableStatus.REVIEW,
+                Deliverable.DeliverableStatus.COMPLETED, Deliverable.DeliverableStatus.APPROVED);
+    }
+
+    private boolean isApproved(Deliverable deliverable) {
+        return hasStatus(deliverable, Deliverable.DeliverableStatus.COMPLETED, Deliverable.DeliverableStatus.APPROVED);
+    }
+
+    private boolean hasStatus(Deliverable deliverable, Deliverable.DeliverableStatus... statuses) {
+        String actual = deliverable.getStatus().name();
+        for (Deliverable.DeliverableStatus status : statuses) {
+            if (actual.equalsIgnoreCase(status.name())) return true;
+        }
+        return false;
+    }
+
+    private DeliverableResponse toDeliverableResponse(Deliverable deliverable) {
+        return new DeliverableResponse(deliverable.getId(), deliverable.getOrder().getId(), deliverable.getName(),
+                deliverable.getStatus().name().toLowerCase(), deliverable.getFileUrl(),
+                deliverable.getSubmittedAt(), deliverable.getCreatedAt());
+    }
+
+    private void notifyStatusChange(Order order, OrderStatus newStatus) {
+        UUID recipientId = newStatus == OrderStatus.ACCEPTED || newStatus == OrderStatus.IN_PROGRESS
+                || newStatus == OrderStatus.DELIVERED ? order.getBrand().getId() : order.getCreator().getId();
+        notificationService.send(recipientId, "order_status", "Order status updated",
+                "Order " + order.getOrderNumber() + " is now " + newStatus.name().toLowerCase().replace('_', ' '),
+                "order", order.getId());
     }
 
     private void validateDealPayload(DealType dealType, Integer amount, String barterDetails) {

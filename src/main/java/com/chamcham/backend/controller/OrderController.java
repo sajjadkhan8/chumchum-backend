@@ -5,12 +5,8 @@ import com.chamcham.backend.dto.order.CreateOrderRequest;
 import com.chamcham.backend.dto.order.DeliverableResponse;
 import com.chamcham.backend.dto.order.OrderResponse;
 import com.chamcham.backend.dto.order.UpdateOrderStatusRequest;
-import com.chamcham.backend.entity.Deliverable;
-import com.chamcham.backend.entity.Order;
 import com.chamcham.backend.entity.enums.OrderStatus;
 import com.chamcham.backend.exception.ApiException;
-import com.chamcham.backend.repository.DeliverableRepository;
-import com.chamcham.backend.repository.OrderRepository;
 import com.chamcham.backend.service.OrderService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -24,7 +20,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -34,14 +29,9 @@ import java.util.UUID;
 public class OrderController {
 
     private final OrderService orderService;
-    private final OrderRepository orderRepository;
-    private final DeliverableRepository deliverableRepository;
 
-    public OrderController(OrderService orderService, OrderRepository orderRepository,
-                           DeliverableRepository deliverableRepository) {
+    public OrderController(OrderService orderService) {
         this.orderService = orderService;
-        this.orderRepository = orderRepository;
-        this.deliverableRepository = deliverableRepository;
     }
 
     @GetMapping
@@ -85,52 +75,17 @@ public class OrderController {
     public ResponseEntity<DeliverableResponse> submitDeliverable(@PathVariable UUID orderId,
             @PathVariable UUID deliverableId, @RequestBody Map<String, String> body,
             @AuthenticationPrincipal AuthenticatedUser authUser) {
-        Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Order not found"));
-        if (!order.getCreator().getId().equals(authUser.userId()) && !authUser.role().isAdmin())
-            throw new ApiException(HttpStatus.FORBIDDEN, "Access denied");
-        Deliverable d = deliverableRepository.findById(deliverableId)
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Deliverable not found"));
-        if (!d.getOrder().getId().equals(orderId))
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Deliverable does not belong to this order");
-        String fileUrl = body.get("fileUrl");
-        String note = body.get("note");
-        if (fileUrl != null) d.setFileUrl(fileUrl);
-        if (note != null && !note.isBlank()) {
-            String ex = d.getName();
-            d.setName(ex == null ? note : ex + " - " + note);
-        }
-        d.setStatus(Deliverable.DeliverableStatus.REVIEW);
-        d.setSubmittedAt(OffsetDateTime.now());
-        return ResponseEntity.ok(toDeliverableResponse(deliverableRepository.save(d)));
+        return ResponseEntity.ok(orderService.submitDeliverable(orderId, deliverableId,
+                body.get("fileUrl"), body.get("note"), authUser.userId(), authUser.role()));
     }
 
     @PatchMapping("/{orderId}/deliverables/{deliverableId}/status")
     public ResponseEntity<DeliverableResponse> updateDeliverableStatus(@PathVariable UUID orderId,
             @PathVariable UUID deliverableId, @RequestBody Map<String, String> body,
             @AuthenticationPrincipal AuthenticatedUser authUser) {
-        Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Order not found"));
-        if (!order.getCreator().getId().equals(authUser.userId())
-                && !order.getBrand().getId().equals(authUser.userId())
-                && !authUser.role().isAdmin())
-            throw new ApiException(HttpStatus.FORBIDDEN, "Access denied");
-        Deliverable d = deliverableRepository.findById(deliverableId)
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Deliverable not found"));
-        if (!d.getOrder().getId().equals(orderId))
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Deliverable does not belong to this order");
         String raw = body.get("status");
         if (raw == null) throw new ApiException(HttpStatus.BAD_REQUEST, "status is required");
-        try {
-            d.setStatus(Deliverable.DeliverableStatus.valueOf(raw.trim().toUpperCase()));
-        } catch (Exception e) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Invalid status: " + raw);
-        }
-        return ResponseEntity.ok(toDeliverableResponse(deliverableRepository.save(d)));
-    }
-
-    private DeliverableResponse toDeliverableResponse(Deliverable d) {
-        return new DeliverableResponse(d.getId(), d.getOrder().getId(), d.getName(),
-                d.getStatus().name().toLowerCase(), d.getFileUrl(), d.getSubmittedAt(), d.getCreatedAt());
+        return ResponseEntity.ok(orderService.reviewDeliverable(orderId, deliverableId, raw,
+                authUser.userId(), authUser.role()));
     }
 }
