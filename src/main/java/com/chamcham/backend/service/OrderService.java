@@ -59,6 +59,7 @@ public class OrderService {
     private final TransactionRepository transactionRepository;
     private final OrderMapper orderMapper;
     private final NotificationService notificationService;
+    private final AffiliateService affiliateService;
     public OrderService(OrderRepository orderRepository,
                         ServicePackageRepository servicePackageRepository,
                         BrandRepository brandRepository,
@@ -66,7 +67,8 @@ public class OrderService {
                         WalletRepository walletRepository,
                         TransactionRepository transactionRepository,
                         OrderMapper orderMapper,
-                        NotificationService notificationService) {
+                        NotificationService notificationService,
+                        AffiliateService affiliateService) {
         this.orderRepository = orderRepository;
         this.servicePackageRepository = servicePackageRepository;
         this.brandRepository = brandRepository;
@@ -75,6 +77,7 @@ public class OrderService {
         this.transactionRepository = transactionRepository;
         this.orderMapper = orderMapper;
         this.notificationService = notificationService;
+        this.affiliateService = affiliateService;
     }
 
     @Transactional(readOnly = true)
@@ -426,5 +429,6 @@ public class OrderService {
                 .description("Order " + orderLabel + " payout credit")
                 .status(TransactionStatus.COMPLETED)
                 .build());
+        affiliateService.releaseCommissionForCompletedOrder(order);
     }
 }

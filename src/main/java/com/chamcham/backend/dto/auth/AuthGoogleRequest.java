@@ -7,7 +7,10 @@ import jakarta.validation.constraints.NotNull;
 public record AuthGoogleRequest(
         @NotBlank String idToken,
         @NotNull UserRole role,
-        String name
+        String name,
+        String affiliateCode
 ) {
+    public AuthGoogleRequest(String idToken, UserRole role, String name) {
+        this(idToken, role, name, null);
+    }
 }
-

@@ -33,6 +33,7 @@ public class AuthService {
     private final UserMapper userMapper;
     private final CreatorService creatorService;
     private final BrandService brandService;
+    private final CreatorRepository creatorRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final GoogleTokenVerifierService googleTokenVerifierService;
@@ -41,6 +42,7 @@ public class AuthService {
     private final AuthPasswordResetTokenRepository resetTokenRepository;
     private final AuthOtpChallengeRepository otpChallengeRepository;
     private final AuthRateLimitService rateLimitService;
+    private final AffiliateService affiliateService;
     private final SecureRandom secureRandom = new SecureRandom();
     private final long refreshExpirationSeconds;
     private final String frontendBaseUrl;
@@ -50,6 +52,7 @@ public class AuthService {
             UserMapper userMapper,
             CreatorService creatorService,
             BrandService brandService,
+            CreatorRepository creatorRepository,
             PasswordEncoder passwordEncoder,
             JwtService jwtService,
             GoogleTokenVerifierService googleTokenVerifierService,
@@ -58,6 +61,7 @@ public class AuthService {
             AuthPasswordResetTokenRepository resetTokenRepository,
             AuthOtpChallengeRepository otpChallengeRepository,
             AuthRateLimitService rateLimitService,
+            AffiliateService affiliateService,
             @Value("${security.refresh.expiration-seconds:2592000}") long refreshExpirationSeconds,
             @Value("${app.frontend-base-url:http://localhost:3000}") String frontendBaseUrl
     ) {
@@ -65,6 +69,7 @@ public class AuthService {
         this.userMapper = userMapper;
         this.creatorService = creatorService;
         this.brandService = brandService;
+        this.creatorRepository = creatorRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
         this.googleTokenVerifierService = googleTokenVerifierService;
@@ -73,6 +78,7 @@ public class AuthService {
         this.resetTokenRepository = resetTokenRepository;
         this.otpChallengeRepository = otpChallengeRepository;
         this.rateLimitService = rateLimitService;
+        this.affiliateService = affiliateService;
         this.refreshExpirationSeconds = refreshExpirationSeconds;
         this.frontendBaseUrl = frontendBaseUrl.replaceAll("/+$", "");
     }
@@ -99,6 +105,8 @@ public class AuthService {
 
         if (request.role() == UserRole.CREATOR) {
             creatorService.create(new CreatorCreateRequest(user.getId(), null, null, null, null, null, null));
+            creatorRepository.findById(user.getId())
+                    .ifPresent(creator -> affiliateService.recordCreatorSignupAttribution(creator, request.affiliateCode()));
         } else if (request.role() == UserRole.BRAND) {
             brandService.create(new BrandCreateRequest(user.getId(), request.name(), null, null, null));
         }
@@ -190,13 +198,21 @@ public class AuthService {
         }
 
         GoogleTokenVerifierService.VerifiedGoogleProfile googleProfile = googleTokenVerifierService.verifyIdToken(request.idToken());
+        boolean[] createdUser = {false};
         User user = userRepository.findByGoogleSubject(googleProfile.subject())
                 .map(existing -> updateLinkedGoogleUser(existing, googleProfile, request))
                 .orElseGet(() -> userRepository.findByEmail(googleProfile.email())
                         .map(existing -> linkGoogleToExistingEmail(existing, googleProfile, request))
-                        .orElseGet(() -> createGoogleUser(googleProfile, request)));
+                        .orElseGet(() -> {
+                            createdUser[0] = true;
+                            return createGoogleUser(googleProfile, request);
+                        }));
 
         requireActive(user);
+        if (createdUser[0] && user.getRole() == UserRole.CREATOR) {
+            creatorRepository.findById(user.getId())
+                    .ifPresent(creator -> affiliateService.recordCreatorSignupAttribution(creator, request.affiliateCode()));
+        }
         return issueTokens(user);
     }
 

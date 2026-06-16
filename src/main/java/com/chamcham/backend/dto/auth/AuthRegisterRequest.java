@@ -12,6 +12,10 @@ public record AuthRegisterRequest(
         @NotBlank @Email String email,
         @NotBlank @Size(min = 8, max = 120)
         @Pattern(regexp = ".*(?=.*[A-Z])(?=.*\\d).*") String password,
-        @NotNull UserRole role
+        @NotNull UserRole role,
+        @Size(max = 40) String affiliateCode
 ) {
+    public AuthRegisterRequest(String name, String email, String password, UserRole role) {
+        this(name, email, password, role, null);
+    }
 }
