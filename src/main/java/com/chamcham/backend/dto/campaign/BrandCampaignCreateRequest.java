@@ -1,15 +1,16 @@
-package com.chamcham.backend.dto.offer;
+package com.chamcham.backend.dto.campaign;
 
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
 import java.time.LocalDate;
 
-public record BrandOfferUpdateRequest(
-         @Size(max = 160) String title,
-         @Size(max = 2000) String brief,
-         @Size(max = 40) String offerType,
+public record BrandCampaignCreateRequest(
+         @NotBlank @Size(max = 160) String title,
+         @NotBlank @Size(max = 2000) String brief,
+         @NotBlank @Size(max = 40) String offerType,
          @Min(0) Integer budgetMin,
          @Min(0) Integer budgetMax,
          @Size(max = 10) String currency,
@@ -55,4 +56,3 @@ public record BrandOfferUpdateRequest(
          @Min(1) Integer campaignDuration
  ) {
  }
-

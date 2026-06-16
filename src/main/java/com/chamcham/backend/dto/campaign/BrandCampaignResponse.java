@@ -1,10 +1,10 @@
-package com.chamcham.backend.dto.offer;
+package com.chamcham.backend.dto.campaign;
 
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.UUID;
 
-public record BrandOfferResponse(
+public record BrandCampaignResponse(
          UUID id,
          UUID brandId,
          String brandName,
@@ -61,4 +61,3 @@ public record BrandOfferResponse(
          long reactionCount
  ) {
  }
-

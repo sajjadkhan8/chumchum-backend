@@ -478,7 +478,7 @@ create table quick_deal_offers (
     updated_at timestamptz not null default now()
 );
 
-create table brand_offers (
+create table brand_campaigns (
     id uuid primary key default gen_random_uuid(),
     brand_id uuid not null references brands(id) on delete cascade,
     title varchar(160) not null,
@@ -531,14 +531,14 @@ create table brand_offers (
     target_region varchar(100),
     created_at timestamptz not null default now(),
     updated_at timestamptz not null default now(),
-    constraint ck_brand_offers_budget check (budget_min >= 0 and budget_max >= 0 and budget_min <= budget_max),
-    constraint ck_brand_offers_status check (status in ('DRAFT', 'PUBLISHED', 'PAUSED', 'CLOSED', 'ARCHIVED')),
-    constraint ck_brand_offers_visibility check (visibility in ('public', 'private'))
+    constraint ck_brand_campaigns_budget check (budget_min >= 0 and budget_max >= 0 and budget_min <= budget_max),
+    constraint ck_brand_campaigns_status check (status in ('DRAFT', 'PUBLISHED', 'PAUSED', 'CLOSED', 'ARCHIVED')),
+    constraint ck_brand_campaigns_visibility check (visibility in ('public', 'private'))
 );
 
-create table brand_offer_reactions (
+create table brand_campaign_reactions (
     id uuid primary key default gen_random_uuid(),
-    offer_id uuid not null references brand_offers(id) on delete cascade,
+    campaign_id uuid not null references brand_campaigns(id) on delete cascade,
     creator_id uuid not null references creators(id) on delete cascade,
     reaction_type varchar(30) not null,
     status varchar(30) not null default 'SUBMITTED',
@@ -550,11 +550,11 @@ create table brand_offer_reactions (
     creator_note text,
     created_at timestamptz not null default now(),
     updated_at timestamptz not null default now(),
-    constraint ck_offer_reactions_type check (reaction_type in ('INTERESTED', 'PROPOSAL', 'QUESTION', 'DECLINE')),
-    constraint ck_offer_reactions_status check (status in ('SUBMITTED', 'SHORTLISTED', 'IN_REVIEW', 'ACCEPTED', 'REJECTED', 'WITHDRAWN')),
-    constraint ck_offer_reactions_proposed_price check (proposed_price is null or proposed_price >= 0),
-    constraint ck_offer_reactions_proposed_days check (proposed_delivery_days is null or proposed_delivery_days > 0),
-    constraint uk_offer_creator unique (offer_id, creator_id)
+    constraint ck_campaign_reactions_type check (reaction_type in ('INTERESTED', 'PROPOSAL', 'QUESTION', 'DECLINE')),
+    constraint ck_campaign_reactions_status check (status in ('SUBMITTED', 'SHORTLISTED', 'IN_REVIEW', 'ACCEPTED', 'REJECTED', 'WITHDRAWN')),
+    constraint ck_campaign_reactions_proposed_price check (proposed_price is null or proposed_price >= 0),
+    constraint ck_campaign_reactions_proposed_days check (proposed_delivery_days is null or proposed_delivery_days > 0),
+    constraint uk_campaign_creator unique (campaign_id, creator_id)
 );
 
 create table notifications (
@@ -648,10 +648,10 @@ create index idx_brand_invoices_brand_id on brand_invoices(brand_id, due_at desc
 create index idx_brand_disbursements_brand_id on brand_disbursements(brand_id, release_date desc);
 create index idx_brand_payment_access_lookup on brand_payment_access(user_id, brand_id);
 create index idx_payment_audit_logs_brand_created on payment_audit_logs(brand_id, created_at desc);
-create index idx_brand_offers_brand_status on brand_offers(brand_id, status, created_at desc);
-create index idx_brand_offers_feed on brand_offers(status, deadline_date, published_at desc);
-create index idx_brand_offer_reactions_offer on brand_offer_reactions(offer_id, created_at desc);
-create index idx_brand_offer_reactions_creator on brand_offer_reactions(creator_id, updated_at desc);
+create index idx_brand_campaigns_brand_status on brand_campaigns(brand_id, status, created_at desc);
+create index idx_brand_campaigns_feed on brand_campaigns(status, deadline_date, published_at desc);
+create index idx_brand_campaign_reactions_offer on brand_campaign_reactions(campaign_id, created_at desc);
+create index idx_brand_campaign_reactions_creator on brand_campaign_reactions(creator_id, updated_at desc);
 create index idx_notifications_user_unread on notifications(user_id, is_read, created_at desc);
 create index idx_notifications_user_created on notifications(user_id, created_at desc);
 create index idx_dispute_cases_status_created on dispute_cases(status, created_at desc);

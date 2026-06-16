@@ -1,7 +1,7 @@
 package com.chamcham.backend.entity;
 
-import com.chamcham.backend.entity.enums.BrandOfferReactionStatus;
-import com.chamcham.backend.entity.enums.BrandOfferReactionType;
+import com.chamcham.backend.entity.enums.BrandCampaignReactionStatus;
+import com.chamcham.backend.entity.enums.BrandCampaignReactionType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -26,16 +26,16 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "brand_offer_reactions", schema = "core")
-public class BrandOfferReaction extends BaseEntity {
+@Table(name = "brand_campaign_reactions", schema = "core")
+public class BrandCampaignReaction extends BaseEntity {
 
     @Id
     @GeneratedValue
     private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "offer_id", nullable = false)
-    private BrandOffer offer;
+    @JoinColumn(name = "campaign_id", nullable = false)
+    private BrandCampaign campaign;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "creator_id", nullable = false)
@@ -43,12 +43,12 @@ public class BrandOfferReaction extends BaseEntity {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "reaction_type", nullable = false, length = 30)
-    private BrandOfferReactionType reactionType;
+    private BrandCampaignReactionType reactionType;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)
     @Builder.Default
-    private BrandOfferReactionStatus status = BrandOfferReactionStatus.SUBMITTED;
+    private BrandCampaignReactionStatus status = BrandCampaignReactionStatus.SUBMITTED;
 
     @Column(columnDefinition = "text")
     private String message;
@@ -69,4 +69,3 @@ public class BrandOfferReaction extends BaseEntity {
     @Column(name = "creator_note", columnDefinition = "text")
     private String creatorNote;
 }
-

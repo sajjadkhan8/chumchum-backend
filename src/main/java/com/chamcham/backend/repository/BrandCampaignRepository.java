@@ -1,7 +1,7 @@
 package com.chamcham.backend.repository;
 
-import com.chamcham.backend.entity.BrandOffer;
-import com.chamcham.backend.entity.enums.BrandOfferStatus;
+import com.chamcham.backend.entity.BrandCampaign;
+import com.chamcham.backend.entity.enums.BrandCampaignStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -12,14 +12,14 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
-public interface BrandOfferRepository extends JpaRepository<BrandOffer, UUID> {
+public interface BrandCampaignRepository extends JpaRepository<BrandCampaign, UUID> {
 
-    Page<BrandOffer> findByBrandIdOrderByCreatedAtDesc(UUID brandId, Pageable pageable);
+    Page<BrandCampaign> findByBrandIdOrderByCreatedAtDesc(UUID brandId, Pageable pageable);
 
-    List<BrandOffer> findByBrandIdOrderByCreatedAtDesc(UUID brandId);
+    List<BrandCampaign> findByBrandIdOrderByCreatedAtDesc(UUID brandId);
 
     @Query("""
-            select o from BrandOffer o
+            select o from BrandCampaign o
             join fetch o.brand b
             where o.status = 'PUBLISHED'
               and (cast(:search as string) is null
@@ -40,7 +40,7 @@ public interface BrandOfferRepository extends JpaRepository<BrandOffer, UUID> {
               and (o.deadlineDate is null or o.deadlineDate >= :today)
             order by o.publishedAt desc nulls last, o.createdAt desc
             """)
-    Page<BrandOffer> findPublishedForCreatorFeed(@Param("search") String search,
+    Page<BrandCampaign> findPublishedForCreatorFeed(@Param("search") String search,
                                                  @Param("city") String city,
                                                  @Param("type") String type,
                                                  @Param("platform") String platform,
@@ -50,6 +50,5 @@ public interface BrandOfferRepository extends JpaRepository<BrandOffer, UUID> {
                                                  @Param("today") LocalDate today,
                                                  Pageable pageable);
 
-    long countByBrandIdAndStatus(UUID brandId, BrandOfferStatus status);
+    long countByBrandIdAndStatus(UUID brandId, BrandCampaignStatus status);
 }
-

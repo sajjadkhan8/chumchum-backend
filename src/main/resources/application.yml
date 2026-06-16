@@ -58,7 +58,7 @@ security:
     same-site: ${COOKIE_SAME_SITE:Strict}
     max-age-seconds: ${COOKIE_MAX_AGE:2592000}
   cors:
-    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:4200,http://localhost:5173,http://localhost:4173,https://chumchum-frontend.vercel.app}
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:3001,http://localhost:4200,http://localhost:5173,http://localhost:4173,https://chumchum-frontend.vercel.app}
   oauth:
     google:
       client-ids: ${GOOGLE_CLIENT_IDS:44085381746-geq9li8fbig81d0lb4jjatpp72earjgk.apps.googleusercontent.com}

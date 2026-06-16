@@ -1,6 +1,6 @@
 package com.chamcham.backend.entity;
 
-import com.chamcham.backend.entity.enums.BrandOfferStatus;
+import com.chamcham.backend.entity.enums.BrandCampaignStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -27,8 +27,8 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "brand_offers", schema = "core")
-public class BrandOffer extends BaseEntity {
+@Table(name = "brand_campaigns", schema = "core")
+public class BrandCampaign extends BaseEntity {
 
     @Id
     @GeneratedValue
@@ -184,7 +184,7 @@ public class BrandOffer extends BaseEntity {
      @Column(nullable = false, length = 30)
      @Enumerated(EnumType.STRING)
      @Builder.Default
-     private BrandOfferStatus status = BrandOfferStatus.DRAFT;
+     private BrandCampaignStatus status = BrandCampaignStatus.DRAFT;
 
      @Column(name = "published_at")
      private Instant publishedAt;
@@ -192,4 +192,3 @@ public class BrandOffer extends BaseEntity {
      @Column(name = "closed_at")
      private Instant closedAt;
  }
-

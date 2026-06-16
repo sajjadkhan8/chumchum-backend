@@ -1,6 +1,6 @@
 package com.chamcham.backend.entity.enums;
 
-public enum BrandOfferReactionStatus {
+public enum BrandCampaignReactionStatus {
     SUBMITTED,
     SHORTLISTED,
     IN_REVIEW,
@@ -8,4 +8,3 @@ public enum BrandOfferReactionStatus {
     REJECTED,
     WITHDRAWN
 }
-
