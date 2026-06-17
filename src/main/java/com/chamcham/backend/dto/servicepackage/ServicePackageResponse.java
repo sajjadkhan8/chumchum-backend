@@ -1,6 +1,7 @@
 package com.chamcham.backend.dto.servicepackage;
 
 import com.chamcham.backend.entity.enums.DealType;
+import com.chamcham.backend.entity.enums.PackageCategory;
 import com.chamcham.backend.entity.enums.PackagePlatform;
 import com.chamcham.backend.entity.enums.PackageStatus;
 import com.chamcham.backend.entity.enums.PackageType;
@@ -22,7 +23,7 @@ public record ServicePackageResponse(
         String description,
         String fullDescription,
         PackagePlatform platform,
-        String category,
+        PackageCategory category,
         PackageType type,
         DealType dealType,
         String barterDetails,

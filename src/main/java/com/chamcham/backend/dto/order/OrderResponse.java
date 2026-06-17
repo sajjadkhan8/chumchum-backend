@@ -1,7 +1,7 @@
 package com.chamcham.backend.dto.order;
 
 import java.time.Instant;
-import java.time.LocalDate;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -20,8 +20,8 @@ public record OrderResponse(
         String message,
         String status,
         int progress,
-        LocalDate deadlineDate,
-        LocalDate deliveryDate,
+        OffsetDateTime deadlineDate,
+        OffsetDateTime deliveryDate,
         Instant createdAt,
         List<DeliverableResponse> deliverables,
         boolean barterProductReceived,

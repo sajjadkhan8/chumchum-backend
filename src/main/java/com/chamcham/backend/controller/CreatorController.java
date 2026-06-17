@@ -8,6 +8,7 @@ import com.chamcham.backend.dto.servicepackage.ServicePackageResponse;
 import com.chamcham.backend.entity.ContentPreview;
 import com.chamcham.backend.entity.Creator;
 import com.chamcham.backend.entity.SocialAccount;
+import com.chamcham.backend.entity.enums.AvailabilityStatus;
 import com.chamcham.backend.entity.enums.CreatorBadgeLevel;
 import com.chamcham.backend.exception.ApiException;
 import com.chamcham.backend.repository.ContentPreviewRepository;
@@ -70,7 +71,7 @@ public class CreatorController {
             @RequestParam(required = false) Integer minPrice,
             @RequestParam(required = false) Integer maxPrice,
             @RequestParam(required = false) CreatorBadgeLevel badgeLevel,
-            @RequestParam(required = false) String availabilityStatus,
+            @RequestParam(required = false) AvailabilityStatus availabilityStatus,
             @RequestParam(required = false) Boolean acceptsBarter,
             @RequestParam(required = false) Boolean isTrending,
             @RequestParam(required = false) Boolean isFastResponder,

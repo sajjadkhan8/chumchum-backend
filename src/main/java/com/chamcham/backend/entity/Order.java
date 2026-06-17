@@ -5,7 +5,7 @@ import com.chamcham.backend.entity.enums.OrderStatus;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.time.LocalDate;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -62,10 +62,10 @@ public class Order extends BaseEntity {
     private int progress = 0;
 
     @Column(name = "delivery_date")
-    private LocalDate deliveryDate;
+    private OffsetDateTime deliveryDate;
 
     @Column(name = "deadline_date")
-    private LocalDate deadlineDate;
+    private OffsetDateTime deadlineDate;
 
     @Column(name = "barter_product_received", nullable = false)
     @Builder.Default

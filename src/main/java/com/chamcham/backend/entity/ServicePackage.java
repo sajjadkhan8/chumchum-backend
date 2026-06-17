@@ -1,6 +1,7 @@
 package com.chamcham.backend.entity;
 
 import com.chamcham.backend.entity.enums.DealType;
+import com.chamcham.backend.entity.enums.PackageCategory;
 import com.chamcham.backend.entity.enums.PackagePlatform;
 import com.chamcham.backend.entity.enums.PackageStatus;
 import com.chamcham.backend.entity.enums.PackageType;
@@ -51,8 +52,9 @@ public class ServicePackage extends BaseEntity {
     @Column(nullable = false, length = 50)
     private PackagePlatform platform;
 
-    @Column(length = 80)
-    private String category;
+    @Enumerated(EnumType.STRING)
+    @Column(length = 50)
+    private PackageCategory category;
 
     // legacy type (ONE_TIME/SUBSCRIPTION) – kept for backward compat
     @Enumerated(EnumType.STRING)

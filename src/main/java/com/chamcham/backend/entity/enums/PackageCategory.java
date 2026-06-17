@@ -1,0 +1,20 @@
+package com.chamcham.backend.entity.enums;
+
+public enum PackageCategory {
+    FASHION_BEAUTY,
+    FOOD_BEVERAGE,
+    TECHNOLOGY_GADGETS,
+    FITNESS_HEALTH,
+    TRAVEL_LIFESTYLE,
+    ENTERTAINMENT_COMEDY,
+    EDUCATION_CAREER,
+    BUSINESS_FINANCE,
+    HOME_DECOR,
+    GAMING,
+    PARENTING_FAMILY,
+    SPORTS,
+    AUTOMOTIVE,
+    RELIGIOUS_SPIRITUAL,
+    GENERAL,
+    QUICK_DEAL
+}

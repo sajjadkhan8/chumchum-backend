@@ -2,6 +2,7 @@ package com.chamcham.backend.repository;
 
 import com.chamcham.backend.entity.Creator;
 import com.chamcham.backend.entity.SocialAccount;
+import com.chamcham.backend.entity.enums.AvailabilityStatus;
 import com.chamcham.backend.entity.enums.CreatorBadgeLevel;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -76,7 +77,7 @@ public interface CreatorRepository extends JpaRepository<Creator, UUID> {
               and (:minPrice is null or c.minPrice >= :minPrice)
               and (:maxPrice is null or c.maxPrice <= :maxPrice)
               and (:badgeLevel is null or c.badgeLevel = :badgeLevel)
-              and (:availabilityStatus is null or lower(c.availabilityStatus) = lower(cast(:availabilityStatus as string)))
+              and (:availabilityStatus is null or c.availabilityStatus = :availabilityStatus)
               and (:acceptsBarter is null or c.acceptsBarter = :acceptsBarter)
               and (:isTrending is null or c.isTrending = :isTrending)
               and (:isFastResponder is null or c.isFastResponder = :isFastResponder)
@@ -96,7 +97,7 @@ public interface CreatorRepository extends JpaRepository<Creator, UUID> {
             @Param("minPrice")           Integer minPrice,
             @Param("maxPrice")           Integer maxPrice,
             @Param("badgeLevel")         CreatorBadgeLevel badgeLevel,
-            @Param("availabilityStatus") String availabilityStatus,
+            @Param("availabilityStatus") AvailabilityStatus availabilityStatus,
             @Param("acceptsBarter")      Boolean acceptsBarter,
             @Param("isTrending")         Boolean isTrending,
             @Param("isFastResponder")    Boolean isFastResponder,

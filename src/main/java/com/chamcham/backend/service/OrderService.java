@@ -23,13 +23,16 @@ import com.chamcham.backend.repository.ServicePackageRepository;
 import com.chamcham.backend.repository.TransactionRepository;
 import com.chamcham.backend.repository.WalletRepository;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -95,11 +98,17 @@ public class OrderService {
     }
 
     @Transactional(readOnly = true)
-    public List<OrderResponse> getOrders(UUID userId, UserRole role) {
-        List<Order> orders = role.isCreator()
-                ? orderRepository.findByCreatorIdOrderByCreatedAtDesc(userId)
-                : orderRepository.findByBrandIdOrderByCreatedAtDesc(userId);
-        return orders.stream().map(orderMapper::toResponse).toList();
+    public Map<String, Object> getOrders(UUID userId, UserRole role, int page, int limit) {
+        PageRequest pageable = PageRequest.of(Math.max(page, 0), Math.min(Math.max(limit, 1), 100));
+        Page<Order> orderPage = role.isCreator()
+                ? orderRepository.findByCreatorIdOrderByCreatedAtDesc(userId, pageable)
+                : orderRepository.findByBrandIdOrderByCreatedAtDesc(userId, pageable);
+        Map<String, Object> result = new HashMap<>();
+        result.put("orders", orderPage.getContent().stream().map(orderMapper::toResponse).toList());
+        result.put("total", orderPage.getTotalElements());
+        result.put("page", page);
+        result.put("limit", limit);
+        return result;
     }
 
     @Transactional(readOnly = true)
@@ -180,7 +189,9 @@ public class OrderService {
                 .message(message)
                 .status(OrderStatus.PENDING)
                 .progress(0)
-                .deadlineDate(LocalDate.now().plusDays(Math.max(pkg.getDeliveryDays(), 1)))
+                .deadlineDate(OffsetDateTime.now(ZoneId.of("Asia/Karachi"))
+                        .toLocalDate().plusDays(Math.max(pkg.getDeliveryDays(), 1))
+                        .atTime(23, 59, 59).atZone(ZoneId.of("Asia/Karachi")).toOffsetDateTime())
                 .idempotencyKey(idempotencyKey != null && !idempotencyKey.isBlank() ? idempotencyKey.trim() : null)
                 .build();
 
@@ -193,7 +204,10 @@ public class OrderService {
                 .toList();
         order.setDeliverables(deliverables);
 
-        return orderMapper.toResponse(orderRepository.save(order));
+        Order saved = orderRepository.save(order);
+        notificationService.send(saved.getCreator().getId(), "order_placed", "New order received",
+                "You have a new order for: " + pkg.getTitle(), "order", saved.getId());
+        return orderMapper.toResponse(saved);
     }
 
     @Transactional

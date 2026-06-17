@@ -31,7 +31,7 @@ public class WithdrawalRequest {
     @JoinColumn(name = "payout_method_id", nullable = false)
     private PayoutMethod payoutMethod;
 
-    /** SAR integer. */
+    /** PKR whole rupees (not paisa). */
     @Column(nullable = false)
     private int amount;
 

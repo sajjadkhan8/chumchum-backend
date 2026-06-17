@@ -11,6 +11,7 @@ import com.chamcham.backend.entity.QuickDealOffer;
 import com.chamcham.backend.entity.ServicePackage;
 import com.chamcham.backend.entity.enums.DealType;
 import com.chamcham.backend.entity.enums.OfferStatus;
+import com.chamcham.backend.entity.enums.PackageCategory;
 import com.chamcham.backend.entity.enums.PackagePlatform;
 import com.chamcham.backend.entity.enums.PackageStatus;
 import com.chamcham.backend.entity.enums.PackageType;
@@ -196,7 +197,7 @@ public class QuickDealService {
                 .description(description)
                 .fullDescription(description)
                 .platform(offer.getPlatform() != null ? offer.getPlatform() : PackagePlatform.INSTAGRAM)
-                .category("Quick Deal")
+                .category(PackageCategory.QUICK_DEAL)
                 .type(PackageType.ONE_TIME)
                 .dealType(offer.getDealType())
                 .status(PackageStatus.ACTIVE)

@@ -19,20 +19,21 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
             join fetch o.servicePackage
             join fetch o.creator
             join fetch o.brand
-            where o.creator.id = :userId or o.brand.id = :userId
+            where o.creator.id = :creatorId
             order by o.createdAt desc
             """)
-    List<Order> findAllByParticipant(@Param("userId") UUID userId);
+    List<Order> findByCreatorIdOrderByCreatedAtDesc(@Param("creatorId") UUID creatorId);
 
-    @Query("""
+    @Query(value = """
             select o from Order o
             join fetch o.servicePackage
             join fetch o.creator
             join fetch o.brand
             where o.creator.id = :creatorId
             order by o.createdAt desc
-            """)
-    List<Order> findByCreatorIdOrderByCreatedAtDesc(@Param("creatorId") UUID creatorId);
+            """,
+            countQuery = "select count(o) from Order o where o.creator.id = :creatorId")
+    Page<Order> findByCreatorIdOrderByCreatedAtDesc(@Param("creatorId") UUID creatorId, Pageable pageable);
 
     @Query("""
             select o from Order o
@@ -43,6 +44,17 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
             order by o.createdAt desc
             """)
     List<Order> findByBrandIdOrderByCreatedAtDesc(@Param("brandId") UUID brandId);
+
+    @Query(value = """
+            select o from Order o
+            join fetch o.servicePackage
+            join fetch o.creator
+            join fetch o.brand
+            where o.brand.id = :brandId
+            order by o.createdAt desc
+            """,
+            countQuery = "select count(o) from Order o where o.brand.id = :brandId")
+    Page<Order> findByBrandIdOrderByCreatedAtDesc(@Param("brandId") UUID brandId, Pageable pageable);
 
     List<Order> findByCreatorIdAndStatusIn(UUID creatorId, List<OrderStatus> statuses);
 
@@ -63,16 +75,6 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
     Optional<Order> findFirstByServicePackageName(String packageName);
 
     Optional<Order> findByIdempotencyKey(String idempotencyKey);
-
-    @Query("""
-            select distinct o from Order o
-            join fetch o.servicePackage
-            join fetch o.creator
-            join fetch o.brand
-            left join fetch o.deliverables
-            order by o.createdAt desc
-            """)
-    List<Order> findAllForAdmin();
 
     @Query("""
             select distinct o from Order o

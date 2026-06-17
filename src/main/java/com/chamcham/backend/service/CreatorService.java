@@ -8,6 +8,7 @@ import com.chamcham.backend.entity.CreatorPayoutPreference;
 import com.chamcham.backend.entity.PayoutMethod;
 import com.chamcham.backend.entity.SocialAccount;
 import com.chamcham.backend.entity.User;
+import com.chamcham.backend.entity.enums.AvailabilityStatus;
 import com.chamcham.backend.entity.enums.CreatorBadgeLevel;
 import com.chamcham.backend.entity.enums.CreatorPayoutSchedule;
 import com.chamcham.backend.entity.enums.PayoutMethodType;
@@ -117,7 +118,7 @@ public class CreatorService {
             String search, String city, String category,
             Integer minFollowers, Integer maxFollowers,
             BigDecimal minRating, Integer minPrice, Integer maxPrice,
-            CreatorBadgeLevel badgeLevel, String availabilityStatus,
+            CreatorBadgeLevel badgeLevel, AvailabilityStatus availabilityStatus,
             Boolean acceptsBarter, Boolean isTrending, Boolean isFastResponder,
             Boolean ambassadorOnly, String platform, BigDecimal minEngagementRate,
             int page, int limit, String sortBy) {
@@ -142,7 +143,7 @@ public class CreatorService {
                 category == null || category.isBlank() ? null : category.trim(),
                 minFollowers, maxFollowers, minRating,
                 minPrice, maxPrice, badgeLevel,
-                availabilityStatus == null || availabilityStatus.isBlank() ? null : availabilityStatus.trim(),
+                availabilityStatus,
                 acceptsBarter, isTrending, isFastResponder,
                 isVerified, minEngagementRate,
                 platform == null || platform.isBlank() ? null : platform.trim().toLowerCase(),

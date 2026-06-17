@@ -1,5 +1,6 @@
 package com.chamcham.backend.dto.servicepackage;
 
+import com.chamcham.backend.entity.enums.PackageCategory;
 import com.chamcham.backend.entity.enums.PackagePlatform;
 import com.chamcham.backend.entity.enums.DealType;
 import com.chamcham.backend.entity.enums.PackageStatus;
@@ -24,7 +25,7 @@ public record ServicePackageCreateRequest(
         @Size(max = 2000) String description,
         @Size(max = 2000) String fullDescription,
         @NotNull PackagePlatform platform,
-        @Size(max = 80) String category,
+        PackageCategory category,
         @NotNull PackageType type,
         DealType dealType,
         @Size(max = 1000) String barterDetails,

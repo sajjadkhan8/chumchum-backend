@@ -65,7 +65,7 @@ create table creators (
     cover_image_url varchar(500),
     website varchar(300),
     niche varchar(100),
-    availability_status varchar(100),
+    availability_status varchar(30) constraint ck_creators_availability_status check (availability_status in ('AVAILABLE', 'BUSY', 'UNAVAILABLE', 'ON_VACATION')),
     response_time varchar(50),
     min_price integer,
     max_price integer,
@@ -163,7 +163,7 @@ create table packages (
     title varchar(150) not null,
     description varchar(2000),
     platform varchar(50) not null constraint ck_packages_platform check (platform in ('YOUTUBE', 'INSTAGRAM', 'TIKTOK', 'FACEBOOK')),
-    category varchar(80),
+    category varchar(50) constraint ck_packages_category check (category in ('FASHION_BEAUTY', 'FOOD_BEVERAGE', 'TECHNOLOGY_GADGETS', 'FITNESS_HEALTH', 'TRAVEL_LIFESTYLE', 'ENTERTAINMENT_COMEDY', 'EDUCATION_CAREER', 'BUSINESS_FINANCE', 'HOME_DECOR', 'GAMING', 'PARENTING_FAMILY', 'SPORTS', 'AUTOMOTIVE', 'RELIGIOUS_SPIRITUAL', 'GENERAL', 'QUICK_DEAL')),
     type varchar(30),
     pricing_type varchar(30) not null default 'PAID',
     deal_type varchar(30),
@@ -241,7 +241,7 @@ create table orders (
     status varchar(30) not null default 'pending',
     progress integer not null default 0,
     delivery_date date,
-    deadline_date date,
+    deadline_date timestamptz,
     -- Optional client-supplied key (UUID or similar) to make order creation idempotent.
     -- Duplicate requests with the same key return the original order without re-charging escrow.
     idempotency_key varchar(64),
