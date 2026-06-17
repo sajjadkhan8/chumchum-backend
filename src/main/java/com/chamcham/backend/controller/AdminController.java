@@ -8,6 +8,7 @@ import com.chamcham.backend.entity.Brand;
 import com.chamcham.backend.entity.Creator;
 import com.chamcham.backend.entity.Order;
 import com.chamcham.backend.entity.User;
+import com.chamcham.backend.entity.enums.BrandPlanTier;
 import com.chamcham.backend.entity.enums.OrderStatus;
 import com.chamcham.backend.entity.enums.CreatorBadgeLevel;
 import com.chamcham.backend.entity.enums.UserRole;
@@ -332,6 +333,28 @@ public class AdminController {
                 "page", result.getNumber(),
                 "limit", result.getSize()
         ));
+    }
+
+    @PatchMapping("/brands/{brandId}/plan")
+    @Transactional
+    public ResponseEntity<Map<String, Object>> updateBrandPlan(
+            @AuthenticationPrincipal AuthenticatedUser authUser,
+            @PathVariable UUID brandId,
+            @RequestBody Map<String, String> body
+    ) {
+        requireAdmin(authUser);
+        String tierStr = body.getOrDefault("plan_tier", "").trim().toUpperCase();
+        BrandPlanTier tier;
+        try {
+            tier = BrandPlanTier.valueOf(tierStr);
+        } catch (IllegalArgumentException e) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Invalid plan tier. Allowed: STARTER, GROWTH, ENTERPRISE");
+        }
+        Brand brand = brandRepository.findById(brandId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Brand not found"));
+        brand.setPlanTier(tier);
+        brandRepository.save(brand);
+        return ok(Map.of("success", true, "plan_tier", tier.name()));
     }
 
     @GetMapping("/ambassador/applications")

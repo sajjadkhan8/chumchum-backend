@@ -4,6 +4,7 @@ import com.chamcham.backend.entity.enums.DealType;
 import com.chamcham.backend.entity.enums.PackagePlatform;
 import com.chamcham.backend.entity.enums.PackageStatus;
 import com.chamcham.backend.entity.enums.PackageType;
+import com.chamcham.backend.entity.enums.SubscriptionInterval;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.JdbcTypeCode;
@@ -145,6 +146,13 @@ public class ServicePackage extends BaseEntity {
     @Column(length = 10)
     @Builder.Default
     private String currency = "PKR";  // V1: PKR only (mono-currency)
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "subscription_interval", length = 20)
+    private SubscriptionInterval subscriptionInterval;
+
+    @Column(name = "subscription_duration")
+    private Integer subscriptionDuration;
 
     @OneToMany(mappedBy = "servicePackage", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default

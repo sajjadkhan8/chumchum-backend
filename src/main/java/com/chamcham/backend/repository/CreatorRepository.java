@@ -43,7 +43,10 @@ public interface CreatorRepository extends JpaRepository<Creator, UUID> {
                                  @Param("verified") Boolean verified,
                                  Pageable pageable);
 
-    @Query("select c from Creator c where c.city = :city and c.active = true")
+    @Query("select c from Creator c where c.active = true order by c.engagementRate desc, c.rating desc")
+    List<Creator> findRisingStars(Pageable pageable);
+
+    @Query("select c from Creator c where c.active = true")
     List<Creator> findByCityAndActiveTrue(@Param("city") String city, Pageable pageable);
 
     @Query("select c from Creator c where c.followers >= :min and c.followers <= :max and c.active = true")

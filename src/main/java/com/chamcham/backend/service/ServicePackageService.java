@@ -108,6 +108,8 @@ public class ServicePackageService {
                 .tags(request.tags())
                 .active(request.isActive() == null || request.isActive())
                 .coverImage(request.coverImage())
+                .subscriptionInterval(request.subscriptionInterval())
+                .subscriptionDuration(request.subscriptionDuration())
                 .build();
 
         clearIncompatiblePricingFields(servicePackage);

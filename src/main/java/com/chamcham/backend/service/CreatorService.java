@@ -482,6 +482,20 @@ public class CreatorService {
                 .toList();
     }
 
+    public List<CreatorResponse> getRisingStars(int limit) {
+        Pageable pageable = cappedPageable(0, limit, "engagementRate");
+        return creatorRepository.findRisingStars(pageable).stream()
+                .map(creatorMapper::toPublicResponse)
+                .toList();
+    }
+
+    public List<CreatorResponse> getVerified(int limit) {
+        Pageable pageable = cappedPageable(0, limit, "rating");
+        return creatorRepository.findByIsVerifiedTrue(pageable).getContent().stream()
+                .map(creatorMapper::toPublicResponse)
+                .toList();
+    }
+
     public List<CreatorResponse> getByCity(String city, int limit) {
         Pageable pageable = cappedPageable(0, limit, "createdAt");
         return creatorRepository.findByCityIgnoreCaseAndActiveTrue(city, pageable).stream()

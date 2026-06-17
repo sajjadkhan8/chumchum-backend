@@ -105,7 +105,8 @@ create table brands (
     campaign_budget_range varchar(150),
     business_verification_status varchar(50),
     verification_contact_email varchar(255),
-    verification_phone_number varchar(50)
+    verification_phone_number varchar(50),
+    plan_tier varchar(20) not null default 'STARTER'
 );
 
 create table creator_payout_preferences (
@@ -192,6 +193,22 @@ create table packages (
     is_popular boolean not null default false,
     orders_completed integer not null default 0,
     response_time varchar(50),
+    subscription_interval varchar(20),
+    subscription_duration int,
+    created_at timestamptz not null default now(),
+    updated_at timestamptz not null default now()
+);
+
+create table subscriptions (
+    id uuid primary key default gen_random_uuid(),
+    brand_id uuid not null references brands(id) on delete cascade,
+    package_id uuid not null references packages(id) on delete cascade,
+    status varchar(20) not null default 'ACTIVE',
+    interval varchar(20) not null,
+    duration int not null,
+    cycles_completed int not null default 0,
+    next_renewal_at timestamptz not null,
+    cancelled_at timestamptz,
     created_at timestamptz not null default now(),
     updated_at timestamptz not null default now()
 );

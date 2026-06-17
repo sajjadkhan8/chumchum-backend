@@ -16,6 +16,7 @@ import com.chamcham.backend.entity.ServicePackage;
 import com.chamcham.backend.entity.enums.BrandCampaignReactionStatus;
 import com.chamcham.backend.entity.enums.BrandCampaignReactionType;
 import com.chamcham.backend.entity.enums.BrandCampaignStatus;
+import com.chamcham.backend.entity.enums.BrandPlanTier;
 import com.chamcham.backend.entity.enums.DealType;
 import com.chamcham.backend.entity.enums.PackagePlatform;
 import com.chamcham.backend.entity.enums.PackageStatus;
@@ -37,6 +38,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.YearMonth;
+import java.time.ZoneOffset;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
@@ -90,6 +93,15 @@ public class BrandCampaignService {
 
         Brand brand = brandRepository.findById(brandId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Brand profile not found"));
+
+        if (brand.getPlanTier() == BrandPlanTier.STARTER) {
+            Instant startOfMonth = YearMonth.now(ZoneOffset.UTC).atDay(1).atStartOfDay().toInstant(ZoneOffset.UTC);
+            long campaignsThisMonth = brandCampaignRepository.countByBrandIdAndCreatedAtAfter(brandId, startOfMonth);
+            if (campaignsThisMonth >= 5) {
+                throw new ApiException(HttpStatus.PAYMENT_REQUIRED,
+                        "Starter plan allows 5 campaigns per month. Upgrade to Growth or Enterprise for unlimited campaigns.");
+            }
+        }
 
         BrandCampaign campaign = BrandCampaign.builder()
                  .brand(brand)

@@ -90,6 +90,18 @@ public class CreatorController {
         return ResponseEntity.ok(Map.of("success", true, "data", creatorService.getFastResponders(limit)));
     }
 
+    @GetMapping("/rising-stars")
+    public ResponseEntity<Map<String, Object>> risingStars(
+            @RequestParam(defaultValue = "20") int limit) {
+        return ResponseEntity.ok(Map.of("success", true, "data", creatorService.getRisingStars(limit)));
+    }
+
+    @GetMapping("/verified")
+    public ResponseEntity<Map<String, Object>> verified(
+            @RequestParam(defaultValue = "20") int limit) {
+        return ResponseEntity.ok(Map.of("success", true, "data", creatorService.getVerified(limit)));
+    }
+
     @GetMapping("/by-city")
     public ResponseEntity<Map<String, Object>> byCity(
             @RequestParam String city,
