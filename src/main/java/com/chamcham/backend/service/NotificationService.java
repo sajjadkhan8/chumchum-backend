@@ -3,6 +3,7 @@ package com.chamcham.backend.service;
 import com.chamcham.backend.dto.notification.NotificationResponse;
 import com.chamcham.backend.entity.Notification;
 import com.chamcham.backend.entity.User;
+import com.chamcham.backend.exception.ApiException;
 import com.chamcham.backend.repository.NotificationRepository;
 import com.chamcham.backend.repository.NotificationPreferenceRepository;
 import com.chamcham.backend.repository.UserRepository;
@@ -11,6 +12,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -118,7 +120,10 @@ public class NotificationService {
 
     @Transactional
     public void markOneRead(UUID notificationId, UUID userId) {
-        notificationRepository.markOneRead(notificationId, userId);
+        int updated = notificationRepository.markOneRead(notificationId, userId);
+        if (updated == 0) {
+            throw new ApiException(HttpStatus.NOT_FOUND, "Notification not found");
+        }
     }
 
     private NotificationResponse toResponse(Notification n) {

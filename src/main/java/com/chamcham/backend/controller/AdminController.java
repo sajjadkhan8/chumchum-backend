@@ -423,6 +423,7 @@ public class AdminController {
         String lowered = search.toLowerCase();
         return Stream.of(
                         order.getId() == null ? null : order.getId().toString(),
+                        order.getOrderNumber(),
                         order.getServicePackage() == null ? null : order.getServicePackage().getTitle(),
                         order.getServicePackage() == null ? null : order.getServicePackage().getName(),
                         order.getCreator() == null ? null : order.getCreator().getName(),

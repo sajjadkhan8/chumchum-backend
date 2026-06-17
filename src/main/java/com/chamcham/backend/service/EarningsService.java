@@ -3,6 +3,7 @@ package com.chamcham.backend.service;
 import com.chamcham.backend.entity.Creator;
 import com.chamcham.backend.entity.Transaction;
 import com.chamcham.backend.entity.Wallet;
+import com.chamcham.backend.entity.enums.TransactionStatus;
 import com.chamcham.backend.entity.enums.TransactionType;
 import com.chamcham.backend.entity.enums.UserRole;
 import com.chamcham.backend.exception.ApiException;
@@ -40,8 +41,8 @@ public class EarningsService {
         Wallet wallet = walletRepository.findByCreatorId(creator.getId())
                 .orElse(Wallet.builder().creator(creator).build());
 
-        long withdrawn = transactionRepository.sumCompletedByCreatorAndType(creator.getId(), TransactionType.WITHDRAWAL);
-        long fees = transactionRepository.sumCompletedByCreatorAndType(creator.getId(), TransactionType.PLATFORM_FEE);
+        long withdrawn = transactionRepository.sumByCreatorAndTypeAndStatus(creator.getId(), TransactionType.WITHDRAWAL, TransactionStatus.COMPLETED);
+        long fees = transactionRepository.sumByCreatorAndTypeAndStatus(creator.getId(), TransactionType.PLATFORM_FEE, TransactionStatus.COMPLETED);
 
         return new EarningsSummary(
                 wallet.getTotalEarned(),
@@ -71,4 +72,3 @@ public class EarningsService {
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Creator profile not found"));
     }
 }
-

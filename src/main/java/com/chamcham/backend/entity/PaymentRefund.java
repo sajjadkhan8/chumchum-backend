@@ -1,6 +1,7 @@
 package com.chamcham.backend.entity;
 
 import com.chamcham.backend.entity.enums.TransactionStatus;
+import com.chamcham.backend.entity.enums.TransactionStatusConverter;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
@@ -42,7 +43,7 @@ public class PaymentRefund {
     @Column(nullable = false, length = 500)
     private String reason;
 
-    @Enumerated(EnumType.STRING)
+    @Convert(converter = TransactionStatusConverter.class)
     @Column(nullable = false, length = 30)
     private TransactionStatus status;
 

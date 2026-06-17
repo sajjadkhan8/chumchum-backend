@@ -1,7 +1,9 @@
 package com.chamcham.backend.entity;
 
 import com.chamcham.backend.entity.enums.TransactionStatus;
+import com.chamcham.backend.entity.enums.TransactionStatusConverter;
 import com.chamcham.backend.entity.enums.TransactionType;
+import com.chamcham.backend.entity.enums.TransactionTypeConverter;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
@@ -32,7 +34,7 @@ public class Transaction {
     @JoinColumn(name = "order_id")
     private Order order;
 
-    @Enumerated(EnumType.STRING)
+    @Convert(converter = TransactionTypeConverter.class)
     @Column(nullable = false, length = 30)
     private TransactionType type;
 
@@ -43,7 +45,7 @@ public class Transaction {
     @Column(nullable = false, length = 300)
     private String description;
 
-    @Enumerated(EnumType.STRING)
+    @Convert(converter = TransactionStatusConverter.class)
     @Column(nullable = false, length = 30)
     @Builder.Default
     private TransactionStatus status = TransactionStatus.PENDING;
@@ -52,4 +54,3 @@ public class Transaction {
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 }
-

@@ -1,6 +1,7 @@
 package com.chamcham.backend.entity;
 
 import com.chamcham.backend.entity.enums.AmbassadorTier;
+import com.chamcham.backend.entity.enums.AmbassadorTierConverter;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.JdbcTypeCode;
@@ -60,7 +61,7 @@ public class AmbassadorScore {
     @Builder.Default
     private int consistencyScore = 0;
 
-    @Enumerated(EnumType.STRING)
+    @Convert(converter = AmbassadorTierConverter.class)
     @Column(nullable = false, length = 50)
     @Builder.Default
     private AmbassadorTier tier = AmbassadorTier.RISING_CREATOR;
@@ -83,4 +84,3 @@ public class AmbassadorScore {
     @Column(name = "calculated_at", nullable = false)
     private Instant calculatedAt;
 }
-

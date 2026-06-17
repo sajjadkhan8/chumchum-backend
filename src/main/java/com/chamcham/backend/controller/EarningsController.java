@@ -49,7 +49,7 @@ public class EarningsController {
         data.put("transactions", txPage.getContent().stream().map(tx -> {
             Map<String, Object> t = new LinkedHashMap<>();
             t.put("id", tx.getId());
-            t.put("type", tx.getType().name().toLowerCase());
+            t.put("type", tx.getType().name().equals("ORDER_PAYMENT") ? "earning" : tx.getType().name().toLowerCase());
             t.put("amount", tx.getAmount());
             t.put("description", tx.getDescription());
             t.put("status", tx.getStatus().name().toLowerCase());
@@ -62,4 +62,3 @@ public class EarningsController {
         return ResponseEntity.ok(Map.of("success", true, "data", data));
     }
 }
-
