@@ -46,6 +46,7 @@ public class OrderMapper {
                 deliverable.getStatus() != null ? deliverable.getStatus().name().toLowerCase() : "pending",
                 deliverable.getFileUrl(),
                 deliverable.getSubmittedAt(),
+                deliverable.getRevisionNote(),
                 deliverable.getCreatedAt()
         );
     }

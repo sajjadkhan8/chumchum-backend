@@ -16,6 +16,7 @@ import com.chamcham.backend.exception.ApiException;
 import com.chamcham.backend.mapper.OrderMapper;
 import com.chamcham.backend.repository.BrandRepository;
 import com.chamcham.backend.repository.BrandWalletRepository;
+import com.chamcham.backend.repository.CreatorRepository;
 import com.chamcham.backend.repository.DeliverableRepository;
 import com.chamcham.backend.repository.OrderRepository;
 import com.chamcham.backend.repository.ServicePackageRepository;
@@ -56,6 +57,7 @@ public class OrderService {
     private final OrderRepository orderRepository;
     private final ServicePackageRepository servicePackageRepository;
     private final BrandRepository brandRepository;
+    private final CreatorRepository creatorRepository;
     private final DeliverableRepository deliverableRepository;
     private final WalletRepository walletRepository;
     private final TransactionRepository transactionRepository;
@@ -68,6 +70,7 @@ public class OrderService {
     public OrderService(OrderRepository orderRepository,
                         ServicePackageRepository servicePackageRepository,
                         BrandRepository brandRepository,
+                        CreatorRepository creatorRepository,
                         DeliverableRepository deliverableRepository,
                         WalletRepository walletRepository,
                         TransactionRepository transactionRepository,
@@ -79,6 +82,7 @@ public class OrderService {
         this.orderRepository = orderRepository;
         this.servicePackageRepository = servicePackageRepository;
         this.brandRepository = brandRepository;
+        this.creatorRepository = creatorRepository;
         this.deliverableRepository = deliverableRepository;
         this.walletRepository = walletRepository;
         this.transactionRepository = transactionRepository;
@@ -222,6 +226,9 @@ public class OrderService {
         Order saved = orderRepository.save(order);
         if (newStatus == OrderStatus.COMPLETED) {
             releaseCreatorEarnings(saved);
+            com.chamcham.backend.entity.Creator creator = saved.getCreator();
+            creator.setCompletedDeals(creator.getCompletedDeals() + 1);
+            creatorRepository.save(creator);
         }
         if (newStatus == OrderStatus.CANCELLED) {
             refundEscrowIfApplicable(saved);

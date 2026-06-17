@@ -114,12 +114,12 @@ public class CreatorService {
             List<CreatorResponse> creators, long total, int page, int limit) {}
 
     public CreatorSearchResult search(
-            String search, String city,
+            String search, String city, String category,
             Integer minFollowers, Integer maxFollowers,
             BigDecimal minRating, Integer minPrice, Integer maxPrice,
             CreatorBadgeLevel badgeLevel, String availabilityStatus,
             Boolean acceptsBarter, Boolean isTrending, Boolean isFastResponder,
-            Boolean ambassadorOnly,
+            Boolean ambassadorOnly, String platform, BigDecimal minEngagementRate,
             int page, int limit, String sortBy) {
 
         String normalizedSort = sortBy == null ? "" : sortBy;
@@ -138,11 +138,15 @@ public class CreatorService {
         Pageable pageable = cappedPageable(page, limit, sortField, sortDirection);
 
         Page<Creator> result = creatorRepository.search(
-                search, city, minFollowers, maxFollowers, minRating,
+                search, city,
+                category == null || category.isBlank() ? null : category.trim(),
+                minFollowers, maxFollowers, minRating,
                 minPrice, maxPrice, badgeLevel,
                 availabilityStatus == null || availabilityStatus.isBlank() ? null : availabilityStatus.trim(),
                 acceptsBarter, isTrending, isFastResponder,
-                isVerified, pageable);
+                isVerified, minEngagementRate,
+                platform == null || platform.isBlank() ? null : platform.trim().toLowerCase(),
+                pageable);
 
         return new CreatorSearchResult(
                 result.getContent().stream().map(creatorMapper::toPublicResponse).toList(),

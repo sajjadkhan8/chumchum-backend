@@ -33,6 +33,8 @@ public record CreatorResponse(
         boolean isTrending,
         boolean isFastResponder,
         int completedDeals,
+        int completionRate,
+        int repeatClients,
         boolean acceptsBarter,
         boolean acceptsHybridDeals,
         Integer minimumBudget,
