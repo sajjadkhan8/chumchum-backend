@@ -24,4 +24,21 @@ public interface TransactionRepository extends JpaRepository<Transaction, UUID> 
     long sumByCreatorAndTypeAndStatus(@Param("creatorId") UUID creatorId,
                                       @Param("type") TransactionType type,
                                       @Param("status") TransactionStatus status);
+
+    @Query("select t from Transaction t join fetch t.creator c " +
+           "where (:search is null or lower(c.name) like lower(concat('%', cast(:search as string), '%')) " +
+           "  or lower(t.description) like lower(concat('%', cast(:search as string), '%'))) " +
+           "and (:type is null or t.type = :type) " +
+           "and (:status is null or t.status = :status) " +
+           "order by t.createdAt desc")
+    Page<Transaction> searchForAdmin(@Param("search") String search,
+                                     @Param("type") TransactionType type,
+                                     @Param("status") TransactionStatus status,
+                                     Pageable pageable);
+
+    @Query("select count(t) from Transaction t where t.status = :status")
+    long countByStatus(@Param("status") TransactionStatus status);
+
+    @Query("select coalesce(sum(t.amount), 0) from Transaction t where t.type = :type and t.status = :status")
+    long sumByTypeAndStatus(@Param("type") TransactionType type, @Param("status") TransactionStatus status);
 }

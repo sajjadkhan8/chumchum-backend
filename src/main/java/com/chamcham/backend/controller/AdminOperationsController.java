@@ -46,6 +46,61 @@ public class AdminOperationsController {
             @NotBlank @Size(max = 500) String reason
     ) {}
 
+    public record ProcessWithdrawalRequest(@NotBlank @Size(max = 20) String status) {}
+
+    @GetMapping("/payments/stats")
+    public ResponseEntity<Map<String, Object>> paymentsStats(@AuthenticationPrincipal AuthenticatedUser authUser) {
+        requireAdmin(authUser);
+        return ok(operationsService.getPaymentsStats());
+    }
+
+    @GetMapping("/payments/transactions")
+    public ResponseEntity<Map<String, Object>> transactions(
+            @AuthenticationPrincipal AuthenticatedUser authUser,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String type,
+            @RequestParam(required = false) String status,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int limit
+    ) {
+        requireAdmin(authUser);
+        var result = operationsService.listTransactions(search, type, status, page, limit);
+        return ok(Map.of(
+                "transactions", result.getContent().stream().map(operationsService::toTransactionMap).toList(),
+                "total", result.getTotalElements(),
+                "page", result.getNumber(),
+                "limit", result.getSize()
+        ));
+    }
+
+    @GetMapping("/payments/withdrawals")
+    public ResponseEntity<Map<String, Object>> withdrawals(
+            @AuthenticationPrincipal AuthenticatedUser authUser,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String status,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int limit
+    ) {
+        requireAdmin(authUser);
+        var result = operationsService.listWithdrawals(search, status, page, limit);
+        return ok(Map.of(
+                "withdrawals", result.getContent().stream().map(operationsService::toWithdrawalMap).toList(),
+                "total", result.getTotalElements(),
+                "page", result.getNumber(),
+                "limit", result.getSize()
+        ));
+    }
+
+    @PatchMapping("/payments/withdrawals/{id}/status")
+    public ResponseEntity<Map<String, Object>> processWithdrawal(
+            @AuthenticationPrincipal AuthenticatedUser authUser,
+            @PathVariable UUID id,
+            @Valid @RequestBody ProcessWithdrawalRequest request
+    ) {
+        requireAdmin(authUser);
+        return ok(operationsService.toWithdrawalMap(operationsService.processWithdrawal(authUser.userId(), id, request.status())));
+    }
+
     @GetMapping("/disputes")
     public ResponseEntity<Map<String, Object>> disputes(
             @AuthenticationPrincipal AuthenticatedUser authUser,

@@ -4,15 +4,22 @@ import com.chamcham.backend.entity.AdminAuditLog;
 import com.chamcham.backend.entity.DisputeCase;
 import com.chamcham.backend.entity.Order;
 import com.chamcham.backend.entity.PaymentAuditLog;
+import com.chamcham.backend.entity.Transaction;
 import com.chamcham.backend.entity.User;
+import com.chamcham.backend.entity.WithdrawalRequest;
 import com.chamcham.backend.entity.enums.DisputeResolution;
 import com.chamcham.backend.entity.enums.DisputeStatus;
+import com.chamcham.backend.entity.enums.TransactionStatus;
+import com.chamcham.backend.entity.enums.TransactionType;
+import com.chamcham.backend.entity.enums.WithdrawalStatus;
 import com.chamcham.backend.exception.ApiException;
 import com.chamcham.backend.repository.AdminAuditLogRepository;
 import com.chamcham.backend.repository.DisputeCaseRepository;
 import com.chamcham.backend.repository.OrderRepository;
 import com.chamcham.backend.repository.PaymentAuditLogRepository;
+import com.chamcham.backend.repository.TransactionRepository;
 import com.chamcham.backend.repository.UserRepository;
+import com.chamcham.backend.repository.WithdrawalRequestRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -32,6 +39,8 @@ public class AdminOperationsService {
     private final PaymentAuditLogRepository paymentAuditLogRepository;
     private final OrderRepository orderRepository;
     private final UserRepository userRepository;
+    private final TransactionRepository transactionRepository;
+    private final WithdrawalRequestRepository withdrawalRepository;
     private final RefundService refundService;
 
     public AdminOperationsService(DisputeCaseRepository disputeRepository,
@@ -39,12 +48,16 @@ public class AdminOperationsService {
                                   PaymentAuditLogRepository paymentAuditLogRepository,
                                   OrderRepository orderRepository,
                                   UserRepository userRepository,
+                                  TransactionRepository transactionRepository,
+                                  WithdrawalRequestRepository withdrawalRepository,
                                   RefundService refundService) {
         this.disputeRepository = disputeRepository;
         this.auditRepository = auditRepository;
         this.paymentAuditLogRepository = paymentAuditLogRepository;
         this.orderRepository = orderRepository;
         this.userRepository = userRepository;
+        this.transactionRepository = transactionRepository;
+        this.withdrawalRepository = withdrawalRepository;
         this.refundService = refundService;
     }
 
@@ -191,6 +204,98 @@ public class AdminOperationsService {
         row.put("targetId", audit.getTargetId());
         row.put("details", audit.getDetails());
         row.put("createdAt", audit.getCreatedAt());
+        return row;
+    }
+
+    public Page<Transaction> listTransactions(String search, String type, String status, int page, int limit) {
+        TransactionType typeFilter = null;
+        if (type != null && !type.isBlank() && !type.equalsIgnoreCase("all")) {
+            try { typeFilter = TransactionType.valueOf(type.trim().toUpperCase()); }
+            catch (IllegalArgumentException ex) { throw new ApiException(HttpStatus.BAD_REQUEST, "Invalid transaction type: " + type); }
+        }
+        TransactionStatus statusFilter = null;
+        if (status != null && !status.isBlank() && !status.equalsIgnoreCase("all")) {
+            try { statusFilter = TransactionStatus.valueOf(status.trim().toUpperCase()); }
+            catch (IllegalArgumentException ex) { throw new ApiException(HttpStatus.BAD_REQUEST, "Invalid transaction status: " + status); }
+        }
+        return transactionRepository.searchForAdmin(blankToNull(search), typeFilter, statusFilter, PageRequest.of(safePage(page), safeLimit(limit)));
+    }
+
+    public Page<WithdrawalRequest> listWithdrawals(String search, String status, int page, int limit) {
+        WithdrawalStatus statusFilter = null;
+        if (status != null && !status.isBlank() && !status.equalsIgnoreCase("all")) {
+            try { statusFilter = WithdrawalStatus.valueOf(status.trim().toUpperCase()); }
+            catch (IllegalArgumentException ex) { throw new ApiException(HttpStatus.BAD_REQUEST, "Invalid withdrawal status: " + status); }
+        }
+        return withdrawalRepository.searchForAdmin(blankToNull(search), statusFilter, PageRequest.of(safePage(page), safeLimit(limit)));
+    }
+
+    @Transactional
+    public WithdrawalRequest processWithdrawal(UUID adminId, UUID id, String status) {
+        requireAdmin(adminId);
+        WithdrawalRequest withdrawal = withdrawalRepository.findById(id)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Withdrawal request not found"));
+        WithdrawalStatus newStatus;
+        try { newStatus = WithdrawalStatus.valueOf(status.trim().toUpperCase()); }
+        catch (IllegalArgumentException ex) { throw new ApiException(HttpStatus.BAD_REQUEST, "Invalid withdrawal status: " + status); }
+        if (withdrawal.getStatus() == WithdrawalStatus.COMPLETED || withdrawal.getStatus() == WithdrawalStatus.FAILED) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Cannot update a finalized withdrawal");
+        }
+        withdrawal.setStatus(newStatus);
+        if (newStatus == WithdrawalStatus.COMPLETED || newStatus == WithdrawalStatus.FAILED) {
+            withdrawal.setProcessedAt(Instant.now());
+        }
+        WithdrawalRequest saved = withdrawalRepository.save(withdrawal);
+        log(adminId, "WITHDRAWAL_STATUS_CHANGED", "withdrawal_request", id.toString(),
+                "status=" + newStatus.name().toLowerCase() + ", creator=" + withdrawal.getCreator().getName());
+        return saved;
+    }
+
+    public Map<String, Object> getPaymentsStats() {
+        long pendingWithdrawals = withdrawalRepository.countByStatus(WithdrawalStatus.PENDING);
+        long pendingWithdrawalsAmount = withdrawalRepository.sumAmountByStatus(WithdrawalStatus.PENDING);
+        long completedWithdrawals = withdrawalRepository.countByStatus(WithdrawalStatus.COMPLETED);
+        long completedWithdrawalsAmount = withdrawalRepository.sumAmountByStatus(WithdrawalStatus.COMPLETED);
+        long totalTransactions = transactionRepository.count();
+        long pendingTransactions = transactionRepository.countByStatus(TransactionStatus.PENDING);
+        long totalEarnings = transactionRepository.sumByTypeAndStatus(TransactionType.EARNING, TransactionStatus.COMPLETED);
+        Map<String, Object> stats = new LinkedHashMap<>();
+        stats.put("totalTransactions", totalTransactions);
+        stats.put("pendingTransactions", pendingTransactions);
+        stats.put("totalEarnings", totalEarnings);
+        stats.put("pendingWithdrawals", pendingWithdrawals);
+        stats.put("pendingWithdrawalsAmount", pendingWithdrawalsAmount);
+        stats.put("completedWithdrawals", completedWithdrawals);
+        stats.put("completedWithdrawalsAmount", completedWithdrawalsAmount);
+        return stats;
+    }
+
+    public Map<String, Object> toTransactionMap(Transaction t) {
+        Map<String, Object> row = new LinkedHashMap<>();
+        row.put("id", t.getId());
+        row.put("creatorId", t.getCreator().getId());
+        row.put("creatorName", t.getCreator().getName());
+        row.put("orderId", t.getOrder() == null ? null : t.getOrder().getId());
+        row.put("type", t.getType().name().toLowerCase());
+        row.put("amount", t.getAmount());
+        row.put("description", t.getDescription());
+        row.put("status", t.getStatus().name().toLowerCase());
+        row.put("createdAt", t.getCreatedAt());
+        return row;
+    }
+
+    public Map<String, Object> toWithdrawalMap(WithdrawalRequest w) {
+        Map<String, Object> row = new LinkedHashMap<>();
+        row.put("id", w.getId());
+        row.put("creatorId", w.getCreator().getId());
+        row.put("creatorName", w.getCreator().getName());
+        row.put("payoutMethodId", w.getPayoutMethod().getId());
+        row.put("payoutMethodName", w.getPayoutMethod().getName());
+        row.put("payoutMethodType", w.getPayoutMethod().getType().name().toLowerCase());
+        row.put("amount", w.getAmount());
+        row.put("status", w.getStatus().name().toLowerCase());
+        row.put("processedAt", w.getProcessedAt());
+        row.put("createdAt", w.getCreatedAt());
         return row;
     }
 
