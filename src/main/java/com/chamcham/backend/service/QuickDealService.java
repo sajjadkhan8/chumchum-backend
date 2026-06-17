@@ -39,6 +39,7 @@ public class QuickDealService {
     private final ServicePackageRepository servicePackageRepository;
     private final OrderService orderService;
     private final NotificationService notificationService;
+    private final AuthRateLimitService rateLimitService;
 
     public QuickDealService(QuickDealOfferRepository offerRepository,
                             ConversationRepository conversationRepository,
@@ -47,7 +48,8 @@ public class QuickDealService {
                             MessageRepository messageRepository,
                             ServicePackageRepository servicePackageRepository,
                             OrderService orderService,
-                            NotificationService notificationService) {
+                            NotificationService notificationService,
+                            AuthRateLimitService rateLimitService) {
         this.offerRepository = offerRepository;
         this.conversationRepository = conversationRepository;
         this.creatorRepository = creatorRepository;
@@ -56,6 +58,7 @@ public class QuickDealService {
         this.servicePackageRepository = servicePackageRepository;
         this.orderService = orderService;
         this.notificationService = notificationService;
+        this.rateLimitService = rateLimitService;
     }
 
     @Transactional
@@ -64,7 +67,12 @@ public class QuickDealService {
             throw new ApiException(HttpStatus.FORBIDDEN, "Only brands can create quick deals");
         }
 
-        validateDealPayload(request.dealType(), request.amount(), request.barterDetails());
+        if (rateLimitService.recordAndCheck("quick_deal_create", senderId.toString(), 10, 60, 120)) {
+            throw new ApiException(HttpStatus.TOO_MANY_REQUESTS,
+                    "Too many quick deal offers sent. Please wait before sending another.");
+        }
+
+        validateDealPayload(request.dealType(), request.amount(), request.barterDetails(), request.estimatedBarterValue());
 
         Creator creator = creatorRepository.findById(request.creatorId())
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Creator not found"));
@@ -211,13 +219,18 @@ public class QuickDealService {
                 .build());
     }
 
-    private void validateDealPayload(DealType dealType, Integer amount, String barterDetails) {
+    private void validateDealPayload(DealType dealType, Integer amount, String barterDetails, Integer estimatedBarterValue) {
         if ((dealType == DealType.PAID || dealType == DealType.HYBRID) && (amount == null || amount <= 0)) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "amount is required when dealType is PAID/HYBRID");
         }
         if ((dealType == DealType.BARTER || dealType == DealType.HYBRID)
                 && (barterDetails == null || barterDetails.isBlank())) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "barterDetails is required when dealType is BARTER/HYBRID");
+        }
+        if ((dealType == DealType.BARTER || dealType == DealType.HYBRID)
+                && (estimatedBarterValue == null || estimatedBarterValue <= 0)) {
+            throw new ApiException(HttpStatus.BAD_REQUEST,
+                    "estimatedBarterValue is required and must be greater than 0 for barter and hybrid deals");
         }
     }
 }

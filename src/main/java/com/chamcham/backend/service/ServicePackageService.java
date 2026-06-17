@@ -381,6 +381,13 @@ public class ServicePackageService {
                 && (request.price() == null || request.price() <= 0)) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "price is required when dealType is PAID/HYBRID");
         }
+
+        // Barter/hybrid deals must declare a non-zero estimated product value so platform fees are calculable.
+        if ((dealType == DealType.BARTER || dealType == DealType.HYBRID)
+                && (request.estimatedBarterValue() == null || request.estimatedBarterValue() <= 0)) {
+            throw new ApiException(HttpStatus.BAD_REQUEST,
+                    "estimatedBarterValue is required and must be greater than 0 for barter and hybrid deals");
+        }
     }
 
     private void clearIncompatiblePricingFields(ServicePackage pkg) {

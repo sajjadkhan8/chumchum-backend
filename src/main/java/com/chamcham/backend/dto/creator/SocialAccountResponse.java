@@ -1,5 +1,6 @@
 package com.chamcham.backend.dto.creator;
 
+import com.chamcham.backend.entity.enums.VerificationSource;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 
@@ -15,6 +16,7 @@ public record SocialAccountResponse(
         int followers,
         Integer avgViews,
         BigDecimal engagementRate,
-        boolean isVerified
+        boolean isVerified,
+        VerificationSource verifiedBy
 ) {
 }

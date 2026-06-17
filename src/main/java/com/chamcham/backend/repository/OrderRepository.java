@@ -62,6 +62,8 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
 
     Optional<Order> findFirstByServicePackageName(String packageName);
 
+    Optional<Order> findByIdempotencyKey(String idempotencyKey);
+
     @Query("""
             select distinct o from Order o
             join fetch o.servicePackage

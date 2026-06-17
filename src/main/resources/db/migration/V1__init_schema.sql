@@ -242,6 +242,9 @@ create table orders (
     progress integer not null default 0,
     delivery_date date,
     deadline_date date,
+    -- Optional client-supplied key (UUID or similar) to make order creation idempotent.
+    -- Duplicate requests with the same key return the original order without re-charging escrow.
+    idempotency_key varchar(64),
     created_at timestamptz not null,
     updated_at timestamptz not null
 );
@@ -361,6 +364,8 @@ create table social_accounts (
     avg_views integer,
     engagement_rate numeric(5,2) not null default 0,
     is_verified boolean not null default false,
+    -- SELF = creator-entered; PLATFORM_REVIEWED = manually checked by team; API_CONNECTED = pulled via OAuth
+    verified_by varchar(30) not null default 'SELF',
     created_at timestamptz not null default now(),
     updated_at timestamptz not null default now()
 );
@@ -639,6 +644,7 @@ create index idx_package_tiers_package_id on package_tiers (package_id);
 create index idx_package_tiers_package_id_position on package_tiers(package_id, position);
 create index idx_orders_creator_status on orders (creator_id, status);
 create index idx_orders_brand_status on orders (brand_id, status);
+create unique index uk_orders_idempotency_key on orders (idempotency_key) where idempotency_key is not null;
 create index idx_conversations_creator on conversations (creator_id, updated_at desc);
 create index idx_conversations_brand on conversations (brand_id, updated_at desc);
 create index idx_messages_conversation_created on messages (conversation_id, created_at);

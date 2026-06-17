@@ -112,7 +112,8 @@ public class CreatorMapper {
                 socialAccount.getFollowers(),
                 socialAccount.getAvgViews(),
                 socialAccount.getEngagementRate(),
-                socialAccount.isVerified()
+                socialAccount.isVerified(),
+                socialAccount.getVerifiedBy()
         );
     }
 

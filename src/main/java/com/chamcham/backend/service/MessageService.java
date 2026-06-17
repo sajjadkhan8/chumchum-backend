@@ -35,6 +35,7 @@ public class MessageService {
     private final MessageMapper messageMapper;
     private final FileStorageService fileStorageService;
     private final NotificationService notificationService;
+    private final AuthRateLimitService rateLimitService;
 
     public MessageService(MessageRepository messageRepository,
                           ConversationRepository conversationRepository,
@@ -42,7 +43,8 @@ public class MessageService {
                           QuickDealOfferRepository quickDealOfferRepository,
                           MessageMapper messageMapper,
                           FileStorageService fileStorageService,
-                          NotificationService notificationService) {
+                          NotificationService notificationService,
+                          AuthRateLimitService rateLimitService) {
         this.messageRepository = messageRepository;
         this.conversationRepository = conversationRepository;
         this.userRepository = userRepository;
@@ -50,6 +52,7 @@ public class MessageService {
         this.messageMapper = messageMapper;
         this.fileStorageService = fileStorageService;
         this.notificationService = notificationService;
+        this.rateLimitService = rateLimitService;
     }
 
     @Transactional
@@ -57,6 +60,10 @@ public class MessageService {
                                            MessageCreateRequest request) {
         if (role.isAdmin()) {
             throw new ApiException(HttpStatus.FORBIDDEN, "Admin cannot send messages");
+        }
+        if (rateLimitService.recordAndCheck("msg_send", userId.toString(), 60, 1, 10)) {
+            throw new ApiException(HttpStatus.TOO_MANY_REQUESTS,
+                    "You are sending messages too quickly. Please wait a moment.");
         }
         if (request.content() == null || request.content().isBlank()) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Message content is required");
@@ -82,6 +89,10 @@ public class MessageService {
                                             MessageCreateRequest request) {
         if (role.isAdmin()) {
             throw new ApiException(HttpStatus.FORBIDDEN, "Admin cannot send offers");
+        }
+        if (rateLimitService.recordAndCheck("msg_offer", userId.toString(), 10, 60, 60)) {
+            throw new ApiException(HttpStatus.TOO_MANY_REQUESTS,
+                    "Too many offer messages sent. Please wait before sending another.");
         }
         Conversation conversation = findConversationForUpdate(conversationId);
         validateParticipant(userId, conversation);

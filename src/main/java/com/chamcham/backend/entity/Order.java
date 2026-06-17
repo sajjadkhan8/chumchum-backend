@@ -42,7 +42,7 @@ public class Order extends BaseEntity {
     @Builder.Default
     private DealType dealType = DealType.PAID;
 
-    /** SAR amount in integer halala (nullable for barter-only deals). */
+    /** PKR amount in whole rupees (not paisa), nullable for barter-only deals. */
     @Column
     private Integer amount;
 
@@ -70,6 +70,9 @@ public class Order extends BaseEntity {
     @Column(name = "barter_product_received", nullable = false)
     @Builder.Default
     private boolean barterProductReceived = false;
+
+    @Column(name = "idempotency_key", length = 64, unique = true)
+    private String idempotencyKey;
 
     @OneToMany(mappedBy = "order", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default

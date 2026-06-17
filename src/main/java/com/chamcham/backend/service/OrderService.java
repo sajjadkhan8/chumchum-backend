@@ -32,6 +32,7 @@ import java.time.OffsetDateTime;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -116,18 +117,33 @@ public class OrderService {
     public OrderResponse createOrder(UUID packageId, UUID brandUserId, UserRole role,
                                      Integer amount, String barterDetails, String message,
                                      DealType dealType) {
-        return createOrder(packageId, brandUserId, role, amount, barterDetails, message, dealType, false);
+        return createOrder(packageId, brandUserId, role, amount, barterDetails, message, dealType, false, null);
+    }
+
+    @Transactional
+    public OrderResponse createOrder(UUID packageId, UUID brandUserId, UserRole role,
+                                     Integer amount, String barterDetails, String message,
+                                     DealType dealType, String idempotencyKey) {
+        return createOrder(packageId, brandUserId, role, amount, barterDetails, message, dealType, false, idempotencyKey);
     }
 
     @Transactional
     public OrderResponse createPrivateDealOrder(UUID packageId, UUID brandUserId, Integer amount,
                                                 String barterDetails, String message, DealType dealType) {
-        return createOrder(packageId, brandUserId, UserRole.BRAND, amount, barterDetails, message, dealType, true);
+        return createOrder(packageId, brandUserId, UserRole.BRAND, amount, barterDetails, message, dealType, true, null);
     }
 
     private OrderResponse createOrder(UUID packageId, UUID brandUserId, UserRole role,
                                       Integer amount, String barterDetails, String message,
-                                      DealType dealType, boolean allowPrivatePackage) {
+                                      DealType dealType, boolean allowPrivatePackage, String idempotencyKey) {
+        // Idempotency: return the existing order if this key was already processed
+        if (idempotencyKey != null && !idempotencyKey.isBlank()) {
+            Optional<Order> existing = orderRepository.findByIdempotencyKey(idempotencyKey.trim());
+            if (existing.isPresent()) {
+                return orderMapper.toResponse(existing.get());
+            }
+        }
+
         if (!role.isBrand() && !role.isAdmin()) {
             throw new ApiException(HttpStatus.FORBIDDEN, "Only brands can place orders");
         }
@@ -165,6 +181,7 @@ public class OrderService {
                 .status(OrderStatus.PENDING)
                 .progress(0)
                 .deadlineDate(LocalDate.now().plusDays(Math.max(pkg.getDeliveryDays(), 1)))
+                .idempotencyKey(idempotencyKey != null && !idempotencyKey.isBlank() ? idempotencyKey.trim() : null)
                 .build();
 
         List<Deliverable> deliverables = packageDeliverables(pkg).stream()
@@ -466,6 +483,14 @@ public class OrderService {
                 .map(String::trim)
                 .toList();
         return normalized.isEmpty() ? List.of("Package deliverables") : normalized;
+    }
+
+    /**
+     * Called by dispute resolution when the creator wins the dispute (CREATOR_FAVORED).
+     * Idempotent — re-entrant if an EARNING transaction already exists for this order.
+     */
+    public void releaseEarningsForDisputeResolution(Order order) {
+        releaseCreatorEarnings(order);
     }
 
     private void releaseCreatorEarnings(Order order) {

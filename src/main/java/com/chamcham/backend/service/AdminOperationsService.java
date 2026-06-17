@@ -42,6 +42,7 @@ public class AdminOperationsService {
     private final TransactionRepository transactionRepository;
     private final WithdrawalRequestRepository withdrawalRepository;
     private final RefundService refundService;
+    private final OrderService orderService;
 
     public AdminOperationsService(DisputeCaseRepository disputeRepository,
                                   AdminAuditLogRepository auditRepository,
@@ -50,7 +51,8 @@ public class AdminOperationsService {
                                   UserRepository userRepository,
                                   TransactionRepository transactionRepository,
                                   WithdrawalRequestRepository withdrawalRepository,
-                                  RefundService refundService) {
+                                  RefundService refundService,
+                                  OrderService orderService) {
         this.disputeRepository = disputeRepository;
         this.auditRepository = auditRepository;
         this.paymentAuditLogRepository = paymentAuditLogRepository;
@@ -59,6 +61,7 @@ public class AdminOperationsService {
         this.transactionRepository = transactionRepository;
         this.withdrawalRepository = withdrawalRepository;
         this.refundService = refundService;
+        this.orderService = orderService;
     }
 
     public Page<DisputeCase> listDisputes(String search, DisputeStatus status, int page, int limit) {
@@ -104,6 +107,12 @@ public class AdminOperationsService {
             dispute.setResolvedAt(null);
         }
         DisputeCase saved = disputeRepository.save(dispute);
+        // When admin resolves a dispute in the creator's favour, release the escrowed amount to creator.
+        // The release is idempotent — a second call is a no-op if the EARNING transaction already exists.
+        if (saved.getStatus() == DisputeStatus.RESOLVED
+                && saved.getResolution() == DisputeResolution.CREATOR_FAVORED) {
+            orderService.releaseEarningsForDisputeResolution(saved.getOrder());
+        }
         log(adminId, "DISPUTE_UPDATED", "dispute", id.toString(),
                 "status=" + saved.getStatus().name().toLowerCase() + ", resolution=" + saved.getResolution().name().toLowerCase());
         initializeDisputeRelationships(saved);

@@ -72,7 +72,7 @@ public class ServicePackage extends BaseEntity {
     @Builder.Default
     private String visibility = "public";
 
-    // SAR amount in integer (not BigDecimal) per spec
+    // PKR amount in whole rupees (not paisa). Nullable for barter-only deals.
     @Column
     private Integer price;
 

@@ -58,6 +58,8 @@ public class WithdrawalService {
                 .map(CreatorPayoutPreference::getMinimumPayoutAmount)
                 .orElse(1000);
 
+        // All amounts are in whole PKR (not paisa). Minimum floor is PKR 1,000.
+        // creator_payout_preferences.minimum_payout_amount defaults to PKR 5,000.
         if (amount < Math.max(1000, minimum)) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Amount is below your minimum payout threshold");
         }

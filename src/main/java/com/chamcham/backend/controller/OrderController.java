@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -42,10 +43,11 @@ public class OrderController {
     @PostMapping
     public ResponseEntity<OrderResponse> createOrder(
             @Valid @RequestBody CreateOrderRequest request,
+            @RequestHeader(value = "X-Idempotency-Key", required = false) String idempotencyKey,
             @AuthenticationPrincipal AuthenticatedUser authUser) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(orderService.createOrder(request.packageId(), authUser.userId(), authUser.role(),
-                        request.amount(), request.barterDetails(), request.message(), request.dealType()));
+                        request.amount(), request.barterDetails(), request.message(), request.dealType(), idempotencyKey));
     }
 
     @GetMapping("/{orderId}")
