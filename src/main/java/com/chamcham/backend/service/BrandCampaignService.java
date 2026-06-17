@@ -144,6 +144,7 @@ public class BrandCampaignService {
                  .maxAge(request.maxAge())
                  .applicationType(request.applicationType())
                  .maxApplicants(request.maxApplicants())
+                 .minProposedPrice(request.minProposedPrice())
                  .proposalRequired(request.proposalRequired() != null && request.proposalRequired())
                  .portfolioRequired(request.portfolioRequired() != null && request.portfolioRequired())
                  .customScreeningQuestions(request.customScreeningQuestions())
@@ -234,6 +235,7 @@ public class BrandCampaignService {
          if (request.maxAge() != null) campaign.setMaxAge(request.maxAge());
          if (request.applicationType() != null) campaign.setApplicationType(request.applicationType());
          if (request.maxApplicants() != null) campaign.setMaxApplicants(request.maxApplicants());
+         if (request.minProposedPrice() != null) campaign.setMinProposedPrice(request.minProposedPrice());
          if (request.proposalRequired() != null) campaign.setProposalRequired(request.proposalRequired());
          if (request.portfolioRequired() != null) campaign.setPortfolioRequired(request.portfolioRequired());
          if (request.customScreeningQuestions() != null) campaign.setCustomScreeningQuestions(request.customScreeningQuestions());
@@ -422,6 +424,13 @@ public class BrandCampaignService {
 
         BrandCampaignReactionType reactionType = parseReactionType(request.reactionType());
         validateReactionPayload(reactionType, request.proposedPrice(), request.proposedDeliveryDays(), request.message());
+
+        if (campaign.getMinProposedPrice() != null
+                && request.proposedPrice() != null
+                && request.proposedPrice() < campaign.getMinProposedPrice()) {
+            throw new ApiException(HttpStatus.BAD_REQUEST,
+                "Your proposed price is below the campaign minimum of PKR " + campaign.getMinProposedPrice());
+        }
 
         BrandCampaignReaction reaction = brandCampaignReactionRepository
                 .findByCampaignIdAndCreatorId(campaignId, creatorId)
@@ -808,6 +817,7 @@ public class BrandCampaignService {
                  campaign.getMaxAge(),
                  campaign.getApplicationType(),
                  campaign.getMaxApplicants(),
+                 campaign.getMinProposedPrice(),
                  campaign.getProposalRequired(),
                  campaign.getPortfolioRequired(),
                  campaign.getCustomScreeningQuestions(),

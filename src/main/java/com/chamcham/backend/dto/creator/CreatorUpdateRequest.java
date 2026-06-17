@@ -43,6 +43,10 @@ public record CreatorUpdateRequest(
         @DecimalMin("0.00") @DecimalMax("100.00") BigDecimal engagementRate,
         @DecimalMin("0.00") @DecimalMax("5.00") BigDecimal rating,
         @Min(0) Integer totalReviews,
-        Boolean isFiler
+        Boolean isFiler,
+        @Min(0) Integer rateCardReel,
+        @Min(0) Integer rateCardStory,
+        @Min(0) Integer rateCardPost,
+        @Min(0) Integer rateCardVideo
 ) {
 }

@@ -102,6 +102,10 @@ public class CreatorMapper {
                 contentPreviews,
                 publicView ? profileUserMapper.toPublicResponse(creator) : profileUserMapper.toResponse(creator),
                 creator.isFiler(),
+                creator.getRateCardReel(),
+                creator.getRateCardStory(),
+                creator.getRateCardPost(),
+                creator.getRateCardVideo(),
                 (int) activeOrders,
                 creator.getCreatedAt(),
                 creator.getUpdatedAt()

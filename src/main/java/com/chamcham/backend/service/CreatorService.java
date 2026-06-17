@@ -278,6 +278,10 @@ public class CreatorService {
         if (request.totalReviews() != null) {
             creator.setTotalReviews(request.totalReviews());
         }
+        if (request.rateCardReel() != null) creator.setRateCardReel(request.rateCardReel());
+        if (request.rateCardStory() != null) creator.setRateCardStory(request.rateCardStory());
+        if (request.rateCardPost() != null) creator.setRateCardPost(request.rateCardPost());
+        if (request.rateCardVideo() != null) creator.setRateCardVideo(request.rateCardVideo());
 
         return creatorMapper.toResponse(creatorRepository.save(creator));
     }

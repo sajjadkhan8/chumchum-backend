@@ -48,6 +48,7 @@ public record BrandCampaignCreateRequest(
          @Min(5) @DecimalMax("120") Integer maxAge,
          @Size(max = 50) String applicationType,
          @Min(1) Integer maxApplicants,
+         @Min(0) Integer minProposedPrice,
          Boolean proposalRequired,
          Boolean portfolioRequired,
          String customScreeningQuestions,

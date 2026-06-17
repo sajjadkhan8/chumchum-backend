@@ -47,6 +47,7 @@ public record BrandCampaignResponse(
          Integer maxAge,
          String applicationType,
          Integer maxApplicants,
+         Integer minProposedPrice,
          Boolean proposalRequired,
          Boolean portfolioRequired,
          String customScreeningQuestions,

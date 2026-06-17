@@ -55,6 +55,10 @@ public record CreatorResponse(
         List<ContentPreviewResponse> contentPreviews,
         ProfileUserResponse user,
         boolean isFiler,
+        Integer rateCardReel,
+        Integer rateCardStory,
+        Integer rateCardPost,
+        Integer rateCardVideo,
         int activeOrderCount,
         Instant createdAt,
         Instant updatedAt

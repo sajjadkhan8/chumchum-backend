@@ -56,37 +56,71 @@ public interface CreatorRepository extends JpaRepository<Creator, UUID> {
 
     /**
      * Explore-page filter – all params nullable; null means "no filter on that dimension".
+     * Uses native PostgreSQL SQL for JSONB category matching via the @> operator.
      */
-    @Query("""
-            select distinct c from Creator c
-            where c.active = true
+    @Query(value = """
+            select distinct c.* from core.creators c
+            join core.users u on u.id = c.id
+            where u.is_active = true
               and (:search is null
-                   or lower(c.name) like concat('%', lower(cast(:search as string)), '%')
-                   or lower(c.username) like concat('%', lower(cast(:search as string)), '%')
-                   or lower(c.bio)  like concat('%', lower(cast(:search as string)), '%')
-                   or lower(c.city) like concat('%', lower(cast(:search as string)), '%')
-                   or lower(c.niche) like concat('%', lower(cast(:search as string)), '%')
-                   or lower(c.preferredIndustries) like concat('%', lower(cast(:search as string)), '%'))
-              and (:city is null or lower(c.city) = lower(cast(:city as string)))
+                   or lower(u.name) like concat('%', lower(:search), '%')
+                   or lower(c.username) like concat('%', lower(:search), '%')
+                   or lower(c.bio) like concat('%', lower(:search), '%')
+                   or lower(u.city) like concat('%', lower(:search), '%')
+                   or lower(c.niche) like concat('%', lower(:search), '%')
+                   or lower(c.preferred_industries) like concat('%', lower(:search), '%'))
+              and (:city is null or lower(u.city) = lower(:city))
               and (:category is null
-                   or lower(c.category) = lower(cast(:category as string))
-                   or cast(c.categories as string) like concat('%"', cast(:category as string), '"%'))
+                   or lower(c.category) = lower(:category)
+                   or c.categories @> jsonb_build_array(:category::text))
               and (:minFollowers is null or c.followers >= :minFollowers)
               and (:maxFollowers is null or c.followers <= :maxFollowers)
               and (:minRating is null or c.rating >= :minRating)
-              and (:minPrice is null or c.minPrice >= :minPrice)
-              and (:maxPrice is null or c.maxPrice <= :maxPrice)
-              and (:badgeLevel is null or c.badgeLevel = :badgeLevel)
-              and (:availabilityStatus is null or c.availabilityStatus = :availabilityStatus)
-              and (:acceptsBarter is null or c.acceptsBarter = :acceptsBarter)
-              and (:isTrending is null or c.isTrending = :isTrending)
-              and (:isFastResponder is null or c.isFastResponder = :isFastResponder)
-              and (:isVerified is null or c.isVerified = :isVerified)
-              and (:minEngagementRate is null or c.engagementRate >= :minEngagementRate)
+              and (:minPrice is null or c.min_price >= :minPrice)
+              and (:maxPrice is null or c.max_price <= :maxPrice)
+              and (:badgeLevel is null or c.badge_level = :badgeLevel)
+              and (:availabilityStatus is null or c.availability_status = :availabilityStatus)
+              and (:acceptsBarter is null or c.accepts_barter = :acceptsBarter)
+              and (:isTrending is null or c.is_trending = :isTrending)
+              and (:isFastResponder is null or c.is_fast_responder = :isFastResponder)
+              and (:isVerified is null or c.is_verified = :isVerified)
+              and (:minEngagementRate is null or c.engagement_rate >= :minEngagementRate)
               and (:platform is null or exists (
-                   select a from SocialAccount a
-                   where a.creator = c and lower(a.platform) = lower(cast(:platform as string))))
-            """)
+                   select 1 from core.social_accounts sa
+                   where sa.creator_id = c.id and lower(sa.platform) = lower(:platform)))
+            """,
+            countQuery = """
+            select count(distinct c.id) from core.creators c
+            join core.users u on u.id = c.id
+            where u.is_active = true
+              and (:search is null
+                   or lower(u.name) like concat('%', lower(:search), '%')
+                   or lower(c.username) like concat('%', lower(:search), '%')
+                   or lower(c.bio) like concat('%', lower(:search), '%')
+                   or lower(u.city) like concat('%', lower(:search), '%')
+                   or lower(c.niche) like concat('%', lower(:search), '%')
+                   or lower(c.preferred_industries) like concat('%', lower(:search), '%'))
+              and (:city is null or lower(u.city) = lower(:city))
+              and (:category is null
+                   or lower(c.category) = lower(:category)
+                   or c.categories @> jsonb_build_array(:category::text))
+              and (:minFollowers is null or c.followers >= :minFollowers)
+              and (:maxFollowers is null or c.followers <= :maxFollowers)
+              and (:minRating is null or c.rating >= :minRating)
+              and (:minPrice is null or c.min_price >= :minPrice)
+              and (:maxPrice is null or c.max_price <= :maxPrice)
+              and (:badgeLevel is null or c.badge_level = :badgeLevel)
+              and (:availabilityStatus is null or c.availability_status = :availabilityStatus)
+              and (:acceptsBarter is null or c.accepts_barter = :acceptsBarter)
+              and (:isTrending is null or c.is_trending = :isTrending)
+              and (:isFastResponder is null or c.is_fast_responder = :isFastResponder)
+              and (:isVerified is null or c.is_verified = :isVerified)
+              and (:minEngagementRate is null or c.engagement_rate >= :minEngagementRate)
+              and (:platform is null or exists (
+                   select 1 from core.social_accounts sa
+                   where sa.creator_id = c.id and lower(sa.platform) = lower(:platform)))
+            """,
+            nativeQuery = true)
     Page<Creator> search(
             @Param("search")             String search,
             @Param("city")               String city,
@@ -106,6 +140,9 @@ public interface CreatorRepository extends JpaRepository<Creator, UUID> {
             @Param("platform")           String platform,
             Pageable pageable
     );
+
+    @Query("select c.id from Creator c")
+    List<UUID> findAllIds();
 
     @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query(value = """

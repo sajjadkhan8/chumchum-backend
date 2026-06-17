@@ -89,7 +89,11 @@ create table creators (
     minimum_budget integer,
     preferred_industries text,
     languages jsonb not null default '[]'::jsonb,
-    categories jsonb not null default '[]'::jsonb
+    categories jsonb not null default '[]'::jsonb,
+    rate_card_reel integer,
+    rate_card_story integer,
+    rate_card_post integer,
+    rate_card_video integer
 );
 
 create table brands (
@@ -114,7 +118,7 @@ create table creator_payout_preferences (
     creator_id uuid primary key references creators(id) on delete cascade,
     auto_withdraw_enabled boolean not null default false,
     payout_schedule varchar(20) not null default 'MANUAL' constraint ck_creator_payout_schedule check (payout_schedule in ('WEEKLY', 'BIWEEKLY', 'MONTHLY', 'MANUAL')),
-    minimum_payout_amount integer not null default 5000,
+    minimum_payout_amount integer not null default 5000, -- whole PKR (not paisa); default = PKR 5,000
     account_holder_name varchar(120) not null default '',
     ntn_number varchar(30) not null default '',
     cnic_last4 varchar(4) not null default '',
@@ -538,6 +542,7 @@ create table brand_campaigns (
     max_age int,
     application_type varchar(50),
     max_applicants int,
+    min_proposed_price integer,
     proposal_required boolean not null default false,
     portfolio_required boolean not null default false,
     custom_screening_questions text,
@@ -556,6 +561,7 @@ create table brand_campaigns (
     created_at timestamptz not null default now(),
     updated_at timestamptz not null default now(),
     constraint ck_brand_campaigns_budget check (budget_min >= 0 and budget_max >= 0 and budget_min <= budget_max),
+    constraint ck_brand_campaigns_min_proposed_price check (min_proposed_price is null or min_proposed_price >= 0),
     constraint ck_brand_campaigns_status check (status in ('DRAFT', 'PUBLISHED', 'PAUSED', 'CLOSED', 'ARCHIVED')),
     constraint ck_brand_campaigns_visibility check (visibility in ('public', 'private'))
 );
@@ -673,6 +679,13 @@ create index idx_brand_invoices_brand_id on brand_invoices(brand_id, due_at desc
 create index idx_brand_disbursements_brand_id on brand_disbursements(brand_id, release_date desc);
 create index idx_brand_payment_access_lookup on brand_payment_access(user_id, brand_id);
 create index idx_payment_audit_logs_brand_created on payment_audit_logs(brand_id, created_at desc);
+alter table core.creators add constraint ck_creators_rate_card check (
+    (rate_card_reel is null or rate_card_reel >= 0) and
+    (rate_card_story is null or rate_card_story >= 0) and
+    (rate_card_post is null or rate_card_post >= 0) and
+    (rate_card_video is null or rate_card_video >= 0)
+);
+create index idx_creators_categories_gin on core.creators using gin(categories);
 create index idx_brand_campaigns_brand_status on brand_campaigns(brand_id, status, created_at desc);
 create index idx_brand_campaigns_feed on brand_campaigns(status, deadline_date, published_at desc);
 create index idx_brand_campaign_reactions_offer on brand_campaign_reactions(campaign_id, created_at desc);

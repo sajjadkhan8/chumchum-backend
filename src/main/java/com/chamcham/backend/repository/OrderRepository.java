@@ -118,6 +118,15 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
             join fetch o.creator
             join fetch o.brand
             join fetch o.servicePackage
+            where o.id = :id
+            """)
+    Optional<Order> findByIdWithDetails(@Param("id") UUID id);
+
+    @Query("""
+            select o from Order o
+            join fetch o.creator
+            join fetch o.brand
+            join fetch o.servicePackage
             where (o.dealType = com.chamcham.backend.entity.enums.DealType.BARTER
                    or o.dealType = com.chamcham.backend.entity.enums.DealType.HYBRID)
               and o.barterProductReceived = false

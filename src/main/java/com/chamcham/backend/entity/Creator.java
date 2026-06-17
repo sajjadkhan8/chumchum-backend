@@ -77,6 +77,18 @@ public class Creator extends User {
     @Column(name = "minimum_budget")
     private Integer minimumBudget;
 
+    @Column(name = "rate_card_reel")
+    private Integer rateCardReel;
+
+    @Column(name = "rate_card_story")
+    private Integer rateCardStory;
+
+    @Column(name = "rate_card_post")
+    private Integer rateCardPost;
+
+    @Column(name = "rate_card_video")
+    private Integer rateCardVideo;
+
     @Column(name = "preferred_industries", columnDefinition = "text")
     private String preferredIndustries;
 
