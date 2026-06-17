@@ -7,6 +7,7 @@ import com.chamcham.backend.dto.servicepackage.ServicePackageResponse;
 import com.chamcham.backend.entity.ServicePackage;
 import com.chamcham.backend.entity.Creator;
 import com.chamcham.backend.entity.enums.DealType;
+import com.chamcham.backend.entity.enums.PackageCategory;
 import com.chamcham.backend.entity.enums.PackageStatus;
 import com.chamcham.backend.entity.enums.UserRole;
 import com.chamcham.backend.exception.ApiException;
@@ -330,7 +331,7 @@ public class ServicePackageService {
 
     @Transactional(readOnly = true)
     public PageResponse<ServicePackageResponse> getPackages(
-            String category,
+            PackageCategory category,
             String search,
             Integer min,
             Integer max,

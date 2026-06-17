@@ -3,6 +3,7 @@ package com.chamcham.backend.controller;
 import com.chamcham.backend.config.security.AuthenticatedUser;
 import com.chamcham.backend.dto.servicepackage.ServicePackageCreateRequest;
 import com.chamcham.backend.dto.servicepackage.ServicePackageResponse;
+import com.chamcham.backend.entity.enums.PackageCategory;
 import com.chamcham.backend.service.ServicePackageService;
 import com.chamcham.backend.util.PageResponse;
 import jakarta.validation.Valid;
@@ -103,7 +104,7 @@ public class PackageController {
 
     @GetMapping
     public ResponseEntity<PageResponse<ServicePackageResponse>> getPackages(
-            @RequestParam(required = false) String category,
+            @RequestParam(required = false) PackageCategory category,
             @RequestParam(required = false) String search,
             @RequestParam(required = false) Integer min,
             @RequestParam(required = false) Integer max,

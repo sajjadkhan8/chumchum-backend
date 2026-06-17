@@ -8,6 +8,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -35,6 +36,7 @@ public class DisputeController {
     ) {}
 
     @PostMapping
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Map<String, Object>> openDispute(
             @AuthenticationPrincipal AuthenticatedUser authUser,
             @Valid @RequestBody OpenDisputeRequest request

@@ -2,6 +2,7 @@ package com.chamcham.backend.repository;
 
 import com.chamcham.backend.entity.Creator;
 import com.chamcham.backend.entity.ServicePackage;
+import com.chamcham.backend.entity.enums.PackageCategory;
 import com.chamcham.backend.entity.enums.PackageStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -28,13 +29,13 @@ public interface ServicePackageRepository extends JpaRepository<ServicePackage, 
     @Query("""
             select p from ServicePackage p
             where p.status = 'ACTIVE'
-              and (:category is null or p.category like %:category%)
+              and (:category is null or p.category = :category)
               and (:search   is null or p.title   like %:search%)
               and (:minPrice is null or p.price   >= :minPrice)
               and (:maxPrice is null or p.price   <= :maxPrice)
             """)
     Page<ServicePackage> searchActive(
-            @Param("category") String category,
+            @Param("category") PackageCategory category,
             @Param("search")   String search,
             @Param("minPrice") Integer minPrice,
             @Param("maxPrice") Integer maxPrice,

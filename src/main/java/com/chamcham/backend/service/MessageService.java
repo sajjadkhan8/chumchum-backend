@@ -143,6 +143,10 @@ public class MessageService {
     @Transactional
     public MessageResponse sendAttachmentMessage(UUID userId, UserRole role, UUID conversationId, MultipartFile file) {
         if (role.isAdmin()) throw new ApiException(HttpStatus.FORBIDDEN, "Admin cannot send messages");
+        if (rateLimitService.recordAndCheck("msg_attachment", userId.toString(), 30, 1, 30)) {
+            throw new ApiException(HttpStatus.TOO_MANY_REQUESTS,
+                    "You are sending attachments too quickly. Please wait a moment.");
+        }
         Conversation conversation = findConversationForUpdate(conversationId);
         validateParticipant(userId, conversation);
         User sender = findUser(userId);
