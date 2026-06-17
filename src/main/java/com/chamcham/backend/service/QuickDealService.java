@@ -86,8 +86,6 @@ public class QuickDealService {
                         .id(UUID.randomUUID())
                         .creator(creator)
                         .brand(brand)
-                        .readByCreator(false)
-                        .readByBrand(true)
                         .build()));
 
         Message message = messageRepository.save(Message.builder()
@@ -126,8 +124,6 @@ public class QuickDealService {
         message.setQuickDealOffer(offer);
 
         conversation.setUnreadCountCreator(conversation.getUnreadCountCreator() + 1);
-        conversation.setReadByCreator(false);
-        conversation.setReadByBrand(true);
         conversation.setLastMessage("[Offer]");
         conversation.setLastMessageId(message.getId());
         conversationRepository.save(conversation);

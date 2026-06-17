@@ -192,6 +192,8 @@ public class OrderService {
                 .deadlineDate(OffsetDateTime.now(ZoneId.of("Asia/Karachi"))
                         .toLocalDate().plusDays(Math.max(pkg.getDeliveryDays(), 1))
                         .atTime(23, 59, 59).atZone(ZoneId.of("Asia/Karachi")).toOffsetDateTime())
+                .barterExpectedBy((effectiveDealType == DealType.BARTER || effectiveDealType == DealType.HYBRID)
+                        ? OffsetDateTime.now(ZoneId.of("Asia/Karachi")).plusDays(14) : null)
                 .idempotencyKey(idempotencyKey != null && !idempotencyKey.isBlank() ? idempotencyKey.trim() : null)
                 .build();
 

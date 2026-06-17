@@ -32,10 +32,10 @@ public interface ConversationRepository extends JpaRepository<Conversation, UUID
     Optional<Conversation> findByIdForUpdate(@Param("id") UUID id);
 
     @Modifying
-    @Query("update Conversation c set c.unreadCountCreator = 0, c.readByCreator = true where c.id = :id")
+    @Query("update Conversation c set c.unreadCountCreator = 0 where c.id = :id")
     int markReadForCreator(@Param("id") UUID id);
 
     @Modifying
-    @Query("update Conversation c set c.unreadCountBrand = 0, c.readByBrand = true where c.id = :id")
+    @Query("update Conversation c set c.unreadCountBrand = 0 where c.id = :id")
     int markReadForBrand(@Param("id") UUID id);
 }

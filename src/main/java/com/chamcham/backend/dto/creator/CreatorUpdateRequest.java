@@ -42,6 +42,7 @@ public record CreatorUpdateRequest(
         @Min(0) Integer avgViews,
         @DecimalMin("0.00") @DecimalMax("100.00") BigDecimal engagementRate,
         @DecimalMin("0.00") @DecimalMax("5.00") BigDecimal rating,
-        @Min(0) Integer totalReviews
+        @Min(0) Integer totalReviews,
+        Boolean isFiler
 ) {
 }

@@ -54,6 +54,8 @@ public record CreatorResponse(
         List<SocialAccountResponse> socialAccounts,
         List<ContentPreviewResponse> contentPreviews,
         ProfileUserResponse user,
+        boolean isFiler,
+        int activeOrderCount,
         Instant createdAt,
         Instant updatedAt
 ) {

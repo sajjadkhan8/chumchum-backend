@@ -40,6 +40,9 @@ public class Creator extends User {
     @Column(name = "availability_status", length = 30)
     private AvailabilityStatus availabilityStatus;
 
+    @Column(name = "is_filer", nullable = false)
+    private boolean isFiler = false;
+
     @Column(name = "response_time", length = 50)
     private String responseTime;
 

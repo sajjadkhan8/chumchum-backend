@@ -190,12 +190,8 @@ public class MessageService {
         // increment unread for the OTHER party
         if (senderRole.isCreator()) {
             conversation.setUnreadCountBrand(conversation.getUnreadCountBrand() + 1);
-            conversation.setReadByCreator(true);
-            conversation.setReadByBrand(false);
         } else {
             conversation.setUnreadCountCreator(conversation.getUnreadCountCreator() + 1);
-            conversation.setReadByBrand(true);
-            conversation.setReadByCreator(false);
         }
         conversation.setLastMessage(preview != null && preview.length() > 200
                 ? preview.substring(0, 200) : preview);

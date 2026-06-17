@@ -14,8 +14,6 @@ public class ConversationMapper {
                 conversation.getId(),
                 creator.getId(),
                 brand.getId(),
-                conversation.isReadByCreator(),
-                conversation.isReadByBrand(),
                 conversation.getUnreadCountCreator(),
                 conversation.getUnreadCountBrand(),
                 conversation.getLastMessage(),

@@ -63,8 +63,6 @@ public class ConversationService {
                         .id(UUID.randomUUID())
                         .creator(creator)
                         .brand(brand)
-                        .readByCreator(isCreator)
-                        .readByBrand(!isCreator)
                         .build());
 
         if (!conversation.getCreator().getId().equals(userId)

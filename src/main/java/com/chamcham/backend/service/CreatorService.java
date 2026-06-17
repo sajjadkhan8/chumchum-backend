@@ -221,6 +221,9 @@ public class CreatorService {
         if (request.availabilityStatus() != null) {
             creator.setAvailabilityStatus(request.availabilityStatus());
         }
+        if (request.isFiler() != null) {
+            creator.setIsFiler(request.isFiler());
+        }
         if (request.responseTime() != null) {
             creator.setResponseTime(request.responseTime());
         }

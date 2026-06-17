@@ -71,6 +71,9 @@ public class Order extends BaseEntity {
     @Builder.Default
     private boolean barterProductReceived = false;
 
+    @Column(name = "barter_expected_by")
+    private OffsetDateTime barterExpectedBy;
+
     @Column(name = "idempotency_key", length = 64, unique = true)
     private String idempotencyKey;
 

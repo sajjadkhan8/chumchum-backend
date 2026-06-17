@@ -66,6 +66,7 @@ create table creators (
     website varchar(300),
     niche varchar(100),
     availability_status varchar(30) constraint ck_creators_availability_status check (availability_status in ('AVAILABLE', 'BUSY', 'UNAVAILABLE', 'ON_VACATION')),
+    is_filer boolean not null default false,
     response_time varchar(50),
     min_price integer,
     max_price integer,
@@ -242,6 +243,8 @@ create table orders (
     progress integer not null default 0,
     delivery_date date,
     deadline_date timestamptz,
+    -- For barter/hybrid deals: when the barter product is expected to have been received by the creator.
+    barter_expected_by timestamptz,
     -- Optional client-supplied key (UUID or similar) to make order creation idempotent.
     -- Duplicate requests with the same key return the original order without re-charging escrow.
     idempotency_key varchar(64),
@@ -309,8 +312,6 @@ create table conversations (
     id uuid primary key,
     creator_id uuid not null references creators(id) on delete cascade,
     brand_id uuid not null references brands(id) on delete cascade,
-    read_by_creator boolean not null,
-    read_by_brand boolean not null,
     unread_count_creator integer not null default 0,
     unread_count_brand integer not null default 0,
     last_message varchar(2000),

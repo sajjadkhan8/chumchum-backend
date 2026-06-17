@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -111,4 +112,22 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
 
     @Query("select count(o) from Order o where o.creator.id = :creatorId and o.status = :status")
     long countByCreatorIdAndStatus(@Param("creatorId") UUID creatorId, @Param("status") OrderStatus status);
+
+    @Query("""
+            select o from Order o
+            join fetch o.creator
+            join fetch o.brand
+            join fetch o.servicePackage
+            where (o.dealType = com.chamcham.backend.entity.enums.DealType.BARTER
+                   or o.dealType = com.chamcham.backend.entity.enums.DealType.HYBRID)
+              and o.barterProductReceived = false
+              and o.barterExpectedBy is not null
+              and o.barterExpectedBy < :now
+              and o.status in (com.chamcham.backend.entity.enums.OrderStatus.ACCEPTED,
+                               com.chamcham.backend.entity.enums.OrderStatus.IN_PROGRESS,
+                               com.chamcham.backend.entity.enums.OrderStatus.DELIVERED,
+                               com.chamcham.backend.entity.enums.OrderStatus.REVIEW,
+                               com.chamcham.backend.entity.enums.OrderStatus.REVISION)
+            """)
+    List<Order> findOverdueBarterOrders(@Param("now") OffsetDateTime now);
 }

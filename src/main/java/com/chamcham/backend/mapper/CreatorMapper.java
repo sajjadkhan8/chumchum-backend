@@ -55,6 +55,9 @@ public class CreatorMapper {
                 ? (int) Math.min(99, Math.round((double) completedOrders / totalOrders * 100))
                 : 0;
         int repeatClients = (int) orderRepository.countDistinctBrandsByCreatorAndCompleted(creator.getId());
+        long activeOrders = orderRepository.countByCreatorIdAndStatusIn(creator.getId(), List.of(
+                OrderStatus.ACCEPTED, OrderStatus.IN_PROGRESS,
+                OrderStatus.DELIVERED, OrderStatus.REVIEW, OrderStatus.REVISION));
 
         return new CreatorResponse(
                 creator.getId(),
@@ -98,6 +101,8 @@ public class CreatorMapper {
                 socialAccounts,
                 contentPreviews,
                 publicView ? profileUserMapper.toPublicResponse(creator) : profileUserMapper.toResponse(creator),
+                creator.isFiler(),
+                (int) activeOrders,
                 creator.getCreatedAt(),
                 creator.getUpdatedAt()
         );

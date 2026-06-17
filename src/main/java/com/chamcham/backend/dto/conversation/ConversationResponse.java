@@ -7,8 +7,6 @@ public record ConversationResponse(
         UUID id,
         UUID creatorId,
         UUID brandId,
-        boolean readByCreator,
-        boolean readByBrand,
         int unreadCountCreator,
         int unreadCountBrand,
         String lastMessage,
