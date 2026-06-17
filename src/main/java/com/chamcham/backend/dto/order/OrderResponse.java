@@ -23,6 +23,8 @@ public record OrderResponse(
         LocalDate deadlineDate,
         LocalDate deliveryDate,
         Instant createdAt,
-        List<DeliverableResponse> deliverables
+        List<DeliverableResponse> deliverables,
+        boolean barterProductReceived,
+        UUID conversationId
 ) {
 }

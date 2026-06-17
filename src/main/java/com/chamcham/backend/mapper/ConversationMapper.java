@@ -8,16 +8,22 @@ import org.springframework.stereotype.Component;
 public class ConversationMapper {
 
     public ConversationResponse toResponse(Conversation conversation) {
+        com.chamcham.backend.entity.Creator creator = conversation.getCreator();
+        com.chamcham.backend.entity.Brand brand = conversation.getBrand();
         return new ConversationResponse(
                 conversation.getId(),
-                conversation.getCreator().getId(),
-                conversation.getBrand().getId(),
+                creator.getId(),
+                brand.getId(),
                 conversation.isReadByCreator(),
                 conversation.isReadByBrand(),
                 conversation.getUnreadCountCreator(),
                 conversation.getUnreadCountBrand(),
                 conversation.getLastMessage(),
-                conversation.getUpdatedAt()
+                conversation.getUpdatedAt(),
+                creator.getName(),
+                creator.getAvatarUrl(),
+                brand.getDisplayName(),
+                brand.getLogoUrl()
         );
     }
 }

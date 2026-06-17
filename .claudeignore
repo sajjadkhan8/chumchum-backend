@@ -1,0 +1,10 @@
+node_modules/
+dist/
+build/
+.next/
+.idea/
+.git/
+*.log
+uploads/
+bin/
+chumchum-backend/uploads/

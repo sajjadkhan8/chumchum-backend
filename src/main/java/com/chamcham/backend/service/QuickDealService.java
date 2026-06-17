@@ -109,6 +109,8 @@ public class QuickDealService {
                 .estimatedBarterValue(request.estimatedBarterValue())
                 .creatorExpectation(request.creatorExpectation())
                 .message(request.message())
+                .platform(request.platform() != null ? request.platform() : PackagePlatform.INSTAGRAM)
+                .deliveryDays(request.deliveryDays() != null && request.deliveryDays() > 0 ? request.deliveryDays() : 7)
                 .status(OfferStatus.PENDING)
                 .build());
 
@@ -185,7 +187,7 @@ public class QuickDealService {
                 .shortDescription("Accepted quick deal")
                 .description(description)
                 .fullDescription(description)
-                .platform(PackagePlatform.INSTAGRAM)
+                .platform(offer.getPlatform() != null ? offer.getPlatform() : PackagePlatform.INSTAGRAM)
                 .category("Quick Deal")
                 .type(PackageType.ONE_TIME)
                 .dealType(offer.getDealType())
@@ -200,7 +202,7 @@ public class QuickDealService {
                 .hybridBarterValue(offer.getEstimatedBarterValue())
                 .creatorExpectations(offer.getCreatorExpectation())
                 .deliverables(java.util.List.of("Quick deal deliverable"))
-                .deliveryDays(7)
+                .deliveryDays(offer.getDeliveryDays() > 0 ? offer.getDeliveryDays() : 7)
                 .revisions(1)
                 .tags(java.util.List.of("quick-deal"))
                 .currency("PKR")

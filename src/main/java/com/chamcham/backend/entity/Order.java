@@ -67,6 +67,10 @@ public class Order extends BaseEntity {
     @Column(name = "deadline_date")
     private LocalDate deadlineDate;
 
+    @Column(name = "barter_product_received", nullable = false)
+    @Builder.Default
+    private boolean barterProductReceived = false;
+
     @OneToMany(mappedBy = "order", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<Deliverable> deliverables = new ArrayList<>();

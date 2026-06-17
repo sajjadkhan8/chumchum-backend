@@ -12,6 +12,10 @@ public record ConversationResponse(
         int unreadCountCreator,
         int unreadCountBrand,
         String lastMessage,
-        Instant updatedAt
+        Instant updatedAt,
+        String creatorName,
+        String creatorAvatarUrl,
+        String brandName,
+        String brandLogoUrl
 ) {
 }

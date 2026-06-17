@@ -332,6 +332,27 @@ public class OrderService {
     }
 
     @Transactional
+    public OrderResponse confirmBarterReceipt(UUID orderId, UUID brandUserId, UserRole role) {
+        Order order = findOrder(orderId);
+        if (!role.isBrand() && !role.isAdmin()) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "Only brands can confirm barter receipt");
+        }
+        if (!role.isAdmin() && !order.getBrand().getId().equals(brandUserId)) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "Access denied");
+        }
+        if (order.getDealType() != DealType.BARTER && order.getDealType() != DealType.HYBRID) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Barter confirmation is only applicable to barter or hybrid orders");
+        }
+        order.setBarterProductReceived(true);
+        Order saved = orderRepository.save(order);
+        notificationService.send(order.getCreator().getId(), "barter_received",
+                "Barter product received",
+                "Brand has confirmed receipt of the barter product for order " + order.getOrderNumber(),
+                "order", order.getId());
+        return orderMapper.toResponse(saved);
+    }
+
+    @Transactional
     public OrderResponse updateProgress(UUID orderId, int progress, UUID userId) {
         Order order = findOrder(orderId);
         if (!order.getCreator().getId().equals(userId)) {
@@ -412,11 +433,16 @@ public class OrderService {
     }
 
     private void notifyStatusChange(Order order, OrderStatus newStatus) {
+        String body = "Order " + order.getOrderNumber() + " is now " + newStatus.name().toLowerCase().replace('_', ' ');
+        boolean notifyBoth = newStatus == OrderStatus.COMPLETED || newStatus == OrderStatus.CANCELLED;
+        if (notifyBoth) {
+            notificationService.send(order.getCreator().getId(), "order_status", "Order status updated", body, "order", order.getId());
+            notificationService.send(order.getBrand().getId(), "order_status", "Order status updated", body, "order", order.getId());
+            return;
+        }
         UUID recipientId = newStatus == OrderStatus.ACCEPTED || newStatus == OrderStatus.IN_PROGRESS
                 || newStatus == OrderStatus.DELIVERED ? order.getBrand().getId() : order.getCreator().getId();
-        notificationService.send(recipientId, "order_status", "Order status updated",
-                "Order " + order.getOrderNumber() + " is now " + newStatus.name().toLowerCase().replace('_', ' '),
-                "order", order.getId());
+        notificationService.send(recipientId, "order_status", "Order status updated", body, "order", order.getId());
     }
 
     private void validateDealPayload(DealType dealType, Integer amount, String barterDetails) {

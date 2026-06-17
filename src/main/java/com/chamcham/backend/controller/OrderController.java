@@ -62,6 +62,12 @@ public class OrderController {
                 OrderStatus.valueOf(request.status().toUpperCase()), authUser.userId(), authUser.role()));
     }
 
+    @PatchMapping("/{orderId}/barter-confirm")
+    public ResponseEntity<OrderResponse> confirmBarterReceipt(@PathVariable UUID orderId,
+            @AuthenticationPrincipal AuthenticatedUser authUser) {
+        return ResponseEntity.ok(orderService.confirmBarterReceipt(orderId, authUser.userId(), authUser.role()));
+    }
+
     @PatchMapping("/{orderId}/progress")
     public ResponseEntity<OrderResponse> updateOrderProgress(@PathVariable UUID orderId,
             @RequestBody Map<String, Integer> request,

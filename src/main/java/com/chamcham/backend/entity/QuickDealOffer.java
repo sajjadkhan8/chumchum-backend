@@ -3,6 +3,7 @@ package com.chamcham.backend.entity;
 import com.chamcham.backend.entity.enums.DealType;
 import com.chamcham.backend.entity.enums.OfferStatus;
 import com.chamcham.backend.entity.enums.OfferStatusConverter;
+import com.chamcham.backend.entity.enums.PackagePlatform;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
@@ -55,6 +56,15 @@ public class QuickDealOffer {
 
     @Column(name = "message", nullable = false, columnDefinition = "text")
     private String message;
+
+    @Column(name = "delivery_days", nullable = false)
+    @Builder.Default
+    private int deliveryDays = 7;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "platform", nullable = false, length = 30)
+    @Builder.Default
+    private PackagePlatform platform = PackagePlatform.INSTAGRAM;
 
     @Convert(converter = OfferStatusConverter.class)
     @Column(nullable = false, length = 30)
