@@ -1,6 +1,8 @@
 package com.chamcham.backend.repository;
 
 import com.chamcham.backend.entity.Conversation;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
@@ -18,6 +20,10 @@ public interface ConversationRepository extends JpaRepository<Conversation, UUID
     List<Conversation> findByCreatorIdOrderByUpdatedAtDesc(UUID creatorId);
 
     List<Conversation> findByBrandIdOrderByUpdatedAtDesc(UUID brandId);
+
+    Page<Conversation> findByCreatorIdOrderByUpdatedAtDesc(UUID creatorId, Pageable pageable);
+
+    Page<Conversation> findByBrandIdOrderByUpdatedAtDesc(UUID brandId, Pageable pageable);
 
     Optional<Conversation> findByCreatorIdAndBrandId(UUID creatorId, UUID brandId);
 

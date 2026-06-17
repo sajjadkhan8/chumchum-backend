@@ -24,6 +24,15 @@ spring:
     default-schema: core
     schemas: core
     locations: classpath:db/migration
+  mail:
+    host: ${SMTP_HOST:}
+    port: ${SMTP_PORT:587}
+    username: ${SMTP_USERNAME:}
+    password: ${SMTP_PASSWORD:}
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.starttls.enable: true
+      mail.smtp.starttls.required: false
 
 server:
   port: ${PORT:8080}
@@ -65,9 +74,13 @@ security:
       token-info-url: ${GOOGLE_TOKEN_INFO_URL:https://oauth2.googleapis.com/tokeninfo}
 
 app:
+  storage:
+    driver: ${STORAGE_DRIVER:local}
   frontend-base-url: ${FRONTEND_BASE_URL:http://localhost:3000}
   email:
     log-content: ${EMAIL_LOG_CONTENT:false}
+    from-address: ${SMTP_FROM_ADDRESS:noreply@zingzing.pk}
+    from-name: ZingZing
   refunds:
     mock:
       webhook-secret: ${MOCK_REFUND_WEBHOOK_SECRET:JustSomeRandSecretForSMSRefund}

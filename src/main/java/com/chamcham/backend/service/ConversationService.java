@@ -11,10 +11,13 @@ import com.chamcham.backend.mapper.ConversationMapper;
 import com.chamcham.backend.repository.BrandRepository;
 import com.chamcham.backend.repository.ConversationRepository;
 import com.chamcham.backend.repository.CreatorRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -72,16 +75,28 @@ public class ConversationService {
         return conversationMapper.toResponse(conversationRepository.save(conversation));
     }
 
-    public List<ConversationResponse> getConversations(UUID userId, UserRole role) {
+    public Map<String, Object> getConversations(UUID userId, UserRole role, int page, int limit) {
         if (role.isAdmin()) {
             throw new ApiException(HttpStatus.FORBIDDEN, "Admin does not have creator/brand conversations");
         }
 
-        List<Conversation> conversations = role.isCreator()
-                ? conversationRepository.findByCreatorIdOrderByUpdatedAtDesc(userId)
-                : conversationRepository.findByBrandIdOrderByUpdatedAtDesc(userId);
+        int safePage = Math.max(0, page);
+        int safeLimit = Math.min(Math.max(1, limit), 100);
+        PageRequest pageable = PageRequest.of(safePage, safeLimit);
 
-        return conversations.stream().map(conversationMapper::toResponse).toList();
+        Page<Conversation> conversationPage = role.isCreator()
+                ? conversationRepository.findByCreatorIdOrderByUpdatedAtDesc(userId, pageable)
+                : conversationRepository.findByBrandIdOrderByUpdatedAtDesc(userId, pageable);
+
+        List<ConversationResponse> responseList = conversationPage.getContent()
+                .stream().map(conversationMapper::toResponse).toList();
+
+        return Map.of(
+                "items", responseList,
+                "total", conversationPage.getTotalElements(),
+                "page", safePage,
+                "limit", safeLimit
+        );
     }
 
     public ConversationResponse getSingleConversation(UUID creatorId, UUID brandId, UUID userId, UserRole role) {

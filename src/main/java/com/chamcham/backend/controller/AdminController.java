@@ -153,6 +153,13 @@ public class AdminController {
                 "gmv", gmv,
                 "completedOrderAmount", completedRevenue
         ));
+        List<Map<String, Object>> ordersByCategory = orderRepository.countCompletedOrdersByCategory()
+                .stream()
+                .map(row -> Map.<String, Object>of(
+                        "category", row[0] == null ? "uncategorized" : row[0].toString(),
+                        "count", row[1]))
+                .toList();
+        data.put("ordersByCategory", ordersByCategory);
         return ok(data);
     }
 
@@ -201,23 +208,18 @@ public class AdminController {
             @RequestParam(required = false) String search,
             @RequestParam(required = false) String status,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "50") int limit
+            @RequestParam(defaultValue = "20") int limit
     ) {
         requireAdmin(authUser);
-        OrderStatus statusFilter = parseOrderStatusFilter(status);
-        String searchFilter = blankToNull(search);
-        List<OrderResponse> allOrders = orderRepository.findAllForAdmin().stream()
-                .filter(order -> statusFilter == null || order.getStatus() == statusFilter)
-                .filter(order -> matchesOrderSearch(order, searchFilter))
-                .map(orderMapper::toResponse)
-                .toList();
         int safePage = safePage(page);
         int safeLimit = safeLimit(limit);
-        int fromIndex = Math.min(safePage * safeLimit, allOrders.size());
-        int toIndex = Math.min(fromIndex + safeLimit, allOrders.size());
+        OrderStatus statusFilter = parseOrderStatusFilter(status);
+        String searchFilter = blankToNull(search);
+        Page<Order> orderPage = orderRepository.findForAdminPaged(statusFilter, searchFilter, PageRequest.of(safePage, safeLimit));
+        List<OrderResponse> responses = orderPage.getContent().stream().map(orderMapper::toResponse).toList();
         return ok(Map.of(
-                "orders", allOrders.subList(fromIndex, toIndex),
-                "total", allOrders.size(),
+                "orders", responses,
+                "total", orderPage.getTotalElements(),
                 "page", safePage,
                 "limit", safeLimit
         ));
