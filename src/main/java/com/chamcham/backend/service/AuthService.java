@@ -246,6 +246,7 @@ public class AuthService {
         userRepository.save(user);
         token.setUsedAt(Instant.now());
         resetTokenRepository.save(token);
+        refreshTokenRepository.revokeAllByUserId(user.getId(), Instant.now());
     }
 
     @Transactional

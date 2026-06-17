@@ -85,7 +85,7 @@ public class OrderController {
             @AuthenticationPrincipal AuthenticatedUser authUser) {
         String raw = body.get("status");
         if (raw == null) throw new ApiException(HttpStatus.BAD_REQUEST, "status is required");
-        return ResponseEntity.ok(orderService.reviewDeliverable(orderId, deliverableId, raw,
+        return ResponseEntity.ok(orderService.reviewDeliverable(orderId, deliverableId, raw, body.get("comment"),
                 authUser.userId(), authUser.role()));
     }
 }

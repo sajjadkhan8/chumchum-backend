@@ -329,6 +329,7 @@ create table deliverables (
     status varchar(30) not null default 'PENDING',
     file_url varchar(500),
     submitted_at timestamptz,
+    revision_note varchar(1000),
     created_at timestamptz not null default now(),
     updated_at timestamptz not null default now()
 );

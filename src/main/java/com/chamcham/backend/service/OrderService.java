@@ -15,11 +15,13 @@ import com.chamcham.backend.entity.enums.UserRole;
 import com.chamcham.backend.exception.ApiException;
 import com.chamcham.backend.mapper.OrderMapper;
 import com.chamcham.backend.repository.BrandRepository;
+import com.chamcham.backend.repository.BrandWalletRepository;
 import com.chamcham.backend.repository.DeliverableRepository;
 import com.chamcham.backend.repository.OrderRepository;
 import com.chamcham.backend.repository.ServicePackageRepository;
 import com.chamcham.backend.repository.TransactionRepository;
 import com.chamcham.backend.repository.WalletRepository;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -60,6 +62,9 @@ public class OrderService {
     private final OrderMapper orderMapper;
     private final NotificationService notificationService;
     private final AffiliateService affiliateService;
+    private final BrandWalletRepository brandWalletRepository;
+    private final double feeRate;
+
     public OrderService(OrderRepository orderRepository,
                         ServicePackageRepository servicePackageRepository,
                         BrandRepository brandRepository,
@@ -68,7 +73,9 @@ public class OrderService {
                         TransactionRepository transactionRepository,
                         OrderMapper orderMapper,
                         NotificationService notificationService,
-                        AffiliateService affiliateService) {
+                        AffiliateService affiliateService,
+                        BrandWalletRepository brandWalletRepository,
+                        @Value("${platform.fee-rate:0.10}") double feeRate) {
         this.orderRepository = orderRepository;
         this.servicePackageRepository = servicePackageRepository;
         this.brandRepository = brandRepository;
@@ -78,6 +85,8 @@ public class OrderService {
         this.orderMapper = orderMapper;
         this.notificationService = notificationService;
         this.affiliateService = affiliateService;
+        this.brandWalletRepository = brandWalletRepository;
+        this.feeRate = feeRate;
     }
 
     @Transactional(readOnly = true)
@@ -128,6 +137,15 @@ public class OrderService {
 
         DealType effectiveDealType = dealType != null ? dealType : DealType.PAID;
         validateDealPayload(effectiveDealType, amount, barterDetails);
+
+        if ((effectiveDealType == DealType.PAID || effectiveDealType == DealType.HYBRID)
+                && amount != null && amount > 0) {
+            int held = brandWalletRepository.holdEscrow(brand.getId(), amount);
+            if (held == 0) {
+                throw new ApiException(HttpStatus.PAYMENT_REQUIRED, "Insufficient wallet balance to place this order");
+            }
+        }
+
         String orderNumber = "ORD-" + UUID.randomUUID().toString().replace("-", "").substring(0, 12).toUpperCase();
 
         Order order = Order.builder()
@@ -205,6 +223,9 @@ public class OrderService {
         if (newStatus == OrderStatus.COMPLETED) {
             releaseCreatorEarnings(saved);
         }
+        if (newStatus == OrderStatus.CANCELLED) {
+            refundEscrowIfApplicable(saved);
+        }
         notifyStatusChange(saved, newStatus);
         return orderMapper.toResponse(saved);
     }
@@ -252,7 +273,7 @@ public class OrderService {
     }
 
     @Transactional
-    public DeliverableResponse reviewDeliverable(UUID orderId, UUID deliverableId, String rawStatus,
+    public DeliverableResponse reviewDeliverable(UUID orderId, UUID deliverableId, String rawStatus, String comment,
                                                  UUID userId, UserRole role) {
         Order order = findOrder(orderId);
         if (!role.isAdmin() && (!role.isBrand() || !order.getBrand().getId().equals(userId))) {
@@ -278,6 +299,9 @@ public class OrderService {
             throw new ApiException(HttpStatus.BAD_REQUEST, "This deliverable is not awaiting review");
         }
         deliverable.setStatus(requested);
+        if (requested == Deliverable.DeliverableStatus.REVISION && comment != null && !comment.isBlank()) {
+            deliverable.setRevisionNote(comment.trim());
+        }
         Deliverable saved = deliverableRepository.save(deliverable);
 
         List<Deliverable> deliverables = deliverableRepository.findByOrderId(orderId);
@@ -289,10 +313,14 @@ public class OrderService {
         }
         orderRepository.save(order);
 
+        String notifyBody = saved.getName();
+        if (requested == Deliverable.DeliverableStatus.REVISION && comment != null && !comment.isBlank()) {
+            notifyBody = saved.getName() + ": " + comment.trim();
+        }
         notificationService.send(order.getCreator().getId(),
                 requested == Deliverable.DeliverableStatus.REVISION ? "deliverable_revision" : "deliverable_approved",
                 requested == Deliverable.DeliverableStatus.REVISION ? "Revision requested" : "Deliverable approved",
-                saved.getName(), "order", order.getId());
+                notifyBody, "order", order.getId());
         return toDeliverableResponse(saved);
     }
 
@@ -373,7 +401,7 @@ public class OrderService {
     private DeliverableResponse toDeliverableResponse(Deliverable deliverable) {
         return new DeliverableResponse(deliverable.getId(), deliverable.getOrder().getId(), deliverable.getName(),
                 deliverable.getStatus().name().toLowerCase(), deliverable.getFileUrl(),
-                deliverable.getSubmittedAt(), deliverable.getCreatedAt());
+                deliverable.getSubmittedAt(), deliverable.getRevisionNote(), deliverable.getCreatedAt());
     }
 
     private void notifyStatusChange(Order order, OrderStatus newStatus) {
@@ -385,13 +413,11 @@ public class OrderService {
     }
 
     private void validateDealPayload(DealType dealType, Integer amount, String barterDetails) {
-        if ((dealType == DealType.PAID || dealType == DealType.paid
-                || dealType == DealType.HYBRID || dealType == DealType.hybrid)
+        if ((dealType == DealType.PAID || dealType == DealType.HYBRID)
                 && (amount == null || amount <= 0)) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "amount is required for paid and hybrid orders");
         }
-        if ((dealType == DealType.BARTER || dealType == DealType.barter
-                || dealType == DealType.HYBRID || dealType == DealType.hybrid)
+        if ((dealType == DealType.BARTER || dealType == DealType.HYBRID)
                 && (barterDetails == null || barterDetails.isBlank())) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "barterDetails is required for barter and hybrid orders");
         }
@@ -418,17 +444,39 @@ public class OrderService {
             return;
         }
 
-        walletRepository.creditCreatorEarnings(order.getCreator().getId(), amount);
+        int fee = (int) Math.round(amount * feeRate);
+        int creatorNet = amount - fee;
+
+        walletRepository.creditCreatorEarnings(order.getCreator().getId(), creatorNet);
+        brandWalletRepository.releaseEscrow(order.getBrand().getId(), amount);
 
         String orderLabel = order.getOrderNumber() == null ? order.getId().toString() : order.getOrderNumber();
         transactionRepository.save(Transaction.builder()
                 .creator(order.getCreator())
                 .order(order)
                 .type(TransactionType.EARNING)
-                .amount(amount)
+                .amount(creatorNet)
                 .description("Order " + orderLabel + " payout credit")
                 .status(TransactionStatus.COMPLETED)
                 .build());
+        if (fee > 0) {
+            transactionRepository.save(Transaction.builder()
+                    .creator(order.getCreator())
+                    .order(order)
+                    .type(TransactionType.PLATFORM_FEE)
+                    .amount(fee)
+                    .description("Order " + orderLabel + " platform fee")
+                    .status(TransactionStatus.COMPLETED)
+                    .build());
+        }
         affiliateService.releaseCommissionForCompletedOrder(order);
+    }
+
+    private void refundEscrowIfApplicable(Order order) {
+        int amount = order.getAmount() == null ? 0 : order.getAmount();
+        if (amount <= 0 || order.getDealType() == DealType.BARTER) {
+            return;
+        }
+        brandWalletRepository.refundEscrow(order.getBrand().getId(), amount);
     }
 }

@@ -15,6 +15,7 @@ public record DeliverableResponse(
         String status,
         String fileUrl,
         OffsetDateTime submittedAt,
+        String revisionNote,
         Instant createdAt
 ) {
 }
