@@ -72,4 +72,13 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
     List<Order> findAllForAdmin();
 
     long countByStatus(OrderStatus status);
+
+    @Query("select coalesce(sum(o.amount), 0) from Order o where o.status = :status and o.amount is not null")
+    long sumAmountByStatus(@Param("status") OrderStatus status);
+
+    @Query("select coalesce(sum(o.amount), 0) from Order o where o.amount is not null")
+    long sumTotalGmv();
+
+    @Query("select count(o) from Order o where o.creator.id = :creatorId and o.status = :status")
+    long countByCreatorIdAndStatus(@Param("creatorId") UUID creatorId, @Param("status") OrderStatus status);
 }

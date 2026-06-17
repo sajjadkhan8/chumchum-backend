@@ -60,7 +60,7 @@ public class AnalyticsController {
             @AuthenticationPrincipal AuthenticatedUser authUser
     ) {
         return ResponseEntity.ok(Map.of("success", true, "data",
-                analyticsService.creatorInsights(authUser.userId(), authUser.role())));
+                analyticsService.creatorInsights(authUser.userId(), authUser.role(), period)));
     }
 
     @GetMapping("/creator/performance")
@@ -77,6 +77,6 @@ public class AnalyticsController {
             @AuthenticationPrincipal AuthenticatedUser authUser
     ) {
         return ResponseEntity.ok(Map.of("success", true, "data",
-                analyticsService.brandCampaigns(authUser.userId(), authUser.role())));
+                analyticsService.brandCampaigns(authUser.userId(), authUser.role(), period)));
     }
 }

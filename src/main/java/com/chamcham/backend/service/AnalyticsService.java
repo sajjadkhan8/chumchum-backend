@@ -108,7 +108,7 @@ public class AnalyticsService {
     // ---- Creator Insights ----
 
     @Transactional(readOnly = true)
-    public Map<String, Object> creatorInsights(UUID userId, UserRole role) {
+    public Map<String, Object> creatorInsights(UUID userId, UserRole role, String period) {
         if (!role.isCreator()) throw new ApiException(HttpStatus.FORBIDDEN, "Access denied");
 
         List<ServicePackage> packages = servicePackageRepository.findByCreatorId(userId);
@@ -234,7 +234,7 @@ public class AnalyticsService {
     // ---- Brand Campaigns ----
 
     @Transactional(readOnly = true)
-    public Map<String, Object> brandCampaigns(UUID userId, UserRole role) {
+    public Map<String, Object> brandCampaigns(UUID userId, UserRole role, String period) {
         if (!role.isBrand()) throw new ApiException(HttpStatus.FORBIDDEN, "Access denied");
 
         List<com.chamcham.backend.entity.Order> orders = orderRepository.findByBrandIdOrderByCreatedAtDesc(userId);
