@@ -7,9 +7,12 @@ import com.chamcham.backend.entity.Brand;
 import com.chamcham.backend.entity.Creator;
 import com.chamcham.backend.entity.Order;
 import com.chamcham.backend.entity.User;
+import com.chamcham.backend.entity.WithdrawalRequest;
+import com.chamcham.backend.entity.enums.BrandPlanTier;
 import com.chamcham.backend.entity.enums.OrderStatus;
 import com.chamcham.backend.entity.enums.CreatorBadgeLevel;
 import com.chamcham.backend.entity.enums.UserRole;
+import com.chamcham.backend.entity.enums.WithdrawalStatus;
 import com.chamcham.backend.exception.ApiException;
 import com.chamcham.backend.mapper.BrandMapper;
 import com.chamcham.backend.mapper.CreatorMapper;
@@ -19,7 +22,11 @@ import com.chamcham.backend.repository.BrandRepository;
 import com.chamcham.backend.repository.CreatorRepository;
 import com.chamcham.backend.repository.OrderRepository;
 import com.chamcham.backend.repository.UserRepository;
-import com.chamcham.backend.service.*;
+import com.chamcham.backend.service.AdminOperationsService;
+import com.chamcham.backend.service.AdminStepUpService;
+import com.chamcham.backend.service.AmbassadorService;
+import com.chamcham.backend.service.OrderService;
+import com.chamcham.backend.service.WithdrawalService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -99,6 +106,8 @@ public class AdminController {
             @Size(max = 500) String reason,
             Integer suspendDays
     ) {}
+
+    public record WithdrawalStatusRequest(@NotNull @NotBlank @Size(max = 20) String status) {}
 
     public record CreatorVerificationRequest(@NotNull Boolean verified) {}
 
