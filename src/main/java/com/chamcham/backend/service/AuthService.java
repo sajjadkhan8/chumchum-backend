@@ -45,6 +45,7 @@ public class AuthService {
     private final AffiliateService affiliateService;
     private final SecureRandom secureRandom = new SecureRandom();
     private final long refreshExpirationSeconds;
+    private final long adminRefreshExpirationSeconds;
     private final String frontendBaseUrl;
 
     public AuthService(
@@ -63,6 +64,7 @@ public class AuthService {
             AuthRateLimitService rateLimitService,
             AffiliateService affiliateService,
             @Value("${security.refresh.expiration-seconds:2592000}") long refreshExpirationSeconds,
+            @Value("${security.refresh.admin-expiration-seconds:86400}") long adminRefreshExpirationSeconds,
             @Value("${app.frontend-base-url:http://localhost:3000}") String frontendBaseUrl
     ) {
         this.userRepository = userRepository;
@@ -80,11 +82,15 @@ public class AuthService {
         this.rateLimitService = rateLimitService;
         this.affiliateService = affiliateService;
         this.refreshExpirationSeconds = refreshExpirationSeconds;
+        this.adminRefreshExpirationSeconds = adminRefreshExpirationSeconds;
         this.frontendBaseUrl = frontendBaseUrl.replaceAll("/+$", "");
     }
 
     @Transactional
     public AuthTokenResponse register(AuthRegisterRequest request) {
+        if (request.role() == UserRole.PLATFORM_ADMIN) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "Cannot register with this role");
+        }
         String email = normalizeIdentifier(request.email());
         enforceRateLimit("register", email, 5, 30, 60);
         if (userRepository.existsByEmail(email)) {
@@ -137,6 +143,12 @@ public class AuthService {
     @Transactional
     public AuthSendOtpResponse sendOtp(AuthSendOtpRequest request) {
         enforceRateLimit("send_otp", request.phone(), 3, 10, 30);
+        // Per-send cooldown: reject if an OTP was sent within the last 60 seconds
+        otpChallengeRepository.findById(request.phone()).ifPresent(existing -> {
+            if (existing.getSentAt().plusSeconds(60).isAfter(Instant.now())) {
+                throw new ApiException(HttpStatus.TOO_MANY_REQUESTS, "Please wait before requesting another OTP");
+            }
+        });
         String otp = String.format("%06d", secureRandom.nextInt(1_000_000));
         otpChallengeRepository.save(AuthOtpChallenge.builder()
                 .phone(request.phone())
@@ -156,7 +168,7 @@ public class AuthService {
 
         challenge.setAttempts(challenge.getAttempts() + 1);
         otpChallengeRepository.save(challenge);
-        if (challenge.getExpiresAt().isBefore(Instant.now()) || challenge.getAttempts() > 5
+        if (challenge.getExpiresAt().isBefore(Instant.now()) || challenge.getAttempts() >= 5
                 || !challenge.getOtpHash().equals(hash(request.otp()))) {
             throw new ApiException(HttpStatus.UNAUTHORIZED, "Invalid or expired OTP");
         }
@@ -181,20 +193,49 @@ public class AuthService {
 
     @Transactional
     public AuthTokenPair refresh(AuthRefreshRequest request) {
-        AuthRefreshToken stored = refreshTokenRepository.findById(hash(request.refreshToken()))
+        String tokenHash = hash(request.refreshToken());
+        // Rate limit per token to prevent flooding a single stolen token
+        enforceRateLimit("refresh", tokenHash.substring(0, 16), 10, 1, 5);
+
+        AuthRefreshToken stored = refreshTokenRepository.findById(tokenHash)
                 .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "Invalid or expired refresh token"));
-        if (stored.getRevokedAt() != null || stored.getExpiresAt().isBefore(Instant.now())) {
+
+        // Reuse detection: a previously-rotated token being presented again indicates potential theft.
+        // Revoke all sessions for this user as a precaution.
+        if (stored.getRevokedAt() != null) {
+            refreshTokenRepository.revokeAllByUserId(stored.getUser().getId(), Instant.now());
             throw new ApiException(HttpStatus.UNAUTHORIZED, "Invalid or expired refresh token");
         }
+        if (stored.getExpiresAt().isBefore(Instant.now())) {
+            throw new ApiException(HttpStatus.UNAUTHORIZED, "Invalid or expired refresh token");
+        }
+
         User user = stored.getUser();
         requireActive(user);
-        return new AuthTokenPair(jwtService.generateToken(user.getId(), user.getRole()), request.refreshToken());
+
+        // Rotate: revoke old token, issue a new one
+        stored.setRevokedAt(Instant.now());
+        refreshTokenRepository.save(stored);
+
+        String newRefreshToken = randomToken();
+        long ttl = user.getRole().isAdmin() ? adminRefreshExpirationSeconds : refreshExpirationSeconds;
+        refreshTokenRepository.save(AuthRefreshToken.builder()
+                .tokenHash(hash(newRefreshToken))
+                .user(user)
+                .createdAt(Instant.now())
+                .expiresAt(Instant.now().plusSeconds(ttl))
+                .build());
+
+        return new AuthTokenPair(jwtService.generateToken(user.getId(), user.getRole()), newRefreshToken);
     }
 
     @Transactional
     public AuthTokenResponse authenticateWithGoogle(AuthGoogleRequest request) {
         if (request.role() == null) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Role is required for Google authentication");
+        }
+        if (request.role() == UserRole.PLATFORM_ADMIN) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "Cannot register with this role");
         }
 
         GoogleTokenVerifierService.VerifiedGoogleProfile googleProfile = googleTokenVerifierService.verifyIdToken(request.idToken());
@@ -252,7 +293,9 @@ public class AuthService {
     @Transactional
     public void logout(String refreshToken) {
         if (refreshToken == null || refreshToken.isBlank()) return;
-        refreshTokenRepository.findById(hash(refreshToken)).ifPresent(token -> {
+        String tokenHash = hash(refreshToken);
+        enforceRateLimit("logout", tokenHash.substring(0, 16), 5, 1, 5);
+        refreshTokenRepository.findById(tokenHash).ifPresent(token -> {
             token.setRevokedAt(Instant.now());
             refreshTokenRepository.save(token);
         });
@@ -268,11 +311,12 @@ public class AuthService {
         requireActive(user);
         String accessToken = jwtService.generateToken(user.getId(), user.getRole());
         String refreshToken = randomToken();
+        long ttl = user.getRole().isAdmin() ? adminRefreshExpirationSeconds : refreshExpirationSeconds;
         refreshTokenRepository.save(AuthRefreshToken.builder()
                 .tokenHash(hash(refreshToken))
                 .user(user)
                 .createdAt(Instant.now())
-                .expiresAt(Instant.now().plusSeconds(refreshExpirationSeconds))
+                .expiresAt(Instant.now().plusSeconds(ttl))
                 .build());
         return new AuthTokenResponse(accessToken, refreshToken, userMapper.toResponse(user));
     }

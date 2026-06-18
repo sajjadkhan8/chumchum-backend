@@ -353,12 +353,12 @@ public class CreatorService {
         payoutMethodRepository.findByCreatorId(creator.getId()).forEach(method -> methods.put(method.getType(), method));
         PayoutMethod bankTransfer = methods.get(PayoutMethodType.BANK_TRANSFER);
         return new PaymentSettingsRequest(
-                accountDetails(methods.get(PayoutMethodType.STCPAY)),
-                accountDetails(methods.get(PayoutMethodType.MADA)),
+                maskAccount(accountDetails(methods.get(PayoutMethodType.STCPAY))),
+                maskAccount(accountDetails(methods.get(PayoutMethodType.MADA))),
                 bankTransfer != null ? bankTransfer.getName() : "",
-                bankTransfer != null ? bankTransfer.getAccountDetails() : "",
-                accountDetails(methods.get(PayoutMethodType.APPLEPAY)),
-                bankTransfer != null ? bankTransfer.getAccountDetails() : ""
+                maskAccount(bankTransfer != null ? bankTransfer.getAccountDetails() : ""),
+                maskAccount(accountDetails(methods.get(PayoutMethodType.APPLEPAY))),
+                maskAccount(bankTransfer != null ? bankTransfer.getAccountDetails() : "")
         );
     }
 
@@ -383,8 +383,8 @@ public class CreatorService {
                 prefs.getPayoutSchedule(),
                 prefs.getMinimumPayoutAmount(),
                 prefs.getAccountHolderName(),
-                prefs.getNtnNumber(),
-                prefs.getCnicLast4(),
+                maskNtn(prefs.getNtnNumber()),
+                null,  // cnicLast4 is write-only; never returned
                 prefs.isEarningsNotificationsEnabled(),
                 prefs.isWeeklyDigestEnabled()
         );
@@ -416,8 +416,8 @@ public class CreatorService {
                 saved.getPayoutSchedule(),
                 saved.getMinimumPayoutAmount(),
                 saved.getAccountHolderName(),
-                saved.getNtnNumber(),
-                saved.getCnicLast4(),
+                maskNtn(saved.getNtnNumber()),
+                null,  // cnicLast4 is write-only; never returned
                 saved.isEarningsNotificationsEnabled(),
                 saved.isWeeklyDigestEnabled()
         );
@@ -441,6 +441,18 @@ public class CreatorService {
 
     private String accountDetails(PayoutMethod method) {
         return method == null ? "" : method.getAccountDetails();
+    }
+
+    private String maskAccount(String raw) {
+        if (raw == null || raw.isBlank()) return raw;
+        if (raw.length() < 4) return "****";
+        return "*".repeat(raw.length() - 4) + raw.substring(raw.length() - 4);
+    }
+
+    private String maskNtn(String ntn) {
+        if (ntn == null || ntn.isBlank()) return ntn;
+        if (ntn.length() < 3) return "***";
+        return "*".repeat(ntn.length() - 3) + ntn.substring(ntn.length() - 3);
     }
 
     private CreatorPayoutPreference ensurePayoutPreference(Creator creator) {

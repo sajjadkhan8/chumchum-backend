@@ -28,7 +28,7 @@ public class AuthController {
 
     public AuthController(
             AuthService authService,
-            @Value("${security.cookie.secure:false}") boolean cookieSecure,
+            @Value("${security.cookie.secure:true}") boolean cookieSecure,
             @Value("${security.cookie.same-site:Strict}") String cookieSameSite,
             @Value("${security.cookie.max-age-seconds:2592000}") long cookieMaxAgeSeconds
     ) {
@@ -73,7 +73,10 @@ public class AuthController {
             throw new ApiException(HttpStatus.UNAUTHORIZED, "Invalid or expired refresh token");
         }
         AuthService.AuthTokenPair pair = authService.refresh(new AuthRefreshRequest(refreshToken));
-        return ResponseEntity.ok(ApiResponse.ok(new AuthService.AuthTokenPair(pair.accessToken(), null)));
+        // Set the rotated refresh token as a new cookie; omit it from the response body
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, refreshCookie(pair.refreshToken(), Duration.ofSeconds(cookieMaxAgeSeconds)).toString())
+                .body(ApiResponse.ok(new AuthService.AuthTokenPair(pair.accessToken(), null)));
     }
 
     @PostMapping("/forgot-password")

@@ -8,7 +8,7 @@ spring:
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/zingzing?currentSchema=core}
     username: ${DB_USERNAME:postgres}
-    password: ${DB_PASSWORD:Haripur@1}
+    password: ${DB_PASSWORD}
 
   jpa:
     hibernate:
@@ -58,12 +58,13 @@ logging:
 
 security:
   jwt:
-    secret: ${JWT_SECRET_BASE64:441065381746aeq9li8fbjg81d0lb4jjatpp72earjgk}
+    secret: ${JWT_SECRET_BASE64}
     expiration-ms: ${JWT_EXPIRATION_MS:900000}
   refresh:
     expiration-seconds: ${REFRESH_EXPIRATION_SECONDS:2592000}
+    admin-expiration-seconds: ${ADMIN_REFRESH_EXPIRATION_SECONDS:86400}
   cookie:
-    secure: ${COOKIE_SECURE:false}
+    secure: ${COOKIE_SECURE:true}
     same-site: ${COOKIE_SAME_SITE:Strict}
     max-age-seconds: ${COOKIE_MAX_AGE:2592000}
   cors:
@@ -83,7 +84,7 @@ app:
     from-name: ZingZing
   refunds:
     mock:
-      webhook-secret: ${MOCK_REFUND_WEBHOOK_SECRET:JustSomeRandSecretForSMSRefund}
+      webhook-secret: ${MOCK_REFUND_WEBHOOK_SECRET}
   uploads:
     dir: ${UPLOAD_DIR:./uploads}
     base-url: ${UPLOAD_BASE_URL:http://localhost:8080/uploads}

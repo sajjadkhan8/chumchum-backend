@@ -38,7 +38,7 @@ public class AuthRateLimitService {
         }
 
         limit.setAttempts(limit.getAttempts() + 1);
-        if (limit.getAttempts() > maxAttempts) {
+        if (limit.getAttempts() >= maxAttempts) {
             limit.setBlockedUntil(now.plus(blockMinutes, ChronoUnit.MINUTES));
         }
         repository.save(limit);

@@ -25,6 +25,9 @@ public class SecurityConfig {
     @Value("${security.cors.allowed-origins}")
     private String allowedOriginsProperty;
 
+    @Value("${springdoc.api-docs.enabled:false}")
+    private boolean swaggerEnabled;
+
     public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
     }
@@ -35,12 +38,18 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(Customizer.withDefaults())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/v1/auth/login", "/api/v1/auth/register", "/api/v1/auth/google", "/api/v1/auth/send-otp", "/api/v1/auth/verify-otp", "/api/v1/auth/refresh", "/api/v1/auth/forgot-password", "/api/v1/auth/reset-password", "/api/v1/auth/logout").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/v1/webhooks/refunds/*").permitAll()
-                        .requestMatchers(
-                                HttpMethod.GET,
+                .authorizeHttpRequests(auth -> {
+                        auth.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll();
+                        // Unauthenticated auth endpoints
+                        auth.requestMatchers(HttpMethod.POST,
+                                "/api/v1/auth/login", "/api/v1/auth/register", "/api/v1/auth/google",
+                                "/api/v1/auth/send-otp", "/api/v1/auth/verify-otp", "/api/v1/auth/refresh",
+                                "/api/v1/auth/forgot-password", "/api/v1/auth/reset-password", "/api/v1/auth/logout"
+                        ).permitAll();
+                        // Webhook endpoints (verified by signature in handler)
+                        auth.requestMatchers(HttpMethod.POST, "/api/v1/webhooks/refunds/*").permitAll();
+                        // Public read endpoints
+                        auth.requestMatchers(HttpMethod.GET,
                                 "/api/v1/packages",
                                 "/api/v1/packages/featured",
                                 "/api/v1/packages/*",
@@ -51,23 +60,38 @@ public class SecurityConfig {
                                 "/api/v1/ambassador/benefits",
                                 "/api/v1/ambassador/eligibility",
                                 "/api/v1/ambassador/requirements"
-                        ).permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/v1/creators", "/api/v1/creators/*", "/api/v1/brands",
-                                "/api/v1/brands/*")
-                        .permitAll()
-                        .requestMatchers(HttpMethod.GET, "/uploads/avatars/**", "/uploads/covers/**",
-                                "/uploads/previews/**", "/uploads/packages/**", "/uploads/brands/**").permitAll()
-                        .requestMatchers("/actuator/health").permitAll()
-                        .requestMatchers(
-                                "/swagger-ui.html",
-                                "/swagger-ui/**",
-                                "/v3/api-docs",
-                                "/v3/api-docs/**",
-                                "/swagger-resources",
-                                "/swagger-resources/**",
-                                "/webjars/**")
-                        .permitAll()
-                        .anyRequest().authenticated())
+                        ).permitAll();
+                        // Public creator discovery endpoints (named single-segment paths)
+                        auth.requestMatchers(HttpMethod.GET,
+                                "/api/v1/creators",
+                                "/api/v1/creators/trending",
+                                "/api/v1/creators/barter-friendly",
+                                "/api/v1/creators/fast-responders",
+                                "/api/v1/creators/rising-stars",
+                                "/api/v1/creators/verified",
+                                "/api/v1/creators/by-city"
+                        ).permitAll();
+                        // Public creator profile by creator ID (single-segment UUID only — does NOT match /me/*, /user/*, etc.)
+                        auth.requestMatchers(HttpMethod.GET, "/api/v1/creators/*").permitAll();
+                        // Public brand listing and profile by brand ID (single-segment UUID only)
+                        auth.requestMatchers(HttpMethod.GET, "/api/v1/brands", "/api/v1/brands/*").permitAll();
+                        // Static file access
+                        auth.requestMatchers(HttpMethod.GET, "/uploads/avatars/**", "/uploads/covers/**",
+                                "/uploads/previews/**", "/uploads/packages/**", "/uploads/brands/**").permitAll();
+                        auth.requestMatchers("/actuator/health").permitAll();
+                        // API docs: only open when Swagger is explicitly enabled (never in production)
+                        if (swaggerEnabled) {
+                            auth.requestMatchers(
+                                    "/swagger-ui.html", "/swagger-ui/**",
+                                    "/v3/api-docs", "/v3/api-docs/**",
+                                    "/swagger-resources", "/swagger-resources/**",
+                                    "/webjars/**"
+                            ).permitAll();
+                        }
+                        // Admin endpoints require PLATFORM_ADMIN role at the framework level
+                        auth.requestMatchers("/api/v1/admin/**").hasRole("PLATFORM_ADMIN");
+                        auth.anyRequest().authenticated();
+                })
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
