@@ -12,6 +12,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.math.BigDecimal;
+
 @Getter
 @Setter
 @NoArgsConstructor
@@ -63,6 +65,12 @@ public class Brand extends User {
     @Enumerated(EnumType.STRING)
     @Column(name = "plan_tier", nullable = false, length = 20)
     private BrandPlanTier planTier = BrandPlanTier.STARTER;
+
+    @Column(name = "brand_rating", nullable = false, precision = 3, scale = 2)
+    private BigDecimal brandRating = BigDecimal.ZERO;
+
+    @Column(name = "brand_total_reviews", nullable = false)
+    private int brandTotalReviews = 0;
 
     public String getDisplayName() {
         return name != null && !name.isBlank() ? name : super.getName();

@@ -12,14 +12,21 @@ import java.util.UUID;
 @AllArgsConstructor
 @Entity
 @Table(name = "reviews",
-        uniqueConstraints = @UniqueConstraint(name = "uk_review_order", columnNames = {"order_id"}))
+        uniqueConstraints = @UniqueConstraint(name = "uk_review_order_type", columnNames = {"order_id", "reviewer_type"}))
 public class Review extends BaseEntity {
 
     @Id
     private UUID id;
 
-    /** One review per order. */
-    @OneToOne(fetch = FetchType.LAZY)
+    public enum ReviewerType { BRAND, CREATOR }
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "reviewer_type", nullable = false, length = 10)
+    @Builder.Default
+    private ReviewerType reviewerType = ReviewerType.BRAND;
+
+    /** One review per (order, reviewer_type). */
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "order_id")
     private Order order;
 

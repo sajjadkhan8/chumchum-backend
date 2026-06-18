@@ -8,6 +8,7 @@ public record ReviewResponse(
         UUID orderId,
         UUID creatorId,
         UUID brandId,
+        String reviewerType,
         int rating,
         String comment,
         Instant createdAt
