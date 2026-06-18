@@ -123,3 +123,26 @@ app:
 
 platform:
   fee-rate: ${PLATFORM_FEE_RATE:0.10}
+
+# ─── Safepay Express Checkout ────────────────────────────────────────────────
+# Required for live payments:
+#   SAFEPAY_API_KEY     - Merchant API key (Dashboard → Developers → API Keys → API Key)
+#   SAFEPAY_SECRET_KEY  - Secret key (Dashboard → Developers → API Keys → Secret Key)
+#   SAFEPAY_HMAC_KEY    - Webhook HMAC key (Dashboard → Developers → Endpoints → HMAC Key)
+#
+# To switch to production:
+#   SAFEPAY_ENVIRONMENT=production
+#   Set the above three env vars to your LIVE dashboard values (different from sandbox).
+#
+# To disable online payments (e.g. during maintenance):
+#   SAFEPAY_ENABLED=false
+safepay:
+  enabled: ${SAFEPAY_ENABLED:true}
+  environment: ${SAFEPAY_ENVIRONMENT:sandbox}
+  api-key: ${SAFEPAY_API_KEY:}
+  secret-key: ${SAFEPAY_SECRET_KEY:}
+  hmac-key: ${SAFEPAY_HMAC_KEY:}
+  intent: ${SAFEPAY_INTENT:CYBERSOURCE}
+  sandbox-base-url: ${SAFEPAY_SANDBOX_BASE_URL:https://sandbox.api.getsafepay.com}
+  production-base-url: ${SAFEPAY_PRODUCTION_BASE_URL:https://api.getsafepay.com}
+  webhook-tolerance-seconds: ${SAFEPAY_WEBHOOK_TOLERANCE_SECONDS:300}
