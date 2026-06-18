@@ -8,7 +8,7 @@ create table users (
     username varchar(40) not null unique,
     email varchar(120) unique,
     password_hash varchar(255),
-    role varchar(20) not null constraint ck_users_role check (role in ('CREATOR', 'BRAND', 'PLATFORM_ADMIN')),
+    role varchar(20) not null constraint ck_users_role check (role in ('CREATOR', 'BRAND', 'PLATFORM_ADMIN', 'SUPPORT', 'FINANCE_OPS')),
     name varchar(100),
     image varchar(500),
     avatar_url varchar(500),
@@ -19,6 +19,12 @@ create table users (
     google_subject varchar(128),
     is_active boolean not null default true,
     deleted_at timestamptz,
+    ban_reason varchar(500),
+    suspended_until timestamptz,
+    terms_accepted_at timestamptz,
+    terms_version varchar(20),
+    totp_secret varchar(64),
+    mfa_enabled boolean not null default false,
     created_at timestamptz not null default now(),
     updated_at timestamptz not null default now()
 );
@@ -111,7 +117,9 @@ create table brands (
     business_verification_status varchar(50),
     verification_contact_email varchar(255),
     verification_phone_number varchar(50),
-    plan_tier varchar(20) not null default 'STARTER'
+    plan_tier varchar(20) not null default 'STARTER',
+    brand_rating numeric(3,2) not null default 0,
+    brand_total_reviews integer not null default 0
 );
 
 create table creator_payout_preferences (
@@ -252,6 +260,7 @@ create table orders (
     -- Optional client-supplied key (UUID or similar) to make order creation idempotent.
     -- Duplicate requests with the same key return the original order without re-charging escrow.
     idempotency_key varchar(64),
+    barter_product_received boolean not null default false,
     created_at timestamptz not null,
     updated_at timestamptz not null
 );
@@ -304,12 +313,14 @@ create table reviews (
     order_id uuid references orders(id) on delete set null,
     creator_id uuid references creators(id) on delete cascade,
     brand_id uuid references brands(id) on delete cascade,
+    reviewer_type varchar(10) not null default 'BRAND',
     star integer check (star between 1 and 5),
     rating integer,
     description varchar(1000) not null,
     comment text,
     created_at timestamptz not null,
-    updated_at timestamptz not null
+    updated_at timestamptz not null,
+    constraint uk_review_order_type unique (order_id, reviewer_type)
 );
 
 create table conversations (
@@ -502,6 +513,8 @@ create table quick_deal_offers (
     creator_expectation text,
     message text not null,
     status varchar(30) not null default 'PENDING',
+    delivery_days integer not null default 7,
+    platform varchar(30) not null default 'INSTAGRAM',
     created_at timestamptz not null default now(),
     updated_at timestamptz not null default now()
 );
@@ -642,6 +655,41 @@ create table payment_refunds (
     constraint uq_payment_refunds_provider_refund_id unique (provider_refund_id)
 );
 
+create table affiliate_links (
+    id uuid primary key default gen_random_uuid(),
+    owner_user_id uuid not null references users(id) on delete cascade,
+    code varchar(24) not null unique,
+    is_active boolean not null default true,
+    created_at timestamptz not null default now(),
+    updated_at timestamptz not null default now(),
+    constraint uk_affiliate_links_owner unique (owner_user_id)
+);
+
+create table affiliate_attributions (
+    id uuid primary key default gen_random_uuid(),
+    affiliate_link_id uuid not null references affiliate_links(id) on delete restrict,
+    affiliate_owner_user_id uuid not null references users(id) on delete restrict,
+    referred_creator_id uuid not null references creators(id) on delete cascade,
+    source_code varchar(24) not null,
+    created_at timestamptz not null default now(),
+    updated_at timestamptz not null default now(),
+    constraint uk_affiliate_attributions_referred_creator unique (referred_creator_id)
+);
+
+create table affiliate_commissions (
+    id uuid primary key default gen_random_uuid(),
+    affiliate_owner_user_id uuid not null references users(id) on delete restrict,
+    earning_creator_id uuid not null references creators(id) on delete restrict,
+    order_id uuid not null references orders(id) on delete restrict,
+    base_amount integer not null,
+    rate_basis_points integer not null,
+    commission_amount integer not null,
+    status varchar(40) not null,
+    created_at timestamptz not null default now(),
+    updated_at timestamptz not null default now(),
+    constraint uk_affiliate_commissions_order unique (order_id)
+);
+
 create index idx_packages_creator_id on packages (creator_id);
 create index idx_packages_category_title on packages (category, title);
 create index idx_packages_status on packages (status);
@@ -698,3 +746,8 @@ create index idx_admin_audit_logs_created on admin_audit_logs(created_at desc);
 create index idx_admin_audit_logs_action on admin_audit_logs(action);
 create index idx_payment_refunds_order on payment_refunds(order_id);
 create index idx_payment_refunds_created on payment_refunds(created_at desc);
+create index idx_affiliate_links_owner on affiliate_links(owner_user_id);
+create index idx_affiliate_links_code on affiliate_links(lower(code));
+create index idx_affiliate_attributions_owner on affiliate_attributions(affiliate_owner_user_id);
+create index idx_affiliate_commissions_owner_date on affiliate_commissions(affiliate_owner_user_id, created_at desc);
+create index idx_affiliate_commissions_creator on affiliate_commissions(earning_creator_id);
