@@ -152,7 +152,7 @@ public class AdminOperationsService {
         row.put("orderNumber", dispute.getOrder().getOrderNumber());
         row.put("packageTitle", dispute.getOrder().getServicePackage().getTitle());
         row.put("creatorName", dispute.getOrder().getCreator().getName());
-        row.put("brandName", dispute.getOrder().getBrand().getName());
+        row.put("brandName", dispute.getOrder().getBrand().getDisplayName());
         row.put("orderAmount", dispute.getOrder().getAmount());
         row.put("orderStatus", dispute.getOrder().getStatus().name().toLowerCase());
         row.put("dealType", dispute.getOrder().getDealType().name().toLowerCase());
@@ -198,7 +198,7 @@ public class AdminOperationsService {
         row.put("actorId", audit.getActor().getId());
         row.put("actorName", audit.getActor().getName());
         row.put("brandId", audit.getBrand() == null ? null : audit.getBrand().getId());
-        row.put("brandName", audit.getBrand() == null ? null : audit.getBrand().getName());
+        row.put("brandName", audit.getBrand() == null ? null : audit.getBrand().getDisplayName());
         row.put("action", audit.getAction());
         row.put("targetType", audit.getTargetType());
         row.put("targetId", audit.getTargetId());
@@ -317,7 +317,7 @@ public class AdminOperationsService {
     private void initializeDisputeRelationships(DisputeCase dispute) {
         dispute.getOrder().getServicePackage().getTitle();
         dispute.getOrder().getCreator().getName();
-        dispute.getOrder().getBrand().getName();
+        dispute.getOrder().getBrand().getDisplayName();
         if (dispute.getAssignedAdmin() != null) dispute.getAssignedAdmin().getName();
         if (dispute.getRefund() != null) dispute.getRefund().getAmount();
     }
