@@ -5,18 +5,28 @@ import com.chamcham.backend.dto.creator.CreatorResponse;
 import com.chamcham.backend.dto.creator.CreatorUpdateRequest;
 import com.chamcham.backend.dto.review.ReviewResponse;
 import com.chamcham.backend.dto.servicepackage.ServicePackageResponse;
+import com.chamcham.backend.entity.ContentPreview;
+import com.chamcham.backend.entity.Creator;
 import com.chamcham.backend.entity.SocialAccount;
+import com.chamcham.backend.entity.enums.AvailabilityStatus;
 import com.chamcham.backend.entity.enums.CreatorBadgeLevel;
+import com.chamcham.backend.exception.ApiException;
+import com.chamcham.backend.repository.ContentPreviewRepository;
+import com.chamcham.backend.repository.CreatorRepository;
 import com.chamcham.backend.service.CreatorService;
 import com.chamcham.backend.service.ReviewService;
 import com.chamcham.backend.service.ServicePackageService;
 import com.chamcham.backend.util.PageResponse;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -36,37 +46,46 @@ public class CreatorController {
     private final CreatorService creatorService;
     private final ReviewService reviewService;
     private final ServicePackageService packageService;
+    private final CreatorRepository creatorRepository;
+    private final ContentPreviewRepository contentPreviewRepository;
 
     public CreatorController(CreatorService creatorService, ReviewService reviewService,
-                             ServicePackageService packageService) {
+                             ServicePackageService packageService,
+                             CreatorRepository creatorRepository,
+                             ContentPreviewRepository contentPreviewRepository) {
         this.creatorService = creatorService;
         this.reviewService = reviewService;
         this.packageService = packageService;
+        this.creatorRepository = creatorRepository;
+        this.contentPreviewRepository = contentPreviewRepository;
     }
 
     @GetMapping
     public ResponseEntity<Map<String, Object>> search(
             @RequestParam(required = false) String search,
             @RequestParam(required = false) String city,
+            @RequestParam(required = false) String category,
             @RequestParam(required = false) Integer minFollowers,
             @RequestParam(required = false) Integer maxFollowers,
             @RequestParam(required = false) BigDecimal minRating,
             @RequestParam(required = false) Integer minPrice,
             @RequestParam(required = false) Integer maxPrice,
             @RequestParam(required = false) CreatorBadgeLevel badgeLevel,
-            @RequestParam(required = false) String availabilityStatus,
+            @RequestParam(required = false) AvailabilityStatus availabilityStatus,
             @RequestParam(required = false) Boolean acceptsBarter,
             @RequestParam(required = false) Boolean isTrending,
             @RequestParam(required = false) Boolean isFastResponder,
             @RequestParam(defaultValue = "false") Boolean ambassadorOnly,
+            @RequestParam(required = false) String platform,
+            @RequestParam(required = false) BigDecimal minEngagementRate,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int limit,
             @RequestParam(defaultValue = "createdAt") String sortBy
     ) {
         CreatorService.CreatorSearchResult r = creatorService.search(
-                search, city, minFollowers, maxFollowers, minRating, minPrice, maxPrice,
+                search, city, category, minFollowers, maxFollowers, minRating, minPrice, maxPrice,
                 badgeLevel, availabilityStatus, acceptsBarter, isTrending, isFastResponder,
-                ambassadorOnly, page, limit, sortBy);
+                ambassadorOnly, platform, minEngagementRate, page, limit, sortBy);
         return ResponseEntity.ok(Map.of("success", true, "data",
                 Map.of("creators", r.creators(), "total", r.total(),
                         "page", r.page(), "limit", r.limit())));
@@ -88,6 +107,18 @@ public class CreatorController {
     public ResponseEntity<Map<String, Object>> fastResponders(
             @RequestParam(defaultValue = "20") int limit) {
         return ResponseEntity.ok(Map.of("success", true, "data", creatorService.getFastResponders(limit)));
+    }
+
+    @GetMapping("/rising-stars")
+    public ResponseEntity<Map<String, Object>> risingStars(
+            @RequestParam(defaultValue = "20") int limit) {
+        return ResponseEntity.ok(Map.of("success", true, "data", creatorService.getRisingStars(limit)));
+    }
+
+    @GetMapping("/verified")
+    public ResponseEntity<Map<String, Object>> verified(
+            @RequestParam(defaultValue = "20") int limit) {
+        return ResponseEntity.ok(Map.of("success", true, "data", creatorService.getVerified(limit)));
     }
 
     @GetMapping("/by-city")
@@ -218,5 +249,50 @@ public class CreatorController {
                 "success", true,
                 "data", creatorService.updatePayoutPreferences(authUser.userId(), authUser.role(), req)
         ));
+    }
+
+    public record PortfolioItemRequest(
+            @NotBlank String type,
+            @NotBlank String thumbnailUrl,
+            @NotBlank String mediaUrl,
+            @NotBlank String platform
+    ) {}
+
+    @PostMapping("/me/portfolio")
+    public ResponseEntity<Map<String, Object>> addPortfolioItem(
+            @AuthenticationPrincipal AuthenticatedUser authUser,
+            @Valid @RequestBody PortfolioItemRequest req
+    ) {
+        Creator creator = creatorRepository.findById(authUser.userId())
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Creator profile not found"));
+        ContentPreview preview = ContentPreview.builder()
+                .creator(creator)
+                .type(req.type())
+                .thumbnailUrl(req.thumbnailUrl())
+                .mediaUrl(req.mediaUrl())
+                .platform(req.platform())
+                .build();
+        ContentPreview saved = contentPreviewRepository.save(preview);
+        Map<String, Object> row = new LinkedHashMap<>();
+        row.put("id", saved.getId());
+        row.put("type", saved.getType());
+        row.put("thumbnailUrl", saved.getThumbnailUrl());
+        row.put("mediaUrl", saved.getMediaUrl());
+        row.put("platform", saved.getPlatform());
+        return ResponseEntity.ok(Map.of("success", true, "data", row));
+    }
+
+    @DeleteMapping("/me/portfolio/{itemId}")
+    public ResponseEntity<Map<String, Object>> deletePortfolioItem(
+            @AuthenticationPrincipal AuthenticatedUser authUser,
+            @PathVariable UUID itemId
+    ) {
+        ContentPreview preview = contentPreviewRepository.findById(itemId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Portfolio item not found"));
+        if (!preview.getCreator().getId().equals(authUser.userId())) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "Not your portfolio item");
+        }
+        contentPreviewRepository.delete(preview);
+        return ResponseEntity.ok(Map.of("success", true, "message", "Portfolio item removed"));
     }
 }

@@ -8,9 +8,12 @@ import com.chamcham.backend.entity.Brand;
 import com.chamcham.backend.entity.Creator;
 import com.chamcham.backend.entity.Order;
 import com.chamcham.backend.entity.User;
+import com.chamcham.backend.entity.WithdrawalRequest;
+import com.chamcham.backend.entity.enums.BrandPlanTier;
 import com.chamcham.backend.entity.enums.OrderStatus;
 import com.chamcham.backend.entity.enums.CreatorBadgeLevel;
 import com.chamcham.backend.entity.enums.UserRole;
+import com.chamcham.backend.entity.enums.WithdrawalStatus;
 import com.chamcham.backend.exception.ApiException;
 import com.chamcham.backend.mapper.BrandMapper;
 import com.chamcham.backend.mapper.CreatorMapper;
@@ -23,7 +26,9 @@ import com.chamcham.backend.repository.UserRepository;
 import com.chamcham.backend.service.AmbassadorService;
 import com.chamcham.backend.service.AdminOperationsService;
 import com.chamcham.backend.service.OrderService;
+import com.chamcham.backend.service.WithdrawalService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import org.springframework.data.domain.Page;
@@ -40,6 +45,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.time.OffsetDateTime;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -61,6 +67,7 @@ public class AdminController {
     private final OrderService orderService;
     private final AmbassadorService ambassadorService;
     private final AdminOperationsService adminOperationsService;
+    private final WithdrawalService withdrawalService;
 
     public AdminController(UserRepository userRepository,
                            CreatorRepository creatorRepository,
@@ -72,7 +79,8 @@ public class AdminController {
                            OrderMapper orderMapper,
                            OrderService orderService,
                            AmbassadorService ambassadorService,
-                           AdminOperationsService adminOperationsService) {
+                           AdminOperationsService adminOperationsService,
+                           WithdrawalService withdrawalService) {
         this.userRepository = userRepository;
         this.creatorRepository = creatorRepository;
         this.brandRepository = brandRepository;
@@ -84,9 +92,18 @@ public class AdminController {
         this.orderService = orderService;
         this.ambassadorService = ambassadorService;
         this.adminOperationsService = adminOperationsService;
+        this.withdrawalService = withdrawalService;
     }
 
     public record UserStatusRequest(@NotNull Boolean active) {}
+
+    public record UserModerateRequest(
+            @NotNull @NotBlank @Size(max = 20) String action,  // "suspend" | "ban" | "unban"
+            @Size(max = 500) String reason,
+            Integer suspendDays
+    ) {}
+
+    public record WithdrawalStatusRequest(@NotNull @NotBlank @Size(max = 20) String status) {}
 
     public record CreatorVerificationRequest(@NotNull Boolean verified) {}
 
@@ -109,11 +126,10 @@ public class AdminController {
     public ResponseEntity<Map<String, Object>> dashboard(@AuthenticationPrincipal AuthenticatedUser authUser) {
         requireAdmin(authUser);
 
-        List<Order> orders = orderRepository.findAllForAdmin();
-        long paidRevenue = orders.stream()
-                .filter(order -> order.getStatus() == OrderStatus.COMPLETED)
-                .mapToLong(order -> order.getAmount() == null ? 0 : order.getAmount())
-                .sum();
+        // Use SQL aggregates — never load all orders into JVM heap
+        long totalOrders   = orderRepository.count();
+        long completedRevenue = orderRepository.sumAmountByStatus(OrderStatus.COMPLETED);
+        long gmv           = orderRepository.sumTotalGmv();
 
         Map<String, Object> statusCounts = new LinkedHashMap<>();
         for (OrderStatus status : OrderStatus.values()) {
@@ -130,10 +146,20 @@ public class AdminController {
                 "inactive", userRepository.countByActiveFalse()
         ));
         data.put("orders", Map.of(
-                "total", orders.size(),
+                "total", totalOrders,
                 "byStatus", statusCounts
         ));
-        data.put("revenue", Map.of("completedOrderAmount", paidRevenue));
+        data.put("revenue", Map.of(
+                "gmv", gmv,
+                "completedOrderAmount", completedRevenue
+        ));
+        List<Map<String, Object>> ordersByCategory = orderRepository.countCompletedOrdersByCategory()
+                .stream()
+                .map(row -> Map.<String, Object>of(
+                        "category", row[0] == null ? "uncategorized" : row[0].toString(),
+                        "count", row[1]))
+                .toList();
+        data.put("ordersByCategory", ordersByCategory);
         return ok(data);
     }
 
@@ -182,23 +208,18 @@ public class AdminController {
             @RequestParam(required = false) String search,
             @RequestParam(required = false) String status,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "50") int limit
+            @RequestParam(defaultValue = "20") int limit
     ) {
         requireAdmin(authUser);
-        OrderStatus statusFilter = parseOrderStatusFilter(status);
-        String searchFilter = blankToNull(search);
-        List<OrderResponse> allOrders = orderRepository.findAllForAdmin().stream()
-                .filter(order -> statusFilter == null || order.getStatus() == statusFilter)
-                .filter(order -> matchesOrderSearch(order, searchFilter))
-                .map(orderMapper::toResponse)
-                .toList();
         int safePage = safePage(page);
         int safeLimit = safeLimit(limit);
-        int fromIndex = Math.min(safePage * safeLimit, allOrders.size());
-        int toIndex = Math.min(fromIndex + safeLimit, allOrders.size());
+        OrderStatus statusFilter = parseOrderStatusFilter(status);
+        String searchFilter = blankToNull(search);
+        Page<Order> orderPage = orderRepository.findForAdminPaged(statusFilter, searchFilter, PageRequest.of(safePage, safeLimit));
+        List<OrderResponse> responses = orderPage.getContent().stream().map(orderMapper::toResponse).toList();
         return ok(Map.of(
-                "orders", allOrders.subList(fromIndex, toIndex),
-                "total", allOrders.size(),
+                "orders", responses,
+                "total", orderPage.getTotalElements(),
                 "page", safePage,
                 "limit", safeLimit
         ));
@@ -334,6 +355,28 @@ public class AdminController {
         ));
     }
 
+    @PatchMapping("/brands/{brandId}/plan")
+    @Transactional
+    public ResponseEntity<Map<String, Object>> updateBrandPlan(
+            @AuthenticationPrincipal AuthenticatedUser authUser,
+            @PathVariable UUID brandId,
+            @RequestBody Map<String, String> body
+    ) {
+        requireAdmin(authUser);
+        String tierStr = body.getOrDefault("plan_tier", "").trim().toUpperCase();
+        BrandPlanTier tier;
+        try {
+            tier = BrandPlanTier.valueOf(tierStr);
+        } catch (IllegalArgumentException e) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Invalid plan tier. Allowed: STARTER, GROWTH, ENTERPRISE");
+        }
+        Brand brand = brandRepository.findById(brandId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Brand not found"));
+        brand.setPlanTier(tier);
+        brandRepository.save(brand);
+        return ok(Map.of("success", true, "plan_tier", tier.name()));
+    }
+
     @GetMapping("/ambassador/applications")
     public ResponseEntity<Map<String, Object>> ambassadorApplications(
             @AuthenticationPrincipal AuthenticatedUser authUser,
@@ -373,6 +416,110 @@ public class AdminController {
         } catch (IllegalArgumentException ex) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Invalid status: " + request.status());
         }
+    }
+
+    @PatchMapping("/users/{id}/moderate")
+    @Transactional
+    public ResponseEntity<Map<String, Object>> moderateUser(
+            @AuthenticationPrincipal AuthenticatedUser authUser,
+            @PathVariable UUID id,
+            @Valid @RequestBody UserModerateRequest request
+    ) {
+        requireAdmin(authUser);
+        if (authUser.userId().equals(id)) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Admins cannot moderate their own account");
+        }
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "User not found"));
+        if (user.getRole() == UserRole.PLATFORM_ADMIN) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "Cannot moderate other admin accounts");
+        }
+
+        String action = request.action().trim().toLowerCase();
+        switch (action) {
+            case "ban" -> {
+                user.setActive(false);
+                user.setBanReason(request.reason());
+                user.setSuspendedUntil(null);
+                user.setDeletedAt(OffsetDateTime.now());
+            }
+            case "suspend" -> {
+                int days = request.suspendDays() != null && request.suspendDays() > 0 ? request.suspendDays() : 30;
+                user.setActive(false);
+                user.setBanReason(request.reason());
+                user.setSuspendedUntil(OffsetDateTime.now().plusDays(days));
+            }
+            case "unban" -> {
+                user.setActive(true);
+                user.setBanReason(null);
+                user.setSuspendedUntil(null);
+                user.setDeletedAt(null);
+            }
+            default -> throw new ApiException(HttpStatus.BAD_REQUEST, "Invalid action: " + request.action());
+        }
+
+        User saved = userRepository.save(user);
+        adminOperationsService.log(authUser.userId(), "USER_MODERATED", "user", id.toString(),
+                "action=" + action + (request.reason() != null ? ", reason=" + request.reason() : ""));
+        return ok(userMapper.toResponse(saved));
+    }
+
+    @GetMapping("/payments/withdrawals")
+    public ResponseEntity<Map<String, Object>> listWithdrawals(
+            @AuthenticationPrincipal AuthenticatedUser authUser,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String status,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size
+    ) {
+        requireAdmin(authUser);
+        WithdrawalStatus statusFilter = null;
+        if (status != null && !status.isBlank() && !status.equalsIgnoreCase("all")) {
+            try {
+                statusFilter = WithdrawalStatus.valueOf(status.trim().toUpperCase());
+            } catch (Exception e) {
+                throw new ApiException(HttpStatus.BAD_REQUEST, "Invalid withdrawal status: " + status);
+            }
+        }
+        Page<WithdrawalRequest> result = withdrawalService.listForAdmin(search, statusFilter, page, size);
+        return ok(Map.of(
+                "withdrawals", result.getContent().stream().map(this::toWithdrawalMap).toList(),
+                "total", result.getTotalElements(),
+                "page", result.getNumber(),
+                "size", result.getSize()
+        ));
+    }
+
+    @PatchMapping("/payments/withdrawals/{id}/status")
+    @Transactional
+    public ResponseEntity<Map<String, Object>> updateWithdrawalStatus(
+            @AuthenticationPrincipal AuthenticatedUser authUser,
+            @PathVariable UUID id,
+            @Valid @RequestBody WithdrawalStatusRequest request
+    ) {
+        requireAdmin(authUser);
+        WithdrawalStatus newStatus;
+        try {
+            newStatus = WithdrawalStatus.valueOf(request.status().trim().toUpperCase());
+        } catch (Exception e) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Invalid status: " + request.status());
+        }
+        WithdrawalRequest wr = withdrawalService.processWithdrawal(id, newStatus);
+        adminOperationsService.log(authUser.userId(), "WITHDRAWAL_STATUS_CHANGED", "withdrawal_request",
+                id.toString(), "status=" + newStatus.name().toLowerCase());
+        return ok(toWithdrawalMap(wr));
+    }
+
+    private Map<String, Object> toWithdrawalMap(WithdrawalRequest wr) {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("id", wr.getId());
+        m.put("creatorId", wr.getCreator().getId());
+        m.put("creatorName", wr.getCreator().getName());
+        m.put("amount", wr.getAmount());
+        m.put("status", wr.getStatus().name().toLowerCase());
+        m.put("payoutMethodType", wr.getPayoutMethod() != null ? wr.getPayoutMethod().getType() : null);
+        m.put("createdAt", wr.getCreatedAt());
+        return m;
     }
 
     private ResponseEntity<Map<String, Object>> ok(Object data) {

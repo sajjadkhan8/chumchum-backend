@@ -37,6 +37,7 @@ public class BrandMapper {
                 brand.getBusinessVerificationStatus(),
                 publicView ? null : brand.getVerificationContactEmail(),
                 publicView ? null : brand.getVerificationPhoneNumber(),
+                brand.getPlanTier(),
                 publicView ? profileUserMapper.toPublicResponse(brand) : profileUserMapper.toResponse(brand),
                 brand.getCreatedAt(),
                 brand.getUpdatedAt()

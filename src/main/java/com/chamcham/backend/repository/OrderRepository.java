@@ -2,11 +2,13 @@ package com.chamcham.backend.repository;
 
 import com.chamcham.backend.entity.Order;
 import com.chamcham.backend.entity.enums.OrderStatus;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -18,20 +20,21 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
             join fetch o.servicePackage
             join fetch o.creator
             join fetch o.brand
-            where o.creator.id = :userId or o.brand.id = :userId
+            where o.creator.id = :creatorId
             order by o.createdAt desc
             """)
-    List<Order> findAllByParticipant(@Param("userId") UUID userId);
+    List<Order> findByCreatorIdOrderByCreatedAtDesc(@Param("creatorId") UUID creatorId);
 
-    @Query("""
+    @Query(value = """
             select o from Order o
             join fetch o.servicePackage
             join fetch o.creator
             join fetch o.brand
             where o.creator.id = :creatorId
             order by o.createdAt desc
-            """)
-    List<Order> findByCreatorIdOrderByCreatedAtDesc(@Param("creatorId") UUID creatorId);
+            """,
+            countQuery = "select count(o) from Order o where o.creator.id = :creatorId")
+    Page<Order> findByCreatorIdOrderByCreatedAtDesc(@Param("creatorId") UUID creatorId, Pageable pageable);
 
     @Query("""
             select o from Order o
@@ -42,6 +45,17 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
             order by o.createdAt desc
             """)
     List<Order> findByBrandIdOrderByCreatedAtDesc(@Param("brandId") UUID brandId);
+
+    @Query(value = """
+            select o from Order o
+            join fetch o.servicePackage
+            join fetch o.creator
+            join fetch o.brand
+            where o.brand.id = :brandId
+            order by o.createdAt desc
+            """,
+            countQuery = "select count(o) from Order o where o.brand.id = :brandId")
+    Page<Order> findByBrandIdOrderByCreatedAtDesc(@Param("brandId") UUID brandId, Pageable pageable);
 
     List<Order> findByCreatorIdAndStatusIn(UUID creatorId, List<OrderStatus> statuses);
 
@@ -61,15 +75,68 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
 
     Optional<Order> findFirstByServicePackageName(String packageName);
 
+    Optional<Order> findByIdempotencyKey(String idempotencyKey);
+
     @Query("""
             select distinct o from Order o
-            join fetch o.servicePackage
+            join fetch o.servicePackage sp
             join fetch o.creator
             join fetch o.brand
-            left join fetch o.deliverables
+            where (:status is null or o.status = :status)
+              and (:search is null or lower(o.creator.name) like concat('%', lower(:search), '%')
+                   or lower(sp.title) like concat('%', lower(:search), '%'))
             order by o.createdAt desc
             """)
-    List<Order> findAllForAdmin();
+    Page<Order> findForAdminPaged(
+            @Param("status") OrderStatus status,
+            @Param("search") String search,
+            Pageable pageable);
+
+    @Query("""
+            select sp.category, count(o) as cnt
+            from Order o
+            join o.servicePackage sp
+            where o.status = com.chamcham.backend.entity.enums.OrderStatus.COMPLETED
+            group by sp.category
+            order by cnt desc
+            """)
+    List<Object[]> countCompletedOrdersByCategory();
 
     long countByStatus(OrderStatus status);
+
+    @Query("select coalesce(sum(o.amount), 0) from Order o where o.status = :status and o.amount is not null")
+    long sumAmountByStatus(@Param("status") OrderStatus status);
+
+    @Query("select coalesce(sum(o.amount), 0) from Order o where o.amount is not null")
+    long sumTotalGmv();
+
+    @Query("select count(o) from Order o where o.creator.id = :creatorId and o.status = :status")
+    long countByCreatorIdAndStatus(@Param("creatorId") UUID creatorId, @Param("status") OrderStatus status);
+
+    @Query("""
+            select o from Order o
+            join fetch o.creator
+            join fetch o.brand
+            join fetch o.servicePackage
+            where o.id = :id
+            """)
+    Optional<Order> findByIdWithDetails(@Param("id") UUID id);
+
+    @Query("""
+            select o from Order o
+            join fetch o.creator
+            join fetch o.brand
+            join fetch o.servicePackage
+            where (o.dealType = com.chamcham.backend.entity.enums.DealType.BARTER
+                   or o.dealType = com.chamcham.backend.entity.enums.DealType.HYBRID)
+              and o.barterProductReceived = false
+              and o.barterExpectedBy is not null
+              and o.barterExpectedBy < :now
+              and o.status in (com.chamcham.backend.entity.enums.OrderStatus.ACCEPTED,
+                               com.chamcham.backend.entity.enums.OrderStatus.IN_PROGRESS,
+                               com.chamcham.backend.entity.enums.OrderStatus.DELIVERED,
+                               com.chamcham.backend.entity.enums.OrderStatus.REVIEW,
+                               com.chamcham.backend.entity.enums.OrderStatus.REVISION)
+            """)
+    List<Order> findOverdueBarterOrders(@Param("now") OffsetDateTime now);
 }

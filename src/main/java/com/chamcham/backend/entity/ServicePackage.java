@@ -1,9 +1,11 @@
 package com.chamcham.backend.entity;
 
 import com.chamcham.backend.entity.enums.DealType;
+import com.chamcham.backend.entity.enums.PackageCategory;
 import com.chamcham.backend.entity.enums.PackagePlatform;
 import com.chamcham.backend.entity.enums.PackageStatus;
 import com.chamcham.backend.entity.enums.PackageType;
+import com.chamcham.backend.entity.enums.SubscriptionInterval;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.JdbcTypeCode;
@@ -50,8 +52,9 @@ public class ServicePackage extends BaseEntity {
     @Column(nullable = false, length = 50)
     private PackagePlatform platform;
 
-    @Column(length = 80)
-    private String category;
+    @Enumerated(EnumType.STRING)
+    @Column(length = 50)
+    private PackageCategory category;
 
     // legacy type (ONE_TIME/SUBSCRIPTION) – kept for backward compat
     @Enumerated(EnumType.STRING)
@@ -71,7 +74,7 @@ public class ServicePackage extends BaseEntity {
     @Builder.Default
     private String visibility = "public";
 
-    // SAR amount in integer (not BigDecimal) per spec
+    // PKR amount in whole rupees (not paisa). Nullable for barter-only deals.
     @Column
     private Integer price;
 
@@ -145,6 +148,13 @@ public class ServicePackage extends BaseEntity {
     @Column(length = 10)
     @Builder.Default
     private String currency = "PKR";  // V1: PKR only (mono-currency)
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "subscription_interval", length = 20)
+    private SubscriptionInterval subscriptionInterval;
+
+    @Column(name = "subscription_duration")
+    private Integer subscriptionDuration;
 
     @OneToMany(mappedBy = "servicePackage", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default

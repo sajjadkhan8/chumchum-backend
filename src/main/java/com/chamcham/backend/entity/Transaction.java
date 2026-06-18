@@ -38,7 +38,7 @@ public class Transaction {
     @Column(nullable = false, length = 30)
     private TransactionType type;
 
-    /** Positive = credit, negative = debit (SAR integer). */
+    /** Positive = credit, negative = debit (PKR whole rupees, not paisa). */
     @Column(nullable = false)
     private int amount;
 

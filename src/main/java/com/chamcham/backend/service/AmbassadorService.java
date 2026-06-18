@@ -21,6 +21,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.UUID;
 
@@ -62,6 +63,9 @@ public class AmbassadorService {
             if (app.getStatus() == AmbassadorAppStatus.REJECTED || app.getStatus() == AmbassadorAppStatus.DRAFT) {
                 app.setStatus(AmbassadorAppStatus.SUBMITTED);
                 app.setSubmittedAt(Instant.now());
+                // Clear stale review data from prior rejection cycle
+                app.setReviewedBy(null);
+                app.setNotes(null);
                 return applicationRepo.save(app);
             }
             throw new ApiException(HttpStatus.CONFLICT, "Application already submitted or under review");
@@ -84,20 +88,65 @@ public class AmbassadorService {
     @Transactional
     public AmbassadorScore computeAndSave(UUID creatorId) {
         Creator creator = findCreator(creatorId);
-        int total = computeScore(creator);
+
+        int deliveryScore = Math.min(creator.getCompletedDeals() * 5, 25);
+        int ratingScore   = (int)(creator.getRating().doubleValue() * 5);
+
+        // accountAgeScore: 0–15 pts, 3 pts per 6 months of account age, capped at 15
+        int accountAgeDays = creator.getCreatedAt() != null
+                ? (int) ChronoUnit.DAYS.between(creator.getCreatedAt(), Instant.now())
+                : 0;
+        int accountAgeScore = Math.min((accountAgeDays / 180) * 3, 15);
+
+        // cancellationScore: 0–10 pts (full 10 when no cancellations; subtract 2 per cancelled order)
+        long totalOrders     = orderRepository.countByCreatorIdAndStatusIn(creatorId,
+                java.util.List.of(com.chamcham.backend.entity.enums.OrderStatus.values()));
+        long cancelledOrders = orderRepository.countByCreatorIdAndStatus(creatorId,
+                com.chamcham.backend.entity.enums.OrderStatus.CANCELLED);
+        int cancellationScore = totalOrders == 0 ? 10
+                : Math.max(0, 10 - (int) Math.round((cancelledOrders * 10.0 / totalOrders) * 2));
+
+        // profileCompletenessScore: 0–10 pts, 2 pts per completed section (bio, city, avatar, website, social link)
+        int completenessScore = 0;
+        if (creator.getBio() != null && !creator.getBio().isBlank()) completenessScore += 2;
+        if (creator.getCity() != null && !creator.getCity().isBlank()) completenessScore += 2;
+        if (creator.getAvatarUrl() != null && !creator.getAvatarUrl().isBlank()) completenessScore += 2;
+        if (creator.getWebsite() != null && !creator.getWebsite().isBlank()) completenessScore += 2;
+        boolean hasSocialLink = creator.getInstagramUrl() != null || creator.getTiktokUrl() != null
+                || creator.getYoutubeUrl() != null || creator.getFacebookUrl() != null;
+        if (hasSocialLink) completenessScore += 2;
+
+        // consistencyScore: 0–5 pts based on number of linked social accounts
+        int socialCount = creator.getSocialAccounts() == null ? 0 : creator.getSocialAccounts().size();
+        int consistencyScore = Math.min(socialCount * 2, 5);
+
+        int total = deliveryScore + ratingScore + accountAgeScore + cancellationScore
+                + completenessScore + consistencyScore;
+        total = Math.min(total + (creator.getTotalReviews() > 10 ? 20 : creator.getTotalReviews() * 2)
+                + (creator.getFollowers() > 10000 ? 15 : creator.getFollowers() / 1000), MAX_SCORE);
+
         AmbassadorTier tier = tierFromScore(total);
 
         AmbassadorScore score = scoreRepo.findByCreatorId(creatorId)
                 .orElse(AmbassadorScore.builder().creator(creator).build());
         score.setTotal(total);
         score.setTier(tier);
-        score.setDeliveryScore(Math.min(creator.getCompletedDeals() * 5, 25));
-        score.setRatingScore((int)(creator.getRating().doubleValue() * 5));
+        score.setDeliveryScore(deliveryScore);
+        score.setRatingScore(ratingScore);
+        score.setAccountAgeScore(accountAgeScore);
+        score.setCancellationScore(cancellationScore);
+        score.setProfileCompletenessScore(completenessScore);
+        score.setConsistencyScore(consistencyScore);
         return scoreRepo.save(score);
     }
 
     public List<Creator> getAmbassadors(int limit) {
-        return creatorRepository.findByIsVerifiedTrue(PageRequest.of(0, limit)).getContent();
+        int safeLimit = Math.min(limit, 100);
+        Page<AmbassadorApplication> approved = applicationRepo.findByStatus(
+                AmbassadorAppStatus.APPROVED, PageRequest.of(0, safeLimit));
+        return approved.getContent().stream()
+                .map(AmbassadorApplication::getCreator)
+                .toList();
     }
 
     // ---- Admin ----
@@ -139,16 +188,6 @@ public class AmbassadorService {
     }
 
     // ---- helpers ----
-    private int computeScore(Creator c) {
-        int score = 0;
-        score += Math.min(c.getCompletedDeals() * 5, 25); // up to 25
-        score += (int)(c.getRating().doubleValue() * 5);  // up to 25
-        score += c.getTotalReviews() > 10 ? 20 : c.getTotalReviews() * 2; // up to 20
-        score += c.getFollowers() > 10000 ? 15 : c.getFollowers() / 1000; // up to 15
-        if (c.getBio() != null && c.getCoverImageUrl() != null) score += 10;
-        if (c.getTiktokUrl() != null || c.getInstagramUrl() != null) score += 5;
-        return Math.min(score, MAX_SCORE);
-    }
 
     private AmbassadorTier tierFromScore(int score) {
         if (score >= 80) return AmbassadorTier.ELITE_AMBASSADOR;

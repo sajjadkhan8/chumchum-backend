@@ -1,9 +1,11 @@
 package com.chamcham.backend.dto.servicepackage;
 
 import com.chamcham.backend.entity.enums.DealType;
+import com.chamcham.backend.entity.enums.PackageCategory;
 import com.chamcham.backend.entity.enums.PackagePlatform;
 import com.chamcham.backend.entity.enums.PackageStatus;
 import com.chamcham.backend.entity.enums.PackageType;
+import com.chamcham.backend.entity.enums.SubscriptionInterval;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 
@@ -21,7 +23,7 @@ public record ServicePackageResponse(
         String description,
         String fullDescription,
         PackagePlatform platform,
-        String category,
+        PackageCategory category,
         PackageType type,
         DealType dealType,
         String barterDetails,
@@ -47,6 +49,8 @@ public record ServicePackageResponse(
         List<String> mediaUrls,
         List<String> tags,
         List<ServicePackageTierResponse> tiers,
+        SubscriptionInterval subscriptionInterval,
+        Integer subscriptionDuration,
         Instant createdAt,
         Instant updatedAt
 ) {

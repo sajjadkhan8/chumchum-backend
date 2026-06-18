@@ -8,6 +8,7 @@ import com.chamcham.backend.entity.CreatorPayoutPreference;
 import com.chamcham.backend.entity.PayoutMethod;
 import com.chamcham.backend.entity.SocialAccount;
 import com.chamcham.backend.entity.User;
+import com.chamcham.backend.entity.enums.AvailabilityStatus;
 import com.chamcham.backend.entity.enums.CreatorBadgeLevel;
 import com.chamcham.backend.entity.enums.CreatorPayoutSchedule;
 import com.chamcham.backend.entity.enums.PayoutMethodType;
@@ -114,12 +115,12 @@ public class CreatorService {
             List<CreatorResponse> creators, long total, int page, int limit) {}
 
     public CreatorSearchResult search(
-            String search, String city,
+            String search, String city, String category,
             Integer minFollowers, Integer maxFollowers,
             BigDecimal minRating, Integer minPrice, Integer maxPrice,
-            CreatorBadgeLevel badgeLevel, String availabilityStatus,
+            CreatorBadgeLevel badgeLevel, AvailabilityStatus availabilityStatus,
             Boolean acceptsBarter, Boolean isTrending, Boolean isFastResponder,
-            Boolean ambassadorOnly,
+            Boolean ambassadorOnly, String platform, BigDecimal minEngagementRate,
             int page, int limit, String sortBy) {
 
         String normalizedSort = sortBy == null ? "" : sortBy;
@@ -138,11 +139,15 @@ public class CreatorService {
         Pageable pageable = cappedPageable(page, limit, sortField, sortDirection);
 
         Page<Creator> result = creatorRepository.search(
-                search, city, minFollowers, maxFollowers, minRating,
+                search, city,
+                category == null || category.isBlank() ? null : category.trim(),
+                minFollowers, maxFollowers, minRating,
                 minPrice, maxPrice, badgeLevel,
-                availabilityStatus == null || availabilityStatus.isBlank() ? null : availabilityStatus.trim(),
+                availabilityStatus,
                 acceptsBarter, isTrending, isFastResponder,
-                isVerified, pageable);
+                isVerified, minEngagementRate,
+                platform == null || platform.isBlank() ? null : platform.trim().toLowerCase(),
+                pageable);
 
         return new CreatorSearchResult(
                 result.getContent().stream().map(creatorMapper::toPublicResponse).toList(),
@@ -216,6 +221,9 @@ public class CreatorService {
         if (request.availabilityStatus() != null) {
             creator.setAvailabilityStatus(request.availabilityStatus());
         }
+        if (request.isFiler() != null) {
+            creator.setIsFiler(request.isFiler());
+        }
         if (request.responseTime() != null) {
             creator.setResponseTime(request.responseTime());
         }
@@ -270,6 +278,10 @@ public class CreatorService {
         if (request.totalReviews() != null) {
             creator.setTotalReviews(request.totalReviews());
         }
+        if (request.rateCardReel() != null) creator.setRateCardReel(request.rateCardReel());
+        if (request.rateCardStory() != null) creator.setRateCardStory(request.rateCardStory());
+        if (request.rateCardPost() != null) creator.setRateCardPost(request.rateCardPost());
+        if (request.rateCardVideo() != null) creator.setRateCardVideo(request.rateCardVideo());
 
         return creatorMapper.toResponse(creatorRepository.save(creator));
     }
@@ -341,12 +353,12 @@ public class CreatorService {
         payoutMethodRepository.findByCreatorId(creator.getId()).forEach(method -> methods.put(method.getType(), method));
         PayoutMethod bankTransfer = methods.get(PayoutMethodType.BANK_TRANSFER);
         return new PaymentSettingsRequest(
-                accountDetails(methods.get(PayoutMethodType.STCPAY)),
-                accountDetails(methods.get(PayoutMethodType.MADA)),
+                maskAccount(accountDetails(methods.get(PayoutMethodType.STCPAY))),
+                maskAccount(accountDetails(methods.get(PayoutMethodType.MADA))),
                 bankTransfer != null ? bankTransfer.getName() : "",
-                bankTransfer != null ? bankTransfer.getAccountDetails() : "",
-                accountDetails(methods.get(PayoutMethodType.APPLEPAY)),
-                bankTransfer != null ? bankTransfer.getAccountDetails() : ""
+                maskAccount(bankTransfer != null ? bankTransfer.getAccountDetails() : ""),
+                maskAccount(accountDetails(methods.get(PayoutMethodType.APPLEPAY))),
+                maskAccount(bankTransfer != null ? bankTransfer.getAccountDetails() : "")
         );
     }
 
@@ -371,8 +383,8 @@ public class CreatorService {
                 prefs.getPayoutSchedule(),
                 prefs.getMinimumPayoutAmount(),
                 prefs.getAccountHolderName(),
-                prefs.getNtnNumber(),
-                prefs.getCnicLast4(),
+                maskNtn(prefs.getNtnNumber()),
+                null,  // cnicLast4 is write-only; never returned
                 prefs.isEarningsNotificationsEnabled(),
                 prefs.isWeeklyDigestEnabled()
         );
@@ -404,8 +416,8 @@ public class CreatorService {
                 saved.getPayoutSchedule(),
                 saved.getMinimumPayoutAmount(),
                 saved.getAccountHolderName(),
-                saved.getNtnNumber(),
-                saved.getCnicLast4(),
+                maskNtn(saved.getNtnNumber()),
+                null,  // cnicLast4 is write-only; never returned
                 saved.isEarningsNotificationsEnabled(),
                 saved.isWeeklyDigestEnabled()
         );
@@ -429,6 +441,18 @@ public class CreatorService {
 
     private String accountDetails(PayoutMethod method) {
         return method == null ? "" : method.getAccountDetails();
+    }
+
+    private String maskAccount(String raw) {
+        if (raw == null || raw.isBlank()) return raw;
+        if (raw.length() < 4) return "****";
+        return "*".repeat(raw.length() - 4) + raw.substring(raw.length() - 4);
+    }
+
+    private String maskNtn(String ntn) {
+        if (ntn == null || ntn.isBlank()) return ntn;
+        if (ntn.length() < 3) return "***";
+        return "*".repeat(ntn.length() - 3) + ntn.substring(ntn.length() - 3);
     }
 
     private CreatorPayoutPreference ensurePayoutPreference(Creator creator) {
@@ -478,6 +502,20 @@ public class CreatorService {
     public List<CreatorResponse> getFastResponders(int limit) {
         Pageable pageable = cappedPageable(0, limit, "createdAt");
         return creatorRepository.findByIsFastResponderTrue(pageable).stream()
+                .map(creatorMapper::toPublicResponse)
+                .toList();
+    }
+
+    public List<CreatorResponse> getRisingStars(int limit) {
+        Pageable pageable = cappedPageable(0, limit, "engagementRate");
+        return creatorRepository.findRisingStars(pageable).stream()
+                .map(creatorMapper::toPublicResponse)
+                .toList();
+    }
+
+    public List<CreatorResponse> getVerified(int limit) {
+        Pageable pageable = cappedPageable(0, limit, "rating");
+        return creatorRepository.findByIsVerifiedTrue(pageable).getContent().stream()
                 .map(creatorMapper::toPublicResponse)
                 .toList();
     }

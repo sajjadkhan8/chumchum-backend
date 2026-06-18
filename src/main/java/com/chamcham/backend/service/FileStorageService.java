@@ -1,16 +1,13 @@
 package com.chamcham.backend.service;
 
 import com.chamcham.backend.exception.ApiException;
-import org.springframework.beans.factory.annotation.Value;
+import com.chamcham.backend.storage.StorageStrategy;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
@@ -47,19 +44,10 @@ public class FileStorageService {
             Map.entry("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", Set.of(".xlsx"))
     );
 
-    private final Path uploadRoot;
-    private final String baseUrl;
+    private final StorageStrategy storageStrategy;
 
-    public FileStorageService(
-            @Value("${app.uploads.dir:./uploads}") String uploadDir,
-            @Value("${app.uploads.base-url:http://localhost:8080/uploads}") String baseUrl) {
-        this.uploadRoot = Paths.get(uploadDir).toAbsolutePath().normalize();
-        this.baseUrl = baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
-        try {
-            Files.createDirectories(this.uploadRoot);
-        } catch (IOException e) {
-            throw new RuntimeException("Cannot create upload directory: " + uploadDir, e);
-        }
+    public FileStorageService(StorageStrategy storageStrategy) {
+        this.storageStrategy = storageStrategy;
     }
 
     /**
@@ -69,12 +57,15 @@ public class FileStorageService {
      */
     public String validateAndStore(MultipartFile file, Set<String> allowedTypes, long maxMb, String subfolder) {
         validate(file, allowedTypes, maxMb);
-        return baseUrl + "/" + subfolder + "/" + storeInternal(file, subfolder);
+        String filename = generateFilename(file);
+        return storageStrategy.store(file, filename, subfolder);
     }
 
     public String validateAndStoreProtected(MultipartFile file, Set<String> allowedTypes, long maxMb, String subfolder) {
         validate(file, allowedTypes, maxMb);
-        return "/api/v1/files/" + subfolder + "/" + storeInternal(file, subfolder);
+        String filename = generateFilename(file);
+        storageStrategy.store(file, filename, subfolder);
+        return storageStrategy.protectedPath(filename, subfolder);
     }
 
     private void validate(MultipartFile file, Set<String> allowedTypes, long maxMb) {
@@ -97,40 +88,20 @@ public class FileStorageService {
      * @return the public URL of the stored file
      */
     public String store(MultipartFile file, String subfolder) {
-        return baseUrl + "/" + subfolder + "/" + storeInternal(file, subfolder);
+        String filename = generateFilename(file);
+        return storageStrategy.store(file, filename, subfolder);
     }
 
-    private String storeInternal(MultipartFile file, String subfolder) {
-        Path dir = safeResolve(subfolder);
+    public Path load(String relativePath) {
+        return storageStrategy.load(relativePath);
+    }
+
+    private String generateFilename(MultipartFile file) {
         String ext = "";
         String original = file.getOriginalFilename();
         if (original != null && original.contains("."))
             ext = original.substring(original.lastIndexOf('.')).toLowerCase(Locale.ROOT);
-        String filename = UUID.randomUUID() + ext;
-        try {
-            Files.createDirectories(dir);
-            Path destination = dir.resolve(filename).normalize();
-            if (!destination.startsWith(uploadRoot)) throw new IOException("Invalid destination");
-            Files.copy(file.getInputStream(), destination, StandardCopyOption.REPLACE_EXISTING);
-        } catch (IOException e) {
-            throw new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to store file");
-        }
-        return filename;
-    }
-
-    public Path load(String relativePath) {
-        Path file = safeResolve(relativePath);
-        if (!Files.isRegularFile(file)) throw new ApiException(HttpStatus.NOT_FOUND, "File not found");
-        return file;
-    }
-
-    private Path safeResolve(String relativePath) {
-        if (relativePath == null || relativePath.isBlank() || relativePath.contains("..") || relativePath.startsWith("/")) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Invalid file path");
-        }
-        Path resolved = uploadRoot.resolve(relativePath).normalize();
-        if (!resolved.startsWith(uploadRoot)) throw new ApiException(HttpStatus.BAD_REQUEST, "Invalid file path");
-        return resolved;
+        return UUID.randomUUID() + ext;
     }
 
     private void validateExtension(String originalFilename, String contentType) {
@@ -192,5 +163,4 @@ public class FileStorageService {
         }
         return false;
     }
-
 }

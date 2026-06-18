@@ -7,6 +7,7 @@ import com.chamcham.backend.dto.servicepackage.ServicePackageResponse;
 import com.chamcham.backend.entity.ServicePackage;
 import com.chamcham.backend.entity.Creator;
 import com.chamcham.backend.entity.enums.DealType;
+import com.chamcham.backend.entity.enums.PackageCategory;
 import com.chamcham.backend.entity.enums.PackageStatus;
 import com.chamcham.backend.entity.enums.UserRole;
 import com.chamcham.backend.exception.ApiException;
@@ -108,6 +109,8 @@ public class ServicePackageService {
                 .tags(request.tags())
                 .active(request.isActive() == null || request.isActive())
                 .coverImage(request.coverImage())
+                .subscriptionInterval(request.subscriptionInterval())
+                .subscriptionDuration(request.subscriptionDuration())
                 .build();
 
         clearIncompatiblePricingFields(servicePackage);
@@ -328,7 +331,7 @@ public class ServicePackageService {
 
     @Transactional(readOnly = true)
     public PageResponse<ServicePackageResponse> getPackages(
-            String category,
+            PackageCategory category,
             String search,
             Integer min,
             Integer max,
@@ -378,6 +381,13 @@ public class ServicePackageService {
         if ((dealType == DealType.PAID || dealType == DealType.HYBRID)
                 && (request.price() == null || request.price() <= 0)) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "price is required when dealType is PAID/HYBRID");
+        }
+
+        // Barter/hybrid deals must declare a non-zero estimated product value so platform fees are calculable.
+        if ((dealType == DealType.BARTER || dealType == DealType.HYBRID)
+                && (request.estimatedBarterValue() == null || request.estimatedBarterValue() <= 0)) {
+            throw new ApiException(HttpStatus.BAD_REQUEST,
+                    "estimatedBarterValue is required and must be greater than 0 for barter and hybrid deals");
         }
     }
 

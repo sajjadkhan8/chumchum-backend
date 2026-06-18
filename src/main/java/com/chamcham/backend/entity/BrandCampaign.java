@@ -161,6 +161,9 @@ public class BrandCampaign extends BaseEntity {
      @Column(name = "max_applicants")
      private Integer maxApplicants;
 
+     @Column(name = "min_proposed_price")
+     private Integer minProposedPrice;
+
      @Column(name = "proposal_required", nullable = false)
      @Builder.Default
      private Boolean proposalRequired = false;

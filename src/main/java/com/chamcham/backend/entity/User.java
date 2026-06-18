@@ -83,6 +83,12 @@ public class User extends BaseEntity {
     @Column(name = "deleted_at")
     private OffsetDateTime deletedAt;
 
+    @Column(name = "ban_reason", length = 500)
+    private String banReason;
+
+    @Column(name = "suspended_until")
+    private OffsetDateTime suspendedUntil;
+
     @PrePersist
     @PreUpdate
     void normalize() {

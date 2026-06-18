@@ -11,6 +11,7 @@ import com.chamcham.backend.entity.QuickDealOffer;
 import com.chamcham.backend.entity.ServicePackage;
 import com.chamcham.backend.entity.enums.DealType;
 import com.chamcham.backend.entity.enums.OfferStatus;
+import com.chamcham.backend.entity.enums.PackageCategory;
 import com.chamcham.backend.entity.enums.PackagePlatform;
 import com.chamcham.backend.entity.enums.PackageStatus;
 import com.chamcham.backend.entity.enums.PackageType;
@@ -39,6 +40,7 @@ public class QuickDealService {
     private final ServicePackageRepository servicePackageRepository;
     private final OrderService orderService;
     private final NotificationService notificationService;
+    private final AuthRateLimitService rateLimitService;
 
     public QuickDealService(QuickDealOfferRepository offerRepository,
                             ConversationRepository conversationRepository,
@@ -47,7 +49,8 @@ public class QuickDealService {
                             MessageRepository messageRepository,
                             ServicePackageRepository servicePackageRepository,
                             OrderService orderService,
-                            NotificationService notificationService) {
+                            NotificationService notificationService,
+                            AuthRateLimitService rateLimitService) {
         this.offerRepository = offerRepository;
         this.conversationRepository = conversationRepository;
         this.creatorRepository = creatorRepository;
@@ -56,6 +59,7 @@ public class QuickDealService {
         this.servicePackageRepository = servicePackageRepository;
         this.orderService = orderService;
         this.notificationService = notificationService;
+        this.rateLimitService = rateLimitService;
     }
 
     @Transactional
@@ -64,7 +68,12 @@ public class QuickDealService {
             throw new ApiException(HttpStatus.FORBIDDEN, "Only brands can create quick deals");
         }
 
-        validateDealPayload(request.dealType(), request.amount(), request.barterDetails());
+        if (rateLimitService.recordAndCheck("quick_deal_create", senderId.toString(), 10, 60, 120)) {
+            throw new ApiException(HttpStatus.TOO_MANY_REQUESTS,
+                    "Too many quick deal offers sent. Please wait before sending another.");
+        }
+
+        validateDealPayload(request.dealType(), request.amount(), request.barterDetails(), request.estimatedBarterValue());
 
         Creator creator = creatorRepository.findById(request.creatorId())
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Creator not found"));
@@ -77,8 +86,6 @@ public class QuickDealService {
                         .id(UUID.randomUUID())
                         .creator(creator)
                         .brand(brand)
-                        .readByCreator(false)
-                        .readByBrand(true)
                         .build()));
 
         Message message = messageRepository.save(Message.builder()
@@ -109,14 +116,14 @@ public class QuickDealService {
                 .estimatedBarterValue(request.estimatedBarterValue())
                 .creatorExpectation(request.creatorExpectation())
                 .message(request.message())
+                .platform(request.platform() != null ? request.platform() : PackagePlatform.INSTAGRAM)
+                .deliveryDays(request.deliveryDays() != null && request.deliveryDays() > 0 ? request.deliveryDays() : 7)
                 .status(OfferStatus.PENDING)
                 .build());
 
         message.setQuickDealOffer(offer);
 
         conversation.setUnreadCountCreator(conversation.getUnreadCountCreator() + 1);
-        conversation.setReadByCreator(false);
-        conversation.setReadByBrand(true);
         conversation.setLastMessage("[Offer]");
         conversation.setLastMessageId(message.getId());
         conversationRepository.save(conversation);
@@ -185,8 +192,8 @@ public class QuickDealService {
                 .shortDescription("Accepted quick deal")
                 .description(description)
                 .fullDescription(description)
-                .platform(PackagePlatform.INSTAGRAM)
-                .category("Quick Deal")
+                .platform(offer.getPlatform() != null ? offer.getPlatform() : PackagePlatform.INSTAGRAM)
+                .category(PackageCategory.QUICK_DEAL)
                 .type(PackageType.ONE_TIME)
                 .dealType(offer.getDealType())
                 .status(PackageStatus.ACTIVE)
@@ -200,7 +207,7 @@ public class QuickDealService {
                 .hybridBarterValue(offer.getEstimatedBarterValue())
                 .creatorExpectations(offer.getCreatorExpectation())
                 .deliverables(java.util.List.of("Quick deal deliverable"))
-                .deliveryDays(7)
+                .deliveryDays(offer.getDeliveryDays() > 0 ? offer.getDeliveryDays() : 7)
                 .revisions(1)
                 .tags(java.util.List.of("quick-deal"))
                 .currency("PKR")
@@ -209,13 +216,18 @@ public class QuickDealService {
                 .build());
     }
 
-    private void validateDealPayload(DealType dealType, Integer amount, String barterDetails) {
+    private void validateDealPayload(DealType dealType, Integer amount, String barterDetails, Integer estimatedBarterValue) {
         if ((dealType == DealType.PAID || dealType == DealType.HYBRID) && (amount == null || amount <= 0)) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "amount is required when dealType is PAID/HYBRID");
         }
         if ((dealType == DealType.BARTER || dealType == DealType.HYBRID)
                 && (barterDetails == null || barterDetails.isBlank())) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "barterDetails is required when dealType is BARTER/HYBRID");
+        }
+        if ((dealType == DealType.BARTER || dealType == DealType.HYBRID)
+                && (estimatedBarterValue == null || estimatedBarterValue <= 0)) {
+            throw new ApiException(HttpStatus.BAD_REQUEST,
+                    "estimatedBarterValue is required and must be greater than 0 for barter and hybrid deals");
         }
     }
 }

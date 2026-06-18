@@ -1,5 +1,6 @@
 package com.chamcham.backend.entity;
 
+import com.chamcham.backend.entity.enums.VerificationSource;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
@@ -51,6 +52,11 @@ public class SocialAccount {
     @Column(name = "is_verified", nullable = false)
     @Builder.Default
     private boolean isVerified = false;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "verified_by", nullable = false, length = 30)
+    @Builder.Default
+    private VerificationSource verifiedBy = VerificationSource.SELF;
 
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)

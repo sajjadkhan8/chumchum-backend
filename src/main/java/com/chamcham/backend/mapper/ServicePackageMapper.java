@@ -61,6 +61,8 @@ public class ServicePackageMapper {
                                 tier.getUpdatedAt()
                         ))
                         .toList(),
+                servicePackage.getSubscriptionInterval(),
+                servicePackage.getSubscriptionDuration(),
                 servicePackage.getCreatedAt(),
                 servicePackage.getUpdatedAt()
         );

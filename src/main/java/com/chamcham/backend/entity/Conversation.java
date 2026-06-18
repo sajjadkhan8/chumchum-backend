@@ -37,15 +37,6 @@ public class Conversation extends BaseEntity {
     @Column(name = "last_message_id")
     private UUID lastMessageId;
 
-    // Legacy boolean flags – kept nullable to not break DB; logic uses integer counts above.
-    @Column(name = "read_by_creator", nullable = false)
-    @Builder.Default
-    private boolean readByCreator = false;
-
-    @Column(name = "read_by_brand", nullable = false)
-    @Builder.Default
-    private boolean readByBrand = false;
-
     /** Snapshot of last message content for conversation list display. */
     @Column(name = "last_message", length = 2000)
     private String lastMessage;

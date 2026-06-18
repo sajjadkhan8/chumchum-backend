@@ -65,7 +65,8 @@ create table creators (
     cover_image_url varchar(500),
     website varchar(300),
     niche varchar(100),
-    availability_status varchar(100),
+    availability_status varchar(30) constraint ck_creators_availability_status check (availability_status in ('AVAILABLE', 'BUSY', 'UNAVAILABLE', 'ON_VACATION')),
+    is_filer boolean not null default false,
     response_time varchar(50),
     min_price integer,
     max_price integer,
@@ -88,7 +89,11 @@ create table creators (
     minimum_budget integer,
     preferred_industries text,
     languages jsonb not null default '[]'::jsonb,
-    categories jsonb not null default '[]'::jsonb
+    categories jsonb not null default '[]'::jsonb,
+    rate_card_reel integer,
+    rate_card_story integer,
+    rate_card_post integer,
+    rate_card_video integer
 );
 
 create table brands (
@@ -105,14 +110,15 @@ create table brands (
     campaign_budget_range varchar(150),
     business_verification_status varchar(50),
     verification_contact_email varchar(255),
-    verification_phone_number varchar(50)
+    verification_phone_number varchar(50),
+    plan_tier varchar(20) not null default 'STARTER'
 );
 
 create table creator_payout_preferences (
     creator_id uuid primary key references creators(id) on delete cascade,
     auto_withdraw_enabled boolean not null default false,
     payout_schedule varchar(20) not null default 'MANUAL' constraint ck_creator_payout_schedule check (payout_schedule in ('WEEKLY', 'BIWEEKLY', 'MONTHLY', 'MANUAL')),
-    minimum_payout_amount integer not null default 5000,
+    minimum_payout_amount integer not null default 5000, -- whole PKR (not paisa); default = PKR 5,000
     account_holder_name varchar(120) not null default '',
     ntn_number varchar(30) not null default '',
     cnic_last4 varchar(4) not null default '',
@@ -162,7 +168,7 @@ create table packages (
     title varchar(150) not null,
     description varchar(2000),
     platform varchar(50) not null constraint ck_packages_platform check (platform in ('YOUTUBE', 'INSTAGRAM', 'TIKTOK', 'FACEBOOK')),
-    category varchar(80),
+    category varchar(50) constraint ck_packages_category check (category in ('FASHION_BEAUTY', 'FOOD_BEVERAGE', 'TECHNOLOGY_GADGETS', 'FITNESS_HEALTH', 'TRAVEL_LIFESTYLE', 'ENTERTAINMENT_COMEDY', 'EDUCATION_CAREER', 'BUSINESS_FINANCE', 'HOME_DECOR', 'GAMING', 'PARENTING_FAMILY', 'SPORTS', 'AUTOMOTIVE', 'RELIGIOUS_SPIRITUAL', 'GENERAL', 'QUICK_DEAL')),
     type varchar(30),
     pricing_type varchar(30) not null default 'PAID',
     deal_type varchar(30),
@@ -192,6 +198,22 @@ create table packages (
     is_popular boolean not null default false,
     orders_completed integer not null default 0,
     response_time varchar(50),
+    subscription_interval varchar(20),
+    subscription_duration int,
+    created_at timestamptz not null default now(),
+    updated_at timestamptz not null default now()
+);
+
+create table subscriptions (
+    id uuid primary key default gen_random_uuid(),
+    brand_id uuid not null references brands(id) on delete cascade,
+    package_id uuid not null references packages(id) on delete cascade,
+    status varchar(20) not null default 'ACTIVE',
+    interval varchar(20) not null,
+    duration int not null,
+    cycles_completed int not null default 0,
+    next_renewal_at timestamptz not null,
+    cancelled_at timestamptz,
     created_at timestamptz not null default now(),
     updated_at timestamptz not null default now()
 );
@@ -224,7 +246,12 @@ create table orders (
     status varchar(30) not null default 'pending',
     progress integer not null default 0,
     delivery_date date,
-    deadline_date date,
+    deadline_date timestamptz,
+    -- For barter/hybrid deals: when the barter product is expected to have been received by the creator.
+    barter_expected_by timestamptz,
+    -- Optional client-supplied key (UUID or similar) to make order creation idempotent.
+    -- Duplicate requests with the same key return the original order without re-charging escrow.
+    idempotency_key varchar(64),
     created_at timestamptz not null,
     updated_at timestamptz not null
 );
@@ -289,8 +316,6 @@ create table conversations (
     id uuid primary key,
     creator_id uuid not null references creators(id) on delete cascade,
     brand_id uuid not null references brands(id) on delete cascade,
-    read_by_creator boolean not null,
-    read_by_brand boolean not null,
     unread_count_creator integer not null default 0,
     unread_count_brand integer not null default 0,
     last_message varchar(2000),
@@ -329,6 +354,7 @@ create table deliverables (
     status varchar(30) not null default 'PENDING',
     file_url varchar(500),
     submitted_at timestamptz,
+    revision_note varchar(1000),
     created_at timestamptz not null default now(),
     updated_at timestamptz not null default now()
 );
@@ -343,6 +369,8 @@ create table social_accounts (
     avg_views integer,
     engagement_rate numeric(5,2) not null default 0,
     is_verified boolean not null default false,
+    -- SELF = creator-entered; PLATFORM_REVIEWED = manually checked by team; API_CONNECTED = pulled via OAuth
+    verified_by varchar(30) not null default 'SELF',
     created_at timestamptz not null default now(),
     updated_at timestamptz not null default now()
 );
@@ -514,6 +542,7 @@ create table brand_campaigns (
     max_age int,
     application_type varchar(50),
     max_applicants int,
+    min_proposed_price integer,
     proposal_required boolean not null default false,
     portfolio_required boolean not null default false,
     custom_screening_questions text,
@@ -532,6 +561,7 @@ create table brand_campaigns (
     created_at timestamptz not null default now(),
     updated_at timestamptz not null default now(),
     constraint ck_brand_campaigns_budget check (budget_min >= 0 and budget_max >= 0 and budget_min <= budget_max),
+    constraint ck_brand_campaigns_min_proposed_price check (min_proposed_price is null or min_proposed_price >= 0),
     constraint ck_brand_campaigns_status check (status in ('DRAFT', 'PUBLISHED', 'PAUSED', 'CLOSED', 'ARCHIVED')),
     constraint ck_brand_campaigns_visibility check (visibility in ('public', 'private'))
 );
@@ -621,6 +651,7 @@ create index idx_package_tiers_package_id on package_tiers (package_id);
 create index idx_package_tiers_package_id_position on package_tiers(package_id, position);
 create index idx_orders_creator_status on orders (creator_id, status);
 create index idx_orders_brand_status on orders (brand_id, status);
+create unique index uk_orders_idempotency_key on orders (idempotency_key) where idempotency_key is not null;
 create index idx_conversations_creator on conversations (creator_id, updated_at desc);
 create index idx_conversations_brand on conversations (brand_id, updated_at desc);
 create index idx_messages_conversation_created on messages (conversation_id, created_at);
@@ -648,6 +679,13 @@ create index idx_brand_invoices_brand_id on brand_invoices(brand_id, due_at desc
 create index idx_brand_disbursements_brand_id on brand_disbursements(brand_id, release_date desc);
 create index idx_brand_payment_access_lookup on brand_payment_access(user_id, brand_id);
 create index idx_payment_audit_logs_brand_created on payment_audit_logs(brand_id, created_at desc);
+alter table core.creators add constraint ck_creators_rate_card check (
+    (rate_card_reel is null or rate_card_reel >= 0) and
+    (rate_card_story is null or rate_card_story >= 0) and
+    (rate_card_post is null or rate_card_post >= 0) and
+    (rate_card_video is null or rate_card_video >= 0)
+);
+create index idx_creators_categories_gin on core.creators using gin(categories);
 create index idx_brand_campaigns_brand_status on brand_campaigns(brand_id, status, created_at desc);
 create index idx_brand_campaigns_feed on brand_campaigns(status, deadline_date, published_at desc);
 create index idx_brand_campaign_reactions_offer on brand_campaign_reactions(campaign_id, created_at desc);

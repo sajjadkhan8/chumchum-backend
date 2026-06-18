@@ -39,7 +39,7 @@ public class UserMapper {
                 user.getCreatorProgramStatus() != null
                         ? user.getCreatorProgramStatus().name().toLowerCase() : "none",
                 user.getCity(),
-                user.getPhone(),
+                null,  // phone is PII; omitted from all auth/user responses
                 creatorPayload,
                 brandPayload,
                 user.isActive(),

@@ -1,9 +1,11 @@
 package com.chamcham.backend.dto.servicepackage;
 
+import com.chamcham.backend.entity.enums.PackageCategory;
 import com.chamcham.backend.entity.enums.PackagePlatform;
 import com.chamcham.backend.entity.enums.DealType;
 import com.chamcham.backend.entity.enums.PackageStatus;
 import com.chamcham.backend.entity.enums.PackageType;
+import com.chamcham.backend.entity.enums.SubscriptionInterval;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import jakarta.validation.Valid;
@@ -23,7 +25,7 @@ public record ServicePackageCreateRequest(
         @Size(max = 2000) String description,
         @Size(max = 2000) String fullDescription,
         @NotNull PackagePlatform platform,
-        @Size(max = 80) String category,
+        PackageCategory category,
         @NotNull PackageType type,
         DealType dealType,
         @Size(max = 1000) String barterDetails,
@@ -46,7 +48,9 @@ public record ServicePackageCreateRequest(
         List<String> mediaUrls,
         List<String> tags,
         Boolean isActive,
-        @Valid List<ServicePackageTierRequest> tiers
+        @Valid List<ServicePackageTierRequest> tiers,
+        SubscriptionInterval subscriptionInterval,
+        @Min(1) Integer subscriptionDuration
 ) {
 }
 

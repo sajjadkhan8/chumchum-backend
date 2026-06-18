@@ -1,5 +1,6 @@
 package com.chamcham.backend.entity;
 
+import com.chamcham.backend.entity.enums.AvailabilityStatus;
 import com.chamcham.backend.entity.enums.CreatorBadgeLevel;
 import jakarta.persistence.*;
 import lombok.*;
@@ -35,8 +36,12 @@ public class Creator extends User {
     @Column(length = 100)
     private String niche;
 
-    @Column(name = "availability_status", length = 100)
-    private String availabilityStatus;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "availability_status", length = 30)
+    private AvailabilityStatus availabilityStatus;
+
+    @Column(name = "is_filer", nullable = false)
+    private boolean isFiler = false;
 
     @Column(name = "response_time", length = 50)
     private String responseTime;
@@ -71,6 +76,18 @@ public class Creator extends User {
 
     @Column(name = "minimum_budget")
     private Integer minimumBudget;
+
+    @Column(name = "rate_card_reel")
+    private Integer rateCardReel;
+
+    @Column(name = "rate_card_story")
+    private Integer rateCardStory;
+
+    @Column(name = "rate_card_post")
+    private Integer rateCardPost;
+
+    @Column(name = "rate_card_video")
+    private Integer rateCardVideo;
 
     @Column(name = "preferred_industries", columnDefinition = "text")
     private String preferredIndustries;

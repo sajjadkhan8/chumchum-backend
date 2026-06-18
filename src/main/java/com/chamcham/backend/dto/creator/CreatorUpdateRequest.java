@@ -1,5 +1,6 @@
 package com.chamcham.backend.dto.creator;
 
+import com.chamcham.backend.entity.enums.AvailabilityStatus;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import jakarta.validation.constraints.DecimalMax;
@@ -23,7 +24,7 @@ public record CreatorUpdateRequest(
         @Size(max = 500) String coverImageUrl,
         @Size(max = 300) String website,
         @Size(max = 100) String niche,
-        @Size(max = 100) String availabilityStatus,
+        AvailabilityStatus availabilityStatus,
         @Size(max = 50) String responseTime,
         @Min(0) Integer minPrice,
         @Min(0) Integer maxPrice,
@@ -41,6 +42,11 @@ public record CreatorUpdateRequest(
         @Min(0) Integer avgViews,
         @DecimalMin("0.00") @DecimalMax("100.00") BigDecimal engagementRate,
         @DecimalMin("0.00") @DecimalMax("5.00") BigDecimal rating,
-        @Min(0) Integer totalReviews
+        @Min(0) Integer totalReviews,
+        Boolean isFiler,
+        @Min(0) Integer rateCardReel,
+        @Min(0) Integer rateCardStory,
+        @Min(0) Integer rateCardPost,
+        @Min(0) Integer rateCardVideo
 ) {
 }

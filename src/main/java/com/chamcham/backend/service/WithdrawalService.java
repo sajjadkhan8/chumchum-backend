@@ -58,6 +58,8 @@ public class WithdrawalService {
                 .map(CreatorPayoutPreference::getMinimumPayoutAmount)
                 .orElse(1000);
 
+        // All amounts are in whole PKR (not paisa). Minimum floor is PKR 1,000.
+        // creator_payout_preferences.minimum_payout_amount defaults to PKR 5,000.
         if (amount < Math.max(1000, minimum)) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Amount is below your minimum payout threshold");
         }
@@ -88,6 +90,48 @@ public class WithdrawalService {
     public Page<WithdrawalRequest> list(UUID userId, UserRole role, int page, int size) {
         if (!role.isCreator()) throw new ApiException(HttpStatus.FORBIDDEN, "Only creators can view withdrawals");
         return withdrawalRepo.findByCreatorIdOrderByCreatedAtDesc(userId, PageRequest.of(page, size));
+    }
+
+    @Transactional
+    public WithdrawalRequest processWithdrawal(UUID withdrawalId, WithdrawalStatus newStatus) {
+        WithdrawalRequest wr = withdrawalRepo.findById(withdrawalId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Withdrawal request not found"));
+
+        if (wr.getStatus() != WithdrawalStatus.PENDING && wr.getStatus() != WithdrawalStatus.PROCESSING) {
+            throw new ApiException(HttpStatus.BAD_REQUEST,
+                    "Cannot update a withdrawal that is already " + wr.getStatus().name().toLowerCase());
+        }
+        if (newStatus == WithdrawalStatus.PENDING) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Cannot revert to PENDING");
+        }
+
+        Wallet wallet = walletRepository.findByCreatorId(wr.getCreator().getId())
+                .orElseThrow(() -> new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "Wallet not found for creator"));
+
+        if (newStatus == WithdrawalStatus.COMPLETED) {
+            // Deduct from pending balance — funds have now left the platform
+            wallet.setPendingBalance(Math.max(0, wallet.getPendingBalance() - wr.getAmount()));
+            walletRepository.save(wallet);
+        } else if (newStatus == WithdrawalStatus.FAILED) {
+            // Return amount to available balance
+            wallet.setPendingBalance(Math.max(0, wallet.getPendingBalance() - wr.getAmount()));
+            wallet.setAvailableBalance(wallet.getAvailableBalance() + wr.getAmount());
+            walletRepository.save(wallet);
+        }
+
+        wr.setStatus(newStatus);
+        WithdrawalRequest saved = withdrawalRepo.save(wr);
+        paymentAuditService.log(wr.getCreator().getId(), null, "WITHDRAWAL_STATUS_UPDATED",
+                "withdrawal_request", saved.getId().toString(), "status=" + newStatus.name().toLowerCase());
+        return saved;
+    }
+
+    public Page<WithdrawalRequest> listForAdmin(String search, WithdrawalStatus status, int page, int size) {
+        WithdrawalStatus statusFilter = status;
+        return withdrawalRepo.searchForAdmin(
+                search == null || search.isBlank() ? null : search.trim(),
+                statusFilter,
+                PageRequest.of(Math.max(page, 0), Math.min(size, 100)));
     }
 }
 

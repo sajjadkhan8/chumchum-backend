@@ -1,7 +1,10 @@
 package com.chamcham.backend.entity;
 
+import com.chamcham.backend.entity.enums.BrandPlanTier;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.PrimaryKeyJoinColumn;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
@@ -56,6 +59,10 @@ public class Brand extends User {
 
     @Column(name = "verification_phone_number", length = 50)
     private String verificationPhoneNumber;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "plan_tier", nullable = false, length = 20)
+    private BrandPlanTier planTier = BrandPlanTier.STARTER;
 
     public String getDisplayName() {
         return name != null && !name.isBlank() ? name : super.getName();

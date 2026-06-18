@@ -6,7 +6,9 @@ import com.chamcham.backend.dto.creator.SocialAccountResponse;
 import com.chamcham.backend.entity.ContentPreview;
 import com.chamcham.backend.entity.Creator;
 import com.chamcham.backend.entity.SocialAccount;
+import com.chamcham.backend.entity.enums.OrderStatus;
 import com.chamcham.backend.repository.ContentPreviewRepository;
+import com.chamcham.backend.repository.OrderRepository;
 import com.chamcham.backend.repository.SocialAccountRepository;
 import org.springframework.stereotype.Component;
 
@@ -18,12 +20,14 @@ public class CreatorMapper {
     private final ProfileUserMapper profileUserMapper;
     private final SocialAccountRepository socialAccountRepository;
     private final ContentPreviewRepository contentPreviewRepository;
+    private final OrderRepository orderRepository;
 
     public CreatorMapper(ProfileUserMapper profileUserMapper, SocialAccountRepository socialAccountRepository,
-                         ContentPreviewRepository contentPreviewRepository) {
+                         ContentPreviewRepository contentPreviewRepository, OrderRepository orderRepository) {
         this.profileUserMapper = profileUserMapper;
         this.socialAccountRepository = socialAccountRepository;
         this.contentPreviewRepository = contentPreviewRepository;
+        this.orderRepository = orderRepository;
     }
 
     public CreatorResponse toResponse(Creator creator) {
@@ -41,6 +45,19 @@ public class CreatorMapper {
         List<ContentPreviewResponse> contentPreviews = contentPreviewRepository.findByCreatorIdOrderByCreatedAtDesc(creator.getId()).stream()
                 .map(this::toContentPreviewResponse)
                 .toList();
+
+        long totalOrders = orderRepository.countByCreatorIdAndStatusIn(creator.getId(), List.of(
+                OrderStatus.PENDING, OrderStatus.ACCEPTED, OrderStatus.IN_PROGRESS,
+                OrderStatus.DELIVERED, OrderStatus.REVIEW, OrderStatus.REVISION,
+                OrderStatus.COMPLETED, OrderStatus.CANCELLED));
+        long completedOrders = orderRepository.countByCreatorIdAndStatusIn(creator.getId(), List.of(OrderStatus.COMPLETED));
+        int completionRate = totalOrders > 0
+                ? (int) Math.min(99, Math.round((double) completedOrders / totalOrders * 100))
+                : 0;
+        int repeatClients = (int) orderRepository.countDistinctBrandsByCreatorAndCompleted(creator.getId());
+        long activeOrders = orderRepository.countByCreatorIdAndStatusIn(creator.getId(), List.of(
+                OrderStatus.ACCEPTED, OrderStatus.IN_PROGRESS,
+                OrderStatus.DELIVERED, OrderStatus.REVIEW, OrderStatus.REVISION));
 
         return new CreatorResponse(
                 creator.getId(),
@@ -64,6 +81,8 @@ public class CreatorMapper {
                 creator.isTrending(),
                 creator.isFastResponder(),
                 creator.getCompletedDeals(),
+                completionRate,
+                repeatClients,
                 creator.isAcceptsBarter(),
                 creator.isAcceptsHybridDeals(),
                 creator.getMinimumBudget(),
@@ -82,6 +101,12 @@ public class CreatorMapper {
                 socialAccounts,
                 contentPreviews,
                 publicView ? profileUserMapper.toPublicResponse(creator) : profileUserMapper.toResponse(creator),
+                creator.isFiler(),
+                creator.getRateCardReel(),
+                creator.getRateCardStory(),
+                creator.getRateCardPost(),
+                creator.getRateCardVideo(),
+                (int) activeOrders,
                 creator.getCreatedAt(),
                 creator.getUpdatedAt()
         );
@@ -96,7 +121,8 @@ public class CreatorMapper {
                 socialAccount.getFollowers(),
                 socialAccount.getAvgViews(),
                 socialAccount.getEngagementRate(),
-                socialAccount.isVerified()
+                socialAccount.isVerified(),
+                socialAccount.getVerifiedBy()
         );
     }
 

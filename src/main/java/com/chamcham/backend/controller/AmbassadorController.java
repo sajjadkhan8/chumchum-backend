@@ -80,7 +80,7 @@ public class AmbassadorController {
     public ResponseEntity<Map<String, Object>> listAmbassadors(
             @RequestParam(defaultValue = "20") int limit
     ) {
-        List<Creator> ambassadors = ambassadorService.getAmbassadors(limit);
+        List<Creator> ambassadors = ambassadorService.getAmbassadors(Math.min(limit, 100));
         return ResponseEntity.ok(Map.of("success", true, "data",
                 ambassadors.stream().map(creatorMapper::toResponse).toList()));
     }
@@ -91,22 +91,22 @@ public class AmbassadorController {
                 Map.of(
                         "title", "Monthly Guaranteed Income",
                         "description", "Starting from PKR 1,250,000/month for eligible ambassadors.",
-                        "icon", "money"
+                        "icon", "💰"
                 ),
                 Map.of(
                         "title", "Direct Brand Access",
                         "description", "Priority access to premium and enterprise campaigns.",
-                        "icon", "handshake"
+                        "icon", "🤝"
                 ),
                 Map.of(
                         "title", "Dedicated Account Manager",
                         "description", "Personalized support for campaign planning and growth.",
-                        "icon", "briefcase"
+                        "icon", "💼"
                 ),
                 Map.of(
                         "title", "Performance Bonuses",
                         "description", "Tier-based bonus incentives based on delivery quality.",
-                        "icon", "trophy"
+                        "icon", "🏆"
                 )
         );
         return ResponseEntity.ok(Map.of("success", true, "data", Map.of("benefits", benefits)));

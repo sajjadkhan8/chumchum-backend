@@ -1,6 +1,8 @@
 package com.chamcham.backend.repository;
 
 import com.chamcham.backend.entity.Creator;
+import com.chamcham.backend.entity.SocialAccount;
+import com.chamcham.backend.entity.enums.AvailabilityStatus;
 import com.chamcham.backend.entity.enums.CreatorBadgeLevel;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -43,7 +45,10 @@ public interface CreatorRepository extends JpaRepository<Creator, UUID> {
                                  @Param("verified") Boolean verified,
                                  Pageable pageable);
 
-    @Query("select c from Creator c where c.city = :city and c.active = true")
+    @Query("select c from Creator c where c.active = true order by c.engagementRate desc, c.rating desc")
+    List<Creator> findRisingStars(Pageable pageable);
+
+    @Query("select c from Creator c where c.active = true")
     List<Creator> findByCityAndActiveTrue(@Param("city") String city, Pageable pageable);
 
     @Query("select c from Creator c where c.followers >= :min and c.followers <= :max and c.active = true")
@@ -51,44 +56,93 @@ public interface CreatorRepository extends JpaRepository<Creator, UUID> {
 
     /**
      * Explore-page filter – all params nullable; null means "no filter on that dimension".
+     * Uses native PostgreSQL SQL for JSONB category matching via the @> operator.
      */
-    @Query("""
-            select c from Creator c
-            where c.active = true
+    @Query(value = """
+            select distinct c.* from core.creators c
+            join core.users u on u.id = c.id
+            where u.is_active = true
               and (:search is null
-                   or lower(c.name) like concat('%', lower(cast(:search as string)), '%')
-                   or lower(c.username) like concat('%', lower(cast(:search as string)), '%')
-                   or lower(c.bio)  like concat('%', lower(cast(:search as string)), '%')
-                   or lower(c.city) like concat('%', lower(cast(:search as string)), '%'))
-              and (:city is null or lower(c.city) = lower(cast(:city as string)))
+                   or lower(u.name) like concat('%', lower(:search), '%')
+                   or lower(c.username) like concat('%', lower(:search), '%')
+                   or lower(c.bio) like concat('%', lower(:search), '%')
+                   or lower(u.city) like concat('%', lower(:search), '%')
+                   or lower(c.niche) like concat('%', lower(:search), '%')
+                   or lower(c.preferred_industries) like concat('%', lower(:search), '%'))
+              and (:city is null or lower(u.city) = lower(:city))
+              and (:category is null
+                   or lower(c.category) = lower(:category)
+                   or c.categories @> jsonb_build_array(:category::text))
               and (:minFollowers is null or c.followers >= :minFollowers)
               and (:maxFollowers is null or c.followers <= :maxFollowers)
               and (:minRating is null or c.rating >= :minRating)
-              and (:minPrice is null or c.minPrice >= :minPrice)
-              and (:maxPrice is null or c.maxPrice <= :maxPrice)
-              and (:badgeLevel is null or c.badgeLevel = :badgeLevel)
-              and (:availabilityStatus is null or lower(c.availabilityStatus) like concat('%', lower(cast(:availabilityStatus as string)), '%'))
-              and (:acceptsBarter is null or c.acceptsBarter = :acceptsBarter)
-              and (:isTrending is null or c.isTrending = :isTrending)
-              and (:isFastResponder is null or c.isFastResponder = :isFastResponder)
-              and (:isVerified is null or c.isVerified = :isVerified)
-            """)
+              and (:minPrice is null or c.min_price >= :minPrice)
+              and (:maxPrice is null or c.max_price <= :maxPrice)
+              and (:badgeLevel is null or c.badge_level = :badgeLevel)
+              and (:availabilityStatus is null or c.availability_status = :availabilityStatus)
+              and (:acceptsBarter is null or c.accepts_barter = :acceptsBarter)
+              and (:isTrending is null or c.is_trending = :isTrending)
+              and (:isFastResponder is null or c.is_fast_responder = :isFastResponder)
+              and (:isVerified is null or c.is_verified = :isVerified)
+              and (:minEngagementRate is null or c.engagement_rate >= :minEngagementRate)
+              and (:platform is null or exists (
+                   select 1 from core.social_accounts sa
+                   where sa.creator_id = c.id and lower(sa.platform) = lower(:platform)))
+            """,
+            countQuery = """
+            select count(distinct c.id) from core.creators c
+            join core.users u on u.id = c.id
+            where u.is_active = true
+              and (:search is null
+                   or lower(u.name) like concat('%', lower(:search), '%')
+                   or lower(c.username) like concat('%', lower(:search), '%')
+                   or lower(c.bio) like concat('%', lower(:search), '%')
+                   or lower(u.city) like concat('%', lower(:search), '%')
+                   or lower(c.niche) like concat('%', lower(:search), '%')
+                   or lower(c.preferred_industries) like concat('%', lower(:search), '%'))
+              and (:city is null or lower(u.city) = lower(:city))
+              and (:category is null
+                   or lower(c.category) = lower(:category)
+                   or c.categories @> jsonb_build_array(:category::text))
+              and (:minFollowers is null or c.followers >= :minFollowers)
+              and (:maxFollowers is null or c.followers <= :maxFollowers)
+              and (:minRating is null or c.rating >= :minRating)
+              and (:minPrice is null or c.min_price >= :minPrice)
+              and (:maxPrice is null or c.max_price <= :maxPrice)
+              and (:badgeLevel is null or c.badge_level = :badgeLevel)
+              and (:availabilityStatus is null or c.availability_status = :availabilityStatus)
+              and (:acceptsBarter is null or c.accepts_barter = :acceptsBarter)
+              and (:isTrending is null or c.is_trending = :isTrending)
+              and (:isFastResponder is null or c.is_fast_responder = :isFastResponder)
+              and (:isVerified is null or c.is_verified = :isVerified)
+              and (:minEngagementRate is null or c.engagement_rate >= :minEngagementRate)
+              and (:platform is null or exists (
+                   select 1 from core.social_accounts sa
+                   where sa.creator_id = c.id and lower(sa.platform) = lower(:platform)))
+            """,
+            nativeQuery = true)
     Page<Creator> search(
-            @Param("search")          String search,
-            @Param("city")            String city,
-            @Param("minFollowers")    Integer minFollowers,
-            @Param("maxFollowers")    Integer maxFollowers,
-            @Param("minRating")       BigDecimal minRating,
-            @Param("minPrice")        Integer minPrice,
-            @Param("maxPrice")        Integer maxPrice,
-            @Param("badgeLevel")      CreatorBadgeLevel badgeLevel,
-            @Param("availabilityStatus") String availabilityStatus,
-            @Param("acceptsBarter")   Boolean acceptsBarter,
-            @Param("isTrending")      Boolean isTrending,
-            @Param("isFastResponder") Boolean isFastResponder,
-            @Param("isVerified")      Boolean isVerified,
+            @Param("search")             String search,
+            @Param("city")               String city,
+            @Param("category")           String category,
+            @Param("minFollowers")       Integer minFollowers,
+            @Param("maxFollowers")       Integer maxFollowers,
+            @Param("minRating")          BigDecimal minRating,
+            @Param("minPrice")           Integer minPrice,
+            @Param("maxPrice")           Integer maxPrice,
+            @Param("badgeLevel")         CreatorBadgeLevel badgeLevel,
+            @Param("availabilityStatus") AvailabilityStatus availabilityStatus,
+            @Param("acceptsBarter")      Boolean acceptsBarter,
+            @Param("isTrending")         Boolean isTrending,
+            @Param("isFastResponder")    Boolean isFastResponder,
+            @Param("isVerified")         Boolean isVerified,
+            @Param("minEngagementRate")  BigDecimal minEngagementRate,
+            @Param("platform")           String platform,
             Pageable pageable
     );
+
+    @Query("select c.id from Creator c")
+    List<UUID> findAllIds();
 
     @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query(value = """

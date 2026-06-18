@@ -16,6 +16,7 @@ import com.chamcham.backend.entity.ServicePackage;
 import com.chamcham.backend.entity.enums.BrandCampaignReactionStatus;
 import com.chamcham.backend.entity.enums.BrandCampaignReactionType;
 import com.chamcham.backend.entity.enums.BrandCampaignStatus;
+import com.chamcham.backend.entity.enums.BrandPlanTier;
 import com.chamcham.backend.entity.enums.DealType;
 import com.chamcham.backend.entity.enums.PackagePlatform;
 import com.chamcham.backend.entity.enums.PackageStatus;
@@ -37,6 +38,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.YearMonth;
+import java.time.ZoneOffset;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
@@ -91,6 +94,15 @@ public class BrandCampaignService {
         Brand brand = brandRepository.findById(brandId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Brand profile not found"));
 
+        if (brand.getPlanTier() == BrandPlanTier.STARTER) {
+            Instant startOfMonth = YearMonth.now(ZoneOffset.UTC).atDay(1).atStartOfDay().toInstant(ZoneOffset.UTC);
+            long campaignsThisMonth = brandCampaignRepository.countByBrandIdAndCreatedAtAfter(brandId, startOfMonth);
+            if (campaignsThisMonth >= 5) {
+                throw new ApiException(HttpStatus.PAYMENT_REQUIRED,
+                        "Starter plan allows 5 campaigns per month. Upgrade to Growth or Enterprise for unlimited campaigns.");
+            }
+        }
+
         BrandCampaign campaign = BrandCampaign.builder()
                  .brand(brand)
                  .title(request.title().trim())
@@ -132,6 +144,7 @@ public class BrandCampaignService {
                  .maxAge(request.maxAge())
                  .applicationType(request.applicationType())
                  .maxApplicants(request.maxApplicants())
+                 .minProposedPrice(request.minProposedPrice())
                  .proposalRequired(request.proposalRequired() != null && request.proposalRequired())
                  .portfolioRequired(request.portfolioRequired() != null && request.portfolioRequired())
                  .customScreeningQuestions(request.customScreeningQuestions())
@@ -222,6 +235,7 @@ public class BrandCampaignService {
          if (request.maxAge() != null) campaign.setMaxAge(request.maxAge());
          if (request.applicationType() != null) campaign.setApplicationType(request.applicationType());
          if (request.maxApplicants() != null) campaign.setMaxApplicants(request.maxApplicants());
+         if (request.minProposedPrice() != null) campaign.setMinProposedPrice(request.minProposedPrice());
          if (request.proposalRequired() != null) campaign.setProposalRequired(request.proposalRequired());
          if (request.portfolioRequired() != null) campaign.setPortfolioRequired(request.portfolioRequired());
          if (request.customScreeningQuestions() != null) campaign.setCustomScreeningQuestions(request.customScreeningQuestions());
@@ -410,6 +424,13 @@ public class BrandCampaignService {
 
         BrandCampaignReactionType reactionType = parseReactionType(request.reactionType());
         validateReactionPayload(reactionType, request.proposedPrice(), request.proposedDeliveryDays(), request.message());
+
+        if (campaign.getMinProposedPrice() != null
+                && request.proposedPrice() != null
+                && request.proposedPrice() < campaign.getMinProposedPrice()) {
+            throw new ApiException(HttpStatus.BAD_REQUEST,
+                "Your proposed price is below the campaign minimum of PKR " + campaign.getMinProposedPrice());
+        }
 
         BrandCampaignReaction reaction = brandCampaignReactionRepository
                 .findByCampaignIdAndCreatorId(campaignId, creatorId)
@@ -796,6 +817,7 @@ public class BrandCampaignService {
                  campaign.getMaxAge(),
                  campaign.getApplicationType(),
                  campaign.getMaxApplicants(),
+                 campaign.getMinProposedPrice(),
                  campaign.getProposalRequired(),
                  campaign.getPortfolioRequired(),
                  campaign.getCustomScreeningQuestions(),

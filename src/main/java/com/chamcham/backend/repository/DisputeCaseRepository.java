@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.Optional;
 import java.util.UUID;
 
 public interface DisputeCaseRepository extends JpaRepository<DisputeCase, UUID> {
@@ -34,4 +35,8 @@ public interface DisputeCaseRepository extends JpaRepository<DisputeCase, UUID> 
     Page<DisputeCase> searchForAdmin(@Param("search") String search,
                                      @Param("status") DisputeStatus status,
                                      Pageable pageable);
+
+    boolean existsByOrderId(UUID orderId);
+
+    Optional<DisputeCase> findByOrderId(UUID orderId);
 }

@@ -8,13 +8,5 @@ public enum OrderStatus {
     REVIEW,
     REVISION,
     COMPLETED,
-    CANCELLED,
-    pending,
-    accepted,
-    in_progress,
-    delivered,
-    review,
-    revision,
-    completed,
-    cancelled
+    CANCELLED
 }

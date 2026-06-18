@@ -50,18 +50,15 @@ public class Deliverable extends BaseEntity {
     @Column(name = "submitted_at")
     private OffsetDateTime submittedAt;
 
+    @Column(name = "revision_note", length = 1000)
+    private String revisionNote;
+
     public enum DeliverableStatus {
         PENDING,
         IN_PROGRESS,
         COMPLETED,
         REVISION,
         REVIEW,
-        APPROVED,
-        pending,
-        in_progress,
-        completed,
-        revision,
-        review,
-        approved
+        APPROVED
     }
 }

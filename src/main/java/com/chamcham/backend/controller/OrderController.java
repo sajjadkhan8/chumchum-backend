@@ -17,10 +17,11 @@ import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -35,17 +36,21 @@ public class OrderController {
     }
 
     @GetMapping
-    public ResponseEntity<List<OrderResponse>> getOrders(@AuthenticationPrincipal AuthenticatedUser authUser) {
-        return ResponseEntity.ok(orderService.getOrders(authUser.userId(), authUser.role()));
+    public ResponseEntity<Map<String, Object>> getOrders(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int limit,
+            @AuthenticationPrincipal AuthenticatedUser authUser) {
+        return ResponseEntity.ok(orderService.getOrders(authUser.userId(), authUser.role(), page, limit));
     }
 
     @PostMapping
     public ResponseEntity<OrderResponse> createOrder(
             @Valid @RequestBody CreateOrderRequest request,
+            @RequestHeader(value = "X-Idempotency-Key", required = false) String idempotencyKey,
             @AuthenticationPrincipal AuthenticatedUser authUser) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(orderService.createOrder(request.packageId(), authUser.userId(), authUser.role(),
-                        request.amount(), request.barterDetails(), request.message(), request.dealType()));
+                        request.amount(), request.barterDetails(), request.message(), request.dealType(), idempotencyKey));
     }
 
     @GetMapping("/{orderId}")
@@ -60,6 +65,12 @@ public class OrderController {
             @AuthenticationPrincipal AuthenticatedUser authUser) {
         return ResponseEntity.ok(orderService.updateStatus(orderId,
                 OrderStatus.valueOf(request.status().toUpperCase()), authUser.userId(), authUser.role()));
+    }
+
+    @PatchMapping("/{orderId}/barter-confirm")
+    public ResponseEntity<OrderResponse> confirmBarterReceipt(@PathVariable UUID orderId,
+            @AuthenticationPrincipal AuthenticatedUser authUser) {
+        return ResponseEntity.ok(orderService.confirmBarterReceipt(orderId, authUser.userId(), authUser.role()));
     }
 
     @PatchMapping("/{orderId}/progress")
@@ -85,7 +96,7 @@ public class OrderController {
             @AuthenticationPrincipal AuthenticatedUser authUser) {
         String raw = body.get("status");
         if (raw == null) throw new ApiException(HttpStatus.BAD_REQUEST, "status is required");
-        return ResponseEntity.ok(orderService.reviewDeliverable(orderId, deliverableId, raw,
+        return ResponseEntity.ok(orderService.reviewDeliverable(orderId, deliverableId, raw, body.get("comment"),
                 authUser.userId(), authUser.role()));
     }
 }
