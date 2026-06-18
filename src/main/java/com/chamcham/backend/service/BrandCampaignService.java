@@ -18,6 +18,7 @@ import com.chamcham.backend.entity.enums.BrandCampaignReactionType;
 import com.chamcham.backend.entity.enums.BrandCampaignStatus;
 import com.chamcham.backend.entity.enums.BrandPlanTier;
 import com.chamcham.backend.entity.enums.DealType;
+import com.chamcham.backend.entity.enums.PackageCategory;
 import com.chamcham.backend.entity.enums.PackagePlatform;
 import com.chamcham.backend.entity.enums.PackageStatus;
 import com.chamcham.backend.entity.enums.PackageType;
@@ -694,7 +695,7 @@ public class BrandCampaignService {
                 .description(campaign.getBrief())
                 .fullDescription(campaign.getBrief())
                 .platform(resolvePlatform(campaign.getTargetPlatforms()))
-                .category(trimToNull(campaign.getCategories()) != null ? truncate(campaign.getCategories(), 80) : "Brand Campaign")
+                .category(PackageCategory.GENERAL)
                 .type(PackageType.ONE_TIME)
                 .dealType(effectiveDealType(campaign))
                 .status(PackageStatus.ACTIVE)

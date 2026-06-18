@@ -8,12 +8,10 @@ import com.chamcham.backend.entity.Brand;
 import com.chamcham.backend.entity.Creator;
 import com.chamcham.backend.entity.Order;
 import com.chamcham.backend.entity.User;
-import com.chamcham.backend.entity.WithdrawalRequest;
 import com.chamcham.backend.entity.enums.BrandPlanTier;
 import com.chamcham.backend.entity.enums.OrderStatus;
 import com.chamcham.backend.entity.enums.CreatorBadgeLevel;
 import com.chamcham.backend.entity.enums.UserRole;
-import com.chamcham.backend.entity.enums.WithdrawalStatus;
 import com.chamcham.backend.exception.ApiException;
 import com.chamcham.backend.mapper.BrandMapper;
 import com.chamcham.backend.mapper.CreatorMapper;
@@ -26,7 +24,6 @@ import com.chamcham.backend.repository.UserRepository;
 import com.chamcham.backend.service.AmbassadorService;
 import com.chamcham.backend.service.AdminOperationsService;
 import com.chamcham.backend.service.OrderService;
-import com.chamcham.backend.service.WithdrawalService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -67,7 +64,6 @@ public class AdminController {
     private final OrderService orderService;
     private final AmbassadorService ambassadorService;
     private final AdminOperationsService adminOperationsService;
-    private final WithdrawalService withdrawalService;
 
     public AdminController(UserRepository userRepository,
                            CreatorRepository creatorRepository,
@@ -79,8 +75,7 @@ public class AdminController {
                            OrderMapper orderMapper,
                            OrderService orderService,
                            AmbassadorService ambassadorService,
-                           AdminOperationsService adminOperationsService,
-                           WithdrawalService withdrawalService) {
+                           AdminOperationsService adminOperationsService) {
         this.userRepository = userRepository;
         this.creatorRepository = creatorRepository;
         this.brandRepository = brandRepository;
@@ -92,7 +87,6 @@ public class AdminController {
         this.orderService = orderService;
         this.ambassadorService = ambassadorService;
         this.adminOperationsService = adminOperationsService;
-        this.withdrawalService = withdrawalService;
     }
 
     public record UserStatusRequest(@NotNull Boolean active) {}
@@ -102,8 +96,6 @@ public class AdminController {
             @Size(max = 500) String reason,
             Integer suspendDays
     ) {}
-
-    public record WithdrawalStatusRequest(@NotNull @NotBlank @Size(max = 20) String status) {}
 
     public record CreatorVerificationRequest(@NotNull Boolean verified) {}
 
@@ -462,64 +454,6 @@ public class AdminController {
         adminOperationsService.log(authUser.userId(), "USER_MODERATED", "user", id.toString(),
                 "action=" + action + (request.reason() != null ? ", reason=" + request.reason() : ""));
         return ok(userMapper.toResponse(saved));
-    }
-
-    @GetMapping("/payments/withdrawals")
-    public ResponseEntity<Map<String, Object>> listWithdrawals(
-            @AuthenticationPrincipal AuthenticatedUser authUser,
-            @RequestParam(required = false) String search,
-            @RequestParam(required = false) String status,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size
-    ) {
-        requireAdmin(authUser);
-        WithdrawalStatus statusFilter = null;
-        if (status != null && !status.isBlank() && !status.equalsIgnoreCase("all")) {
-            try {
-                statusFilter = WithdrawalStatus.valueOf(status.trim().toUpperCase());
-            } catch (Exception e) {
-                throw new ApiException(HttpStatus.BAD_REQUEST, "Invalid withdrawal status: " + status);
-            }
-        }
-        Page<WithdrawalRequest> result = withdrawalService.listForAdmin(search, statusFilter, page, size);
-        return ok(Map.of(
-                "withdrawals", result.getContent().stream().map(this::toWithdrawalMap).toList(),
-                "total", result.getTotalElements(),
-                "page", result.getNumber(),
-                "size", result.getSize()
-        ));
-    }
-
-    @PatchMapping("/payments/withdrawals/{id}/status")
-    @Transactional
-    public ResponseEntity<Map<String, Object>> updateWithdrawalStatus(
-            @AuthenticationPrincipal AuthenticatedUser authUser,
-            @PathVariable UUID id,
-            @Valid @RequestBody WithdrawalStatusRequest request
-    ) {
-        requireAdmin(authUser);
-        WithdrawalStatus newStatus;
-        try {
-            newStatus = WithdrawalStatus.valueOf(request.status().trim().toUpperCase());
-        } catch (Exception e) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Invalid status: " + request.status());
-        }
-        WithdrawalRequest wr = withdrawalService.processWithdrawal(id, newStatus);
-        adminOperationsService.log(authUser.userId(), "WITHDRAWAL_STATUS_CHANGED", "withdrawal_request",
-                id.toString(), "status=" + newStatus.name().toLowerCase());
-        return ok(toWithdrawalMap(wr));
-    }
-
-    private Map<String, Object> toWithdrawalMap(WithdrawalRequest wr) {
-        Map<String, Object> m = new LinkedHashMap<>();
-        m.put("id", wr.getId());
-        m.put("creatorId", wr.getCreator().getId());
-        m.put("creatorName", wr.getCreator().getName());
-        m.put("amount", wr.getAmount());
-        m.put("status", wr.getStatus().name().toLowerCase());
-        m.put("payoutMethodType", wr.getPayoutMethod() != null ? wr.getPayoutMethod().getType() : null);
-        m.put("createdAt", wr.getCreatedAt());
-        return m;
     }
 
     private ResponseEntity<Map<String, Object>> ok(Object data) {

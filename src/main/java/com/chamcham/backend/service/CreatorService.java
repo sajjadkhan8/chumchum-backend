@@ -222,7 +222,7 @@ public class CreatorService {
             creator.setAvailabilityStatus(request.availabilityStatus());
         }
         if (request.isFiler() != null) {
-            creator.setIsFiler(request.isFiler());
+            creator.setFiler(request.isFiler());
         }
         if (request.responseTime() != null) {
             creator.setResponseTime(request.responseTime());
