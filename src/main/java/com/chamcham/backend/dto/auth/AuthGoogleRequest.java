@@ -8,9 +8,10 @@ public record AuthGoogleRequest(
         @NotBlank String idToken,
         @NotNull UserRole role,
         String name,
-        String affiliateCode
+        String affiliateCode,
+        Boolean termsAccepted
 ) {
     public AuthGoogleRequest(String idToken, UserRole role, String name) {
-        this(idToken, role, name, null);
+        this(idToken, role, name, null, null);
     }
 }

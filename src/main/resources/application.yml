@@ -51,6 +51,29 @@ springdoc:
   swagger-ui.csrf:
     enabled: false
 
+management:
+  endpoints:
+    web:
+      base-path: /actuator
+      exposure:
+        include: health,info,prometheus,metrics
+  endpoint:
+    health:
+      show-details: when-authorized
+      probes:
+        enabled: true
+  health:
+    livenessState:
+      enabled: true
+    readinessState:
+      enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+    tags:
+      application: ${spring.application.name}
+
 logging:
   level:
     org.springframework.security: INFO
@@ -74,7 +97,16 @@ security:
       client-ids: ${GOOGLE_CLIENT_IDS:44085381746-geq9li8fbig81d0lb4jjatpp72earjgk.apps.googleusercontent.com}
       token-info-url: ${GOOGLE_TOKEN_INFO_URL:https://oauth2.googleapis.com/tokeninfo}
 
+sentry:
+  dsn: ${SENTRY_DSN:}
+  traces-sample-rate: ${SENTRY_TRACES_SAMPLE_RATE:0.1}
+  environment: ${SENTRY_ENVIRONMENT:development}
+  logging:
+    minimum-event-level: error
+    minimum-breadcrumb-level: info
+
 app:
+  name: ${APP_NAME:ChamCham}
   storage:
     driver: ${STORAGE_DRIVER:local}
   frontend-base-url: ${FRONTEND_BASE_URL:http://localhost:3000}

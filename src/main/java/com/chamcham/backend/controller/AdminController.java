@@ -2,13 +2,11 @@ package com.chamcham.backend.controller;
 
 import com.chamcham.backend.config.security.AuthenticatedUser;
 import com.chamcham.backend.dto.order.OrderResponse;
-import com.chamcham.backend.dto.user.UserResponse;
 import com.chamcham.backend.entity.AmbassadorApplication;
 import com.chamcham.backend.entity.Brand;
 import com.chamcham.backend.entity.Creator;
 import com.chamcham.backend.entity.Order;
 import com.chamcham.backend.entity.User;
-import com.chamcham.backend.entity.enums.BrandPlanTier;
 import com.chamcham.backend.entity.enums.OrderStatus;
 import com.chamcham.backend.entity.enums.CreatorBadgeLevel;
 import com.chamcham.backend.entity.enums.UserRole;
@@ -21,9 +19,7 @@ import com.chamcham.backend.repository.BrandRepository;
 import com.chamcham.backend.repository.CreatorRepository;
 import com.chamcham.backend.repository.OrderRepository;
 import com.chamcham.backend.repository.UserRepository;
-import com.chamcham.backend.service.AmbassadorService;
-import com.chamcham.backend.service.AdminOperationsService;
-import com.chamcham.backend.service.OrderService;
+import com.chamcham.backend.service.*;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -38,6 +34,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -64,6 +61,8 @@ public class AdminController {
     private final OrderService orderService;
     private final AmbassadorService ambassadorService;
     private final AdminOperationsService adminOperationsService;
+    private final WithdrawalService withdrawalService;
+    private final AdminStepUpService adminStepUpService;
 
     public AdminController(UserRepository userRepository,
                            CreatorRepository creatorRepository,
@@ -75,7 +74,9 @@ public class AdminController {
                            OrderMapper orderMapper,
                            OrderService orderService,
                            AmbassadorService ambassadorService,
-                           AdminOperationsService adminOperationsService) {
+                           AdminOperationsService adminOperationsService,
+                           WithdrawalService withdrawalService,
+                           AdminStepUpService adminStepUpService) {
         this.userRepository = userRepository;
         this.creatorRepository = creatorRepository;
         this.brandRepository = brandRepository;
@@ -87,6 +88,8 @@ public class AdminController {
         this.orderService = orderService;
         this.ambassadorService = ambassadorService;
         this.adminOperationsService = adminOperationsService;
+        this.withdrawalService = withdrawalService;
+        this.adminStepUpService = adminStepUpService;
     }
 
     public record UserStatusRequest(@NotNull Boolean active) {}
@@ -415,9 +418,18 @@ public class AdminController {
     public ResponseEntity<Map<String, Object>> moderateUser(
             @AuthenticationPrincipal AuthenticatedUser authUser,
             @PathVariable UUID id,
-            @Valid @RequestBody UserModerateRequest request
+            @Valid @RequestBody UserModerateRequest request,
+            @RequestHeader(value = "X-Step-Up-Token", required = false) String stepUpToken
     ) {
         requireAdmin(authUser);
+        if (!authUser.role().canModerateUsers()) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "Support or Platform Admin role required for user moderation");
+        }
+        // Ban and suspend are destructive and irreversible — require step-up re-auth
+        String action = request.action().trim().toLowerCase();
+        if ("ban".equals(action) || "suspend".equals(action)) {
+            adminStepUpService.requireStepUp(authUser, stepUpToken);
+        }
         if (authUser.userId().equals(id)) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Admins cannot moderate their own account");
         }
@@ -427,7 +439,6 @@ public class AdminController {
             throw new ApiException(HttpStatus.FORBIDDEN, "Cannot moderate other admin accounts");
         }
 
-        String action = request.action().trim().toLowerCase();
         switch (action) {
             case "ban" -> {
                 user.setActive(false);
@@ -456,6 +467,69 @@ public class AdminController {
         return ok(userMapper.toResponse(saved));
     }
 
+    @GetMapping("/payments/withdrawals")
+    public ResponseEntity<Map<String, Object>> listWithdrawals(
+            @AuthenticationPrincipal AuthenticatedUser authUser,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String status,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size
+    ) {
+        requireAdmin(authUser);
+        WithdrawalStatus statusFilter = null;
+        if (status != null && !status.isBlank() && !status.equalsIgnoreCase("all")) {
+            try {
+                statusFilter = WithdrawalStatus.valueOf(status.trim().toUpperCase());
+            } catch (Exception e) {
+                throw new ApiException(HttpStatus.BAD_REQUEST, "Invalid withdrawal status: " + status);
+            }
+        }
+        Page<WithdrawalRequest> result = withdrawalService.listForAdmin(search, statusFilter, page, size);
+        return ok(Map.of(
+                "withdrawals", result.getContent().stream().map(this::toWithdrawalMap).toList(),
+                "total", result.getTotalElements(),
+                "page", result.getNumber(),
+                "size", result.getSize()
+        ));
+    }
+
+    @PatchMapping("/payments/withdrawals/{id}/status")
+    @Transactional
+    public ResponseEntity<Map<String, Object>> updateWithdrawalStatus(
+            @AuthenticationPrincipal AuthenticatedUser authUser,
+            @PathVariable UUID id,
+            @Valid @RequestBody WithdrawalStatusRequest request,
+            @RequestHeader(value = "X-Step-Up-Token", required = false) String stepUpToken
+    ) {
+        requireAdmin(authUser);
+        if (!authUser.role().canProcessPayments()) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "Finance Ops or Platform Admin role required");
+        }
+        adminStepUpService.requireStepUp(authUser, stepUpToken);
+        WithdrawalStatus newStatus;
+        try {
+            newStatus = WithdrawalStatus.valueOf(request.status().trim().toUpperCase());
+        } catch (Exception e) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Invalid status: " + request.status());
+        }
+        WithdrawalRequest wr = withdrawalService.processWithdrawal(id, newStatus);
+        adminOperationsService.log(authUser.userId(), "WITHDRAWAL_STATUS_CHANGED", "withdrawal_request",
+                id.toString(), "status=" + newStatus.name().toLowerCase());
+        return ok(toWithdrawalMap(wr));
+    }
+
+    private Map<String, Object> toWithdrawalMap(WithdrawalRequest wr) {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("id", wr.getId());
+        m.put("creatorId", wr.getCreator().getId());
+        m.put("creatorName", wr.getCreator().getName());
+        m.put("amount", wr.getAmount());
+        m.put("status", wr.getStatus().name().toLowerCase());
+        m.put("payoutMethodType", wr.getPayoutMethod() != null ? wr.getPayoutMethod().getType() : null);
+        m.put("createdAt", wr.getCreatedAt());
+        return m;
+    }
+
     private ResponseEntity<Map<String, Object>> ok(Object data) {
         return ResponseEntity.ok(Map.of("success", true, "data", data));
     }
@@ -464,6 +538,7 @@ public class AdminController {
         if (authUser == null || !authUser.role().isAdmin()) {
             throw new ApiException(HttpStatus.FORBIDDEN, "Admin access required");
         }
+        // Note: framework-level role check in SecurityConfig enforces hasAnyRole before reaching here
     }
 
     private String blankToNull(String value) {

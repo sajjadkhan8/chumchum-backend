@@ -78,7 +78,9 @@ public class SecurityConfig {
                         // Static file access
                         auth.requestMatchers(HttpMethod.GET, "/uploads/avatars/**", "/uploads/covers/**",
                                 "/uploads/previews/**", "/uploads/packages/**", "/uploads/brands/**").permitAll();
-                        auth.requestMatchers("/actuator/health").permitAll();
+                        // Actuator: health probes are public; all other actuator paths require admin
+                        auth.requestMatchers("/actuator/health", "/actuator/health/**").permitAll();
+                        auth.requestMatchers("/actuator/**").hasAnyRole("PLATFORM_ADMIN", "SUPPORT", "FINANCE_OPS");
                         // API docs: only open when Swagger is explicitly enabled (never in production)
                         if (swaggerEnabled) {
                             auth.requestMatchers(
@@ -88,8 +90,18 @@ public class SecurityConfig {
                                     "/webjars/**"
                             ).permitAll();
                         }
-                        // Admin endpoints require PLATFORM_ADMIN role at the framework level
-                        auth.requestMatchers("/api/v1/admin/**").hasRole("PLATFORM_ADMIN");
+                        // MED-15: Least-privilege admin tiers — specific financial and moderation paths
+                        // Financial operations (refunds, withdrawals) — FINANCE_OPS or PLATFORM_ADMIN
+                        auth.requestMatchers("/api/v1/admin/payments/**")
+                                .hasAnyRole("PLATFORM_ADMIN", "FINANCE_OPS");
+                        auth.requestMatchers(HttpMethod.POST, "/api/v1/admin/disputes/*/refund")
+                                .hasAnyRole("PLATFORM_ADMIN", "FINANCE_OPS");
+                        // User moderation — SUPPORT or PLATFORM_ADMIN
+                        auth.requestMatchers(HttpMethod.PATCH, "/api/v1/admin/users/**")
+                                .hasAnyRole("PLATFORM_ADMIN", "SUPPORT");
+                        // All other admin endpoints — any admin role
+                        auth.requestMatchers("/api/v1/admin/**")
+                                .hasAnyRole("PLATFORM_ADMIN", "SUPPORT", "FINANCE_OPS");
                         auth.anyRequest().authenticated();
                 })
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

@@ -7,6 +7,8 @@ import com.chamcham.backend.payment.RefundProvider;
 import com.chamcham.backend.payment.RefundProviderWebhookEvent;
 import com.chamcham.backend.repository.*;
 import jakarta.transaction.Transactional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.event.EventListener;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -16,6 +18,8 @@ import java.util.UUID;
 
 @Service
 public class RefundService {
+
+    private static final Logger log = LoggerFactory.getLogger(RefundService.class);
 
     private final RefundProvider refundProvider;
     private final PaymentRefundRepository refundRepository;
@@ -57,6 +61,8 @@ public class RefundService {
                 .providerRefundId(submission.providerRefundId())
                 .build());
         dispute.setRefund(refund);
+        log.info("Refund requested: disputeId={}, provider={}, providerRefundId={}, amount={}, adminId={}",
+                dispute.getId(), refund.getProvider(), refund.getProviderRefundId(), refundAmount, admin.getId());
         audit(admin, "DISPUTE_REFUND_REQUESTED", dispute.getId().toString(),
                 "provider=" + refund.getProvider() + ", providerRefundId=" + refund.getProviderRefundId() + ", amount=" + refundAmount);
         return refund;
@@ -66,15 +72,32 @@ public class RefundService {
     @Transactional
     public void handleProviderWebhook(RefundProviderWebhookEvent event) {
         PaymentRefund refund = refundRepository.findByProviderRefundId(event.providerRefundId()).orElse(null);
-        if (refund == null || !refund.getProvider().equals(event.provider()) || refund.getStatus() != TransactionStatus.PENDING) return;
+        if (refund == null) {
+            log.warn("Refund webhook for unknown providerRefundId={}, provider={}", event.providerRefundId(), event.provider());
+            return;
+        }
+        if (!refund.getProvider().equals(event.provider())) {
+            log.warn("Refund webhook provider mismatch: expected={}, received={}, providerRefundId={}",
+                    refund.getProvider(), event.provider(), event.providerRefundId());
+            return;
+        }
+        if (refund.getStatus() != TransactionStatus.PENDING) {
+            log.warn("Refund webhook for non-pending refund: providerRefundId={}, currentStatus={}",
+                    event.providerRefundId(), refund.getStatus());
+            return;
+        }
         if (event.status() == TransactionStatus.FAILED) {
             markFailed(refund, event.failureReason() == null ? "Provider rejected refund" : event.failureReason());
             return;
         }
-        if (event.status() != TransactionStatus.COMPLETED) return;
+        if (event.status() != TransactionStatus.COMPLETED) {
+            log.debug("Refund webhook with non-terminal status={} for providerRefundId={}", event.status(), event.providerRefundId());
+            return;
+        }
         try {
             confirmRefund(refund);
         } catch (ApiException ex) {
+            log.error("Refund confirmation failed: providerRefundId={}, reason={}", event.providerRefundId(), ex.getMessage());
             markFailed(refund, ex.getMessage());
         }
     }
@@ -108,6 +131,8 @@ public class RefundService {
         refund.setStatus(TransactionStatus.COMPLETED);
         refund.setConfirmedAt(Instant.now());
         refundRepository.save(refund);
+        log.info("Refund confirmed: providerRefundId={}, amount={}, creatorClawback={}",
+                refund.getProviderRefundId(), refund.getAmount(), clawbackAmount);
         audit(refund.getExecutedByAdmin(), "DISPUTE_REFUND_CONFIRMED", refund.getDispute().getId().toString(),
                 "provider=" + refund.getProvider() + ", providerRefundId=" + refund.getProviderRefundId()
                         + ", amount=" + refund.getAmount() + ", creatorClawback=" + clawbackAmount);
@@ -118,6 +143,9 @@ public class RefundService {
         refund.setFailureReason(reason);
         refund.setConfirmedAt(Instant.now());
         refundRepository.save(refund);
+        log.error("REFUND FAILED: providerRefundId={}, provider={}, disputeId={}, reason={}",
+                refund.getProviderRefundId(), refund.getProvider(),
+                refund.getDispute().getId(), reason);
         audit(refund.getExecutedByAdmin(), "DISPUTE_REFUND_FAILED", refund.getDispute().getId().toString(),
                 "provider=" + refund.getProvider() + ", providerRefundId=" + refund.getProviderRefundId() + ", reason=" + reason);
     }
