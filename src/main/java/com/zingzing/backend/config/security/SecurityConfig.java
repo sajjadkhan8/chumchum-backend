@@ -74,6 +74,8 @@ public class SecurityConfig {
                         ).permitAll();
                         // Public creator profile by creator ID (single-segment UUID only — does NOT match /me/*, /user/*, etc.)
                         auth.requestMatchers(HttpMethod.GET, "/api/v1/creators/*").permitAll();
+                        // Public creator profile by username (two-segment path: /by-username/{username})
+                        auth.requestMatchers(HttpMethod.GET, "/api/v1/creators/by-username/*").permitAll();
                         // Public brand listing and profile by brand ID (single-segment UUID only)
                         auth.requestMatchers(HttpMethod.GET, "/api/v1/brands", "/api/v1/brands/*").permitAll();
                         // Static file access

@@ -65,12 +65,9 @@ public interface CreatorRepository extends JpaRepository<Creator, UUID> {
                    or lower(u.name) like concat('%', lower(:search), '%')
                    or lower(c.username) like concat('%', lower(:search), '%')
                    or lower(c.bio) like concat('%', lower(:search), '%')
-                   or lower(u.city) like concat('%', lower(:search), '%')
-                   or lower(c.niche) like concat('%', lower(:search), '%')
-                   or lower(c.preferred_industries) like concat('%', lower(:search), '%'))
+                   or lower(u.city) like concat('%', lower(:search), '%'))
               and (:city is null or lower(u.city) = lower(:city))
               and (:category is null
-                   or lower(c.category) = lower(:category)
                    or c.categories @> jsonb_build_array(:category::text))
               and (:minFollowers is null or c.followers >= :minFollowers)
               and (:maxFollowers is null or c.followers <= :maxFollowers)
@@ -96,12 +93,9 @@ public interface CreatorRepository extends JpaRepository<Creator, UUID> {
                    or lower(u.name) like concat('%', lower(:search), '%')
                    or lower(c.username) like concat('%', lower(:search), '%')
                    or lower(c.bio) like concat('%', lower(:search), '%')
-                   or lower(u.city) like concat('%', lower(:search), '%')
-                   or lower(c.niche) like concat('%', lower(:search), '%')
-                   or lower(c.preferred_industries) like concat('%', lower(:search), '%'))
+                   or lower(u.city) like concat('%', lower(:search), '%'))
               and (:city is null or lower(u.city) = lower(:city))
               and (:category is null
-                   or lower(c.category) = lower(:category)
                    or c.categories @> jsonb_build_array(:category::text))
               and (:minFollowers is null or c.followers >= :minFollowers)
               and (:maxFollowers is null or c.followers <= :maxFollowers)
@@ -146,17 +140,16 @@ public interface CreatorRepository extends JpaRepository<Creator, UUID> {
     @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query(value = """
             INSERT INTO core.creators (
-                id, bio, category, tiktok_url, instagram_url, youtube_url, facebook_url,
+                id, bio, tiktok_url, instagram_url, youtube_url, facebook_url,
                 followers, avg_views, engagement_rate, rating, total_reviews
             ) VALUES (
-                :id, :bio, :category, :tiktokUrl, :instagramUrl, :youtubeUrl, :facebookUrl,
+                :id, :bio, :tiktokUrl, :instagramUrl, :youtubeUrl, :facebookUrl,
                 :followers, :avgViews, :engagementRate, :rating, :totalReviews
             )
             """, nativeQuery = true)
     int insertProfile(
             @Param("id") UUID id,
             @Param("bio") String bio,
-            @Param("category") String category,
             @Param("tiktokUrl") String tiktokUrl,
             @Param("instagramUrl") String instagramUrl,
             @Param("youtubeUrl") String youtubeUrl,

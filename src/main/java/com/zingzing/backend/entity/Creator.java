@@ -24,17 +24,11 @@ public class Creator extends User {
     @Column(length = 1000)
     private String bio;
 
-    @Column(length = 100)
-    private String category;
-
     @Column(name = "cover_image_url", length = 500)
     private String coverImageUrl;
 
     @Column(length = 300)
     private String website;
-
-    @Column(length = 100)
-    private String niche;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "availability_status", length = 30)
@@ -88,9 +82,6 @@ public class Creator extends User {
 
     @Column(name = "rate_card_video")
     private Integer rateCardVideo;
-
-    @Column(name = "preferred_industries", columnDefinition = "text")
-    private String preferredIndustries;
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "languages", columnDefinition = "jsonb")

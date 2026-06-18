@@ -10,7 +10,6 @@ import java.util.UUID;
 public record CreatorCreateRequest(
         UUID userId,
         @Size(max = 1000) String bio,
-        @Size(max = 100) String category,
         @Size(max = 255) String tiktokUrl,
         @Size(max = 255) String instagramUrl,
         @Size(max = 255) String youtubeUrl,

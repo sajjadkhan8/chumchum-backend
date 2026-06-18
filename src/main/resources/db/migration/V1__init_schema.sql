@@ -67,10 +67,8 @@ create table creators (
     id uuid primary key references users(id) on delete cascade,
     username varchar(50),
     bio varchar(1000),
-    category varchar(100),
     cover_image_url varchar(500),
     website varchar(300),
-    niche varchar(100),
     availability_status varchar(30) constraint ck_creators_availability_status check (availability_status in ('AVAILABLE', 'BUSY', 'UNAVAILABLE', 'ON_VACATION')),
     is_filer boolean not null default false,
     response_time varchar(50),
@@ -93,7 +91,6 @@ create table creators (
     accepts_barter boolean not null default true,
     accepts_hybrid_deals boolean not null default true,
     minimum_budget integer,
-    preferred_industries text,
     languages jsonb not null default '[]'::jsonb,
     categories jsonb not null default '[]'::jsonb,
     rate_card_reel integer,
@@ -263,6 +260,35 @@ create table orders (
     barter_product_received boolean not null default false,
     created_at timestamptz not null,
     updated_at timestamptz not null
+);
+
+-- Safepay Express Checkout payment session tracking
+-- Each row represents one checkout session initiated by a brand.
+-- Lifecycle: INITIATED → COMPLETED (webhook) | FAILED (webhook) | CANCELLED (redirect) | EXPIRED (no activity)
+create table safepay_payment_sessions (
+    id                   uuid         primary key default gen_random_uuid(),
+    -- Safepay tracker token (e.g. "track_4f7d7e2d-ee05-44e3-81b7-6f6f2cca9727")
+    tracker_token        varchar(120) not null,
+    brand_id             uuid         not null references brands(id),
+    -- NULL for wallet top-ups; set for direct order payments
+    order_id             uuid         references orders(id),
+    -- Amount in whole PKR (our internal representation; converted to paisa when calling Safepay)
+    amount_pkr           integer      not null,
+    -- WALLET_TOPUP or ORDER_PAYMENT
+    payment_type         varchar(30)  not null,
+    -- INITIATED → COMPLETED | FAILED | CANCELLED | EXPIRED
+    status               varchar(30)  not null default 'INITIATED',
+    -- Safepay's internal payment/charge reference from webhook payload
+    safepay_payment_ref  varchar(200),
+    failure_reason       varchar(500),
+    -- JSON blob for additional context (e.g. Safepay tracker state snapshot)
+    metadata_json        text,
+    -- Sessions expire after 1 hour (matches Safepay auth token TTL)
+    expires_at           timestamptz  not null,
+    completed_at         timestamptz,
+    created_at           timestamptz  not null default now(),
+    updated_at           timestamptz  not null default now(),
+    constraint uk_safepay_tracker unique (tracker_token)
 );
 
 create table brand_disbursements (
@@ -751,3 +777,7 @@ create index idx_affiliate_links_code on affiliate_links(lower(code));
 create index idx_affiliate_attributions_owner on affiliate_attributions(affiliate_owner_user_id);
 create index idx_affiliate_commissions_owner_date on affiliate_commissions(affiliate_owner_user_id, created_at desc);
 create index idx_affiliate_commissions_creator on affiliate_commissions(earning_creator_id);
+create index idx_safepay_sessions_brand on safepay_payment_sessions(brand_id);
+create index idx_safepay_sessions_status on safepay_payment_sessions(status);
+create index idx_safepay_sessions_order on safepay_payment_sessions(order_id)
+    where order_id is not null;

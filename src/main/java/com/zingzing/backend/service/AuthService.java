@@ -128,7 +128,7 @@ public class AuthService {
         user = userRepository.save(user);
 
         if (request.role() == UserRole.CREATOR) {
-            creatorService.create(new CreatorCreateRequest(user.getId(), null, null, null, null, null, null));
+            creatorService.create(new CreatorCreateRequest(user.getId(), null, null, null, null, null));
             creatorRepository.findById(user.getId())
                     .ifPresent(creator -> affiliateService.recordCreatorSignupAttribution(creator, request.affiliateCode()));
         } else if (request.role() == UserRole.BRAND) {
@@ -503,7 +503,7 @@ public class AuthService {
                 .termsAcceptedAt(Instant.now())
                 .termsVersion(CURRENT_TERMS_VERSION)
                 .build());
-        if (role == UserRole.CREATOR) creatorService.create(new CreatorCreateRequest(user.getId(), null, null, null, null, null, null));
+        if (role == UserRole.CREATOR) creatorService.create(new CreatorCreateRequest(user.getId(), null, null, null, null, null));
         if (role == UserRole.BRAND) brandService.create(new BrandCreateRequest(user.getId(), displayName, null, null, null));
         return user;
     }

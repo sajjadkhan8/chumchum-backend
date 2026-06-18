@@ -9,7 +9,6 @@ import java.math.BigDecimal;
 
 public record CreatorProfilePayload(
         @Size(max = 1000) String bio,
-        @Size(max = 100) String category,
         String tiktokUrl,
         String instagramUrl,
         String youtubeUrl,

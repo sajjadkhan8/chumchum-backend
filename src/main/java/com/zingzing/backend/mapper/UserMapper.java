@@ -50,7 +50,6 @@ public class UserMapper {
     private CreatorProfilePayload toCreatorPayload(Creator creator) {
         return new CreatorProfilePayload(
                 creator.getBio(),
-                creator.getCategory(),
                 creator.getTiktokUrl(),
                 creator.getInstagramUrl(),
                 creator.getYoutubeUrl(),

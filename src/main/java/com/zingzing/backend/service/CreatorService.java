@@ -83,7 +83,6 @@ public class CreatorService {
         int insertedRows = creatorRepository.insertProfile(
                 user.getId(),
                 request.bio(),
-                request.category(),
                 request.tiktokUrl(),
                 request.instagramUrl(),
                 request.youtubeUrl(),
@@ -159,6 +158,12 @@ public class CreatorService {
         return creatorMapper.toPublicResponse(findCreator(creatorId));
     }
 
+    public CreatorResponse getByUsername(String username) {
+        Creator creator = creatorRepository.findByUsername(username)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Creator not found"));
+        return creatorMapper.toPublicResponse(creator);
+    }
+
     @Transactional
     public CreatorResponse getByUserId(UUID actorUserId, UserRole actorRole, UUID userId) {
         validateOwnerOrAdmin(actorUserId, actorRole, userId);
@@ -206,17 +211,11 @@ public class CreatorService {
         if (request.bio() != null) {
             creator.setBio(request.bio());
         }
-        if (request.category() != null) {
-            creator.setCategory(request.category());
-        }
         if (request.coverImageUrl() != null) {
             creator.setCoverImageUrl(request.coverImageUrl());
         }
         if (request.website() != null) {
             creator.setWebsite(request.website());
-        }
-        if (request.niche() != null) {
-            creator.setNiche(request.niche());
         }
         if (request.availabilityStatus() != null) {
             creator.setAvailabilityStatus(request.availabilityStatus());
@@ -241,9 +240,6 @@ public class CreatorService {
         }
         if (request.minimumBudget() != null) {
             creator.setMinimumBudget(request.minimumBudget());
-        }
-        if (request.preferredIndustries() != null) {
-            creator.setPreferredIndustries(request.preferredIndustries());
         }
         if (request.languages() != null) {
             creator.setLanguages(request.languages());
@@ -316,7 +312,7 @@ public class CreatorService {
 
     public record PreferencesRequest(
             Boolean acceptsBarter, Boolean acceptsHybridDeals,
-            String preferredIndustries, Integer minimumBudget) {}
+            Integer minimumBudget) {}
 
     @Transactional
     public CreatorResponse updatePreferences(UUID userId, UserRole role, PreferencesRequest req) {
@@ -324,7 +320,6 @@ public class CreatorService {
         Creator creator = findCreator(userId);
         if (req.acceptsBarter() != null) creator.setAcceptsBarter(req.acceptsBarter());
         if (req.acceptsHybridDeals() != null) creator.setAcceptsHybridDeals(req.acceptsHybridDeals());
-        if (req.preferredIndustries() != null) creator.setPreferredIndustries(req.preferredIndustries());
         if (req.minimumBudget() != null) creator.setMinimumBudget(req.minimumBudget());
         return creatorMapper.toResponse(creatorRepository.save(creator));
     }

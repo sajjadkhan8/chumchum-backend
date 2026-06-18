@@ -128,6 +128,11 @@ public class CreatorController {
         return ResponseEntity.ok(Map.of("success", true, "data", creatorService.getByCity(city, limit)));
     }
 
+    @GetMapping("/by-username/{username}")
+    public ResponseEntity<CreatorResponse> getByUsername(@PathVariable String username) {
+        return ResponseEntity.ok(creatorService.getByUsername(username));
+    }
+
     @GetMapping("/{creatorId}")
     public ResponseEntity<CreatorResponse> getById(@PathVariable UUID creatorId) {
         return ResponseEntity.ok(creatorService.getById(creatorId));
