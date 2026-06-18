@@ -52,6 +52,7 @@ public class WithdrawalService {
     public WithdrawalRequest requestWithdrawal(UUID userId, UserRole role, UUID payoutMethodId, int amount) {
         if (!role.isCreator()) throw new ApiException(HttpStatus.FORBIDDEN, "Only creators can withdraw");
         if (amount <= 0) throw new ApiException(HttpStatus.BAD_REQUEST, "Amount must be positive");
+        if (amount > 5_000_000) throw new ApiException(HttpStatus.BAD_REQUEST, "Amount exceeds single withdrawal limit of PKR 5,000,000");
 
         Creator creator = creatorRepository.findById(userId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Creator not found"));

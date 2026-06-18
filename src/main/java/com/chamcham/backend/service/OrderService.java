@@ -505,6 +505,7 @@ public class OrderService {
      * Called by dispute resolution when the creator wins the dispute (CREATOR_FAVORED).
      * Idempotent — re-entrant if an EARNING transaction already exists for this order.
      */
+    @Transactional
     public void releaseEarningsForDisputeResolution(Order order) {
         releaseCreatorEarnings(order);
     }
