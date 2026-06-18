@@ -14,6 +14,8 @@ import com.chamcham.backend.repository.PayoutMethodRepository;
 import com.chamcham.backend.repository.WalletRepository;
 import com.chamcham.backend.repository.WithdrawalRequestRepository;
 import jakarta.transaction.Transactional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
@@ -23,6 +25,8 @@ import java.util.UUID;
 
 @Service
 public class WithdrawalService {
+
+    private static final Logger log = LoggerFactory.getLogger(WithdrawalService.class);
 
     private final WithdrawalRequestRepository withdrawalRepo;
     private final WalletRepository walletRepository;
@@ -117,10 +121,16 @@ public class WithdrawalService {
             wallet.setPendingBalance(Math.max(0, wallet.getPendingBalance() - wr.getAmount()));
             wallet.setAvailableBalance(wallet.getAvailableBalance() + wr.getAmount());
             walletRepository.save(wallet);
+            log.error("WITHDRAWAL FAILED: withdrawalId={}, creatorId={}, amount={}",
+                    withdrawalId, wr.getCreator().getId(), wr.getAmount());
         }
 
         wr.setStatus(newStatus);
         WithdrawalRequest saved = withdrawalRepo.save(wr);
+        if (newStatus == WithdrawalStatus.COMPLETED) {
+            log.info("Withdrawal completed: withdrawalId={}, creatorId={}, amount={}",
+                    withdrawalId, wr.getCreator().getId(), wr.getAmount());
+        }
         paymentAuditService.log(wr.getCreator().getId(), null, "WITHDRAWAL_STATUS_UPDATED",
                 "withdrawal_request", saved.getId().toString(), "status=" + newStatus.name().toLowerCase());
         return saved;

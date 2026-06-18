@@ -5,6 +5,7 @@ import com.chamcham.backend.entity.enums.DisputeResolution;
 import com.chamcham.backend.entity.enums.DisputeStatus;
 import com.chamcham.backend.exception.ApiException;
 import com.chamcham.backend.service.AdminOperationsService;
+import com.chamcham.backend.service.AdminStepUpService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -21,9 +22,11 @@ import java.util.UUID;
 public class AdminOperationsController {
 
     private final AdminOperationsService operationsService;
+    private final AdminStepUpService adminStepUpService;
 
-    public AdminOperationsController(AdminOperationsService operationsService) {
+    public AdminOperationsController(AdminOperationsService operationsService, AdminStepUpService adminStepUpService) {
         this.operationsService = operationsService;
+        this.adminStepUpService = adminStepUpService;
     }
 
     public record CreateDisputeRequest(
@@ -156,9 +159,14 @@ public class AdminOperationsController {
     public ResponseEntity<Map<String, Object>> executeRefund(
             @AuthenticationPrincipal AuthenticatedUser authUser,
             @PathVariable UUID id,
-            @Valid @RequestBody ExecuteRefundRequest request
+            @Valid @RequestBody ExecuteRefundRequest request,
+            @RequestHeader(value = "X-Step-Up-Token", required = false) String stepUpToken
     ) {
         requireAdmin(authUser);
+        if (!authUser.role().canProcessPayments()) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "Finance Ops or Platform Admin role required for refunds");
+        }
+        adminStepUpService.requireStepUp(authUser, stepUpToken);
         return ok(operationsService.toDisputeMap(
                 operationsService.executeRefund(authUser.userId(), id, request.amount(), request.reason())
         ));

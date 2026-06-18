@@ -11,6 +11,8 @@ import com.chamcham.backend.entity.enums.UserRole;
 import com.chamcham.backend.exception.ApiException;
 import com.chamcham.backend.mapper.UserMapper;
 import com.chamcham.backend.repository.*;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtException;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -43,10 +45,13 @@ public class AuthService {
     private final AuthOtpChallengeRepository otpChallengeRepository;
     private final AuthRateLimitService rateLimitService;
     private final AffiliateService affiliateService;
+    private final TotpService totpService;
     private final SecureRandom secureRandom = new SecureRandom();
     private final long refreshExpirationSeconds;
     private final long adminRefreshExpirationSeconds;
     private final String frontendBaseUrl;
+
+    static final String CURRENT_TERMS_VERSION = "1.0";
 
     public AuthService(
             UserRepository userRepository,
@@ -63,6 +68,7 @@ public class AuthService {
             AuthOtpChallengeRepository otpChallengeRepository,
             AuthRateLimitService rateLimitService,
             AffiliateService affiliateService,
+            TotpService totpService,
             @Value("${security.refresh.expiration-seconds:2592000}") long refreshExpirationSeconds,
             @Value("${security.refresh.admin-expiration-seconds:86400}") long adminRefreshExpirationSeconds,
             @Value("${app.frontend-base-url:http://localhost:3000}") String frontendBaseUrl
@@ -81,6 +87,7 @@ public class AuthService {
         this.otpChallengeRepository = otpChallengeRepository;
         this.rateLimitService = rateLimitService;
         this.affiliateService = affiliateService;
+        this.totpService = totpService;
         this.refreshExpirationSeconds = refreshExpirationSeconds;
         this.adminRefreshExpirationSeconds = adminRefreshExpirationSeconds;
         this.frontendBaseUrl = frontendBaseUrl.replaceAll("/+$", "");
@@ -88,8 +95,11 @@ public class AuthService {
 
     @Transactional
     public AuthTokenResponse register(AuthRegisterRequest request) {
-        if (request.role() == UserRole.PLATFORM_ADMIN) {
+        if (request.role().isAdmin()) {
             throw new ApiException(HttpStatus.FORBIDDEN, "Cannot register with this role");
+        }
+        if (!Boolean.TRUE.equals(request.termsAccepted())) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "You must accept the Terms of Service to create an account");
         }
         String email = normalizeIdentifier(request.email());
         enforceRateLimit("register", email, 5, 30, 60);
@@ -106,6 +116,8 @@ public class AuthService {
                 .role(request.role())
                 .creatorProgramStatus(request.role() == UserRole.CREATOR ? CreatorProgramStatus.IN_PATH : CreatorProgramStatus.NONE)
                 .active(true)
+                .termsAcceptedAt(Instant.now())
+                .termsVersion(CURRENT_TERMS_VERSION)
                 .build();
         user = userRepository.save(user);
 
@@ -122,7 +134,7 @@ public class AuthService {
     }
 
     @Transactional
-    public AuthTokenResponse login(AuthLoginRequest request) {
+    public LoginResult login(AuthLoginRequest request) {
         String email = normalizeIdentifier(request.email());
         enforceRateLimit("login", email, 8, 15, 30);
         User user = userRepository.findByEmail(email)
@@ -137,7 +149,81 @@ public class AuthService {
         }
 
         clearRateLimit("login", email);
+
+        // HIGH-8: Admin accounts with MFA enabled require a TOTP step before issuing tokens
+        if (user.getRole().isAdmin() && user.isMfaEnabled()) {
+            String challengeToken = jwtService.generateShortLivedToken(user.getId(), "mfa_challenge", 300);
+            return new LoginResult(null, challengeToken);
+        }
+        return new LoginResult(issueTokens(user), null);
+    }
+
+    /** HIGH-8: Second factor of admin MFA login — verifies TOTP code and issues full tokens. */
+    @Transactional
+    public AuthTokenResponse verifyMfaChallenge(String challengeToken, String totpCode) {
+        Claims claims;
+        try {
+            claims = jwtService.parseClaims(challengeToken);
+        } catch (JwtException ex) {
+            throw new ApiException(HttpStatus.UNAUTHORIZED, "MFA challenge token is expired or invalid");
+        }
+        if (!"mfa_challenge".equals(claims.get("type", String.class))) {
+            throw new ApiException(HttpStatus.UNAUTHORIZED, "Invalid challenge token");
+        }
+        UUID userId = UUID.fromString(claims.getSubject());
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "User not found"));
+        requireActive(user);
+        if (!totpService.verify(user.getTotpSecret(), totpCode)) {
+            throw new ApiException(HttpStatus.UNAUTHORIZED, "Invalid TOTP code");
+        }
         return issueTokens(user);
+    }
+
+    /** HIGH-8: Generates a TOTP secret and OTP-Auth URI for an admin's authenticator app. */
+    @Transactional
+    public MfaSetupResponse setupMfa(UUID userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "User not found"));
+        if (!user.getRole().isAdmin()) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "MFA is only available for admin accounts");
+        }
+        String secret = totpService.generateSecret();
+        user.setTotpSecret(secret);
+        user.setMfaEnabled(false); // not active until verified with a real code
+        userRepository.save(user);
+        return new MfaSetupResponse(secret, totpService.buildOtpAuthUri(secret, user.getEmail()));
+    }
+
+    /** HIGH-8: Confirms setup by verifying a TOTP code, then enables MFA on the account. */
+    @Transactional
+    public void enableMfa(UUID userId, String totpCode) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "User not found"));
+        if (user.getTotpSecret() == null) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Call /auth/admin/mfa/setup before enabling MFA");
+        }
+        if (!totpService.verify(user.getTotpSecret(), totpCode)) {
+            throw new ApiException(HttpStatus.UNAUTHORIZED, "Invalid TOTP code — scan the QR again and retry");
+        }
+        user.setMfaEnabled(true);
+        userRepository.save(user);
+    }
+
+    /** HIGH-8: Disables MFA after confirming identity with a current TOTP code. */
+    @Transactional
+    public void disableMfa(UUID userId, String totpCode) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "User not found"));
+        if (!user.isMfaEnabled()) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "MFA is not currently enabled");
+        }
+        if (!totpService.verify(user.getTotpSecret(), totpCode)) {
+            throw new ApiException(HttpStatus.UNAUTHORIZED, "Invalid TOTP code");
+        }
+        user.setMfaEnabled(false);
+        user.setTotpSecret(null);
+        userRepository.save(user);
     }
 
     @Transactional
@@ -234,7 +320,7 @@ public class AuthService {
         if (request.role() == null) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Role is required for Google authentication");
         }
-        if (request.role() == UserRole.PLATFORM_ADMIN) {
+        if (request.role().isAdmin()) {
             throw new ApiException(HttpStatus.FORBIDDEN, "Cannot register with this role");
         }
 
@@ -245,6 +331,10 @@ public class AuthService {
                 .orElseGet(() -> userRepository.findByEmail(googleProfile.email())
                         .map(existing -> linkGoogleToExistingEmail(existing, googleProfile, request))
                         .orElseGet(() -> {
+                            if (!Boolean.TRUE.equals(request.termsAccepted())) {
+                                throw new ApiException(HttpStatus.BAD_REQUEST,
+                                        "You must accept the Terms of Service to create an account");
+                            }
                             createdUser[0] = true;
                             return createGoogleUser(googleProfile, request);
                         }));
@@ -404,6 +494,8 @@ public class AuthService {
                 .avatarUrl(profile.picture())
                 .creatorProgramStatus(role == UserRole.CREATOR ? CreatorProgramStatus.IN_PATH : CreatorProgramStatus.NONE)
                 .active(true)
+                .termsAcceptedAt(Instant.now())
+                .termsVersion(CURRENT_TERMS_VERSION)
                 .build());
         if (role == UserRole.CREATOR) creatorService.create(new CreatorCreateRequest(user.getId(), null, null, null, null, null, null));
         if (role == UserRole.BRAND) brandService.create(new BrandCreateRequest(user.getId(), displayName, null, null, null));
@@ -417,4 +509,12 @@ public class AuthService {
     }
 
     public record AuthTokenPair(String accessToken, String refreshToken) {}
+
+    /** Result of a login attempt. Exactly one field is non-null. */
+    public record LoginResult(AuthTokenResponse tokens, String mfaChallengeToken) {
+        public boolean mfaRequired() { return mfaChallengeToken != null; }
+    }
+
+    /** MFA setup response: raw secret for manual entry + OTP-Auth URI for QR rendering. */
+    public record MfaSetupResponse(String secret, String otpAuthUri) {}
 }

@@ -3,6 +3,7 @@ package com.chamcham.backend.config.security;
 import com.chamcham.backend.entity.User;
 import com.chamcham.backend.repository.UserRepository;
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.Cookie;
@@ -55,8 +56,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 );
                 authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 SecurityContextHolder.getContext().setAuthentication(authentication);
+            } catch (JwtException ex) {
+                // Normal path: expired or malformed token — the request proceeds unauthenticated
+                log.debug("JWT rejected (expired/invalid): {}", ex.getMessage());
             } catch (Exception ex) {
-                log.debug("Failed to authenticate JWT", ex);
+                // Unexpected path: misconfigured secret, DB error, etc. — surface at WARN so it is visible
+                log.warn("Unexpected error during JWT authentication for {}", request.getRequestURI(), ex);
             }
         }
 

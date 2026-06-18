@@ -32,11 +32,21 @@ public class JwtService {
         Instant now = Instant.now();
         return Jwts.builder()
                 .subject(userId.toString())
-                .claims(Map.of(
-                        "role", role.name()
-                ))
+                .claims(Map.of("role", role.name()))
                 .issuedAt(Date.from(now))
                 .expiration(Date.from(now.plusMillis(expirationMillis)))
+                .signWith(secretKey)
+                .compact();
+    }
+
+    /** Issues a short-lived single-purpose token (MFA challenge or admin step-up). */
+    public String generateShortLivedToken(UUID userId, String tokenType, long expirySeconds) {
+        Instant now = Instant.now();
+        return Jwts.builder()
+                .subject(userId.toString())
+                .claims(Map.of("type", tokenType))
+                .issuedAt(Date.from(now))
+                .expiration(Date.from(now.plusSeconds(expirySeconds)))
                 .signWith(secretKey)
                 .compact();
     }
@@ -49,4 +59,3 @@ public class JwtService {
                 .getPayload();
     }
 }
-

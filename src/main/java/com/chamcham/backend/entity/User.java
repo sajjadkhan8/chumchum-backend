@@ -19,6 +19,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.Instant;
 import java.util.UUID;
 import java.time.OffsetDateTime;
 
@@ -88,6 +89,21 @@ public class User extends BaseEntity {
 
     @Column(name = "suspended_until")
     private OffsetDateTime suspendedUntil;
+
+    // CRIT-7: GDPR Article 7 consent — timestamp and version stored at registration
+    @Column(name = "terms_accepted_at")
+    private Instant termsAcceptedAt;
+
+    @Column(name = "terms_version", length = 20)
+    private String termsVersion;
+
+    // HIGH-8: TOTP MFA fields — admin accounts only
+    @Column(name = "totp_secret", length = 64)
+    private String totpSecret;
+
+    @Column(name = "mfa_enabled", nullable = false)
+    @Builder.Default
+    private boolean mfaEnabled = false;
 
     @PrePersist
     @PreUpdate
