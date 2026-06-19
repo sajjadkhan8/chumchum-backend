@@ -63,7 +63,7 @@ public class CreatorController {
     @GetMapping
     public ResponseEntity<Map<String, Object>> search(
             @RequestParam(required = false) String search,
-            @RequestParam(required = false) String city,
+            @RequestParam(required = false) List<String> cities,
             @RequestParam(required = false) List<String> categories,
             @RequestParam(required = false) List<String> languages,
             @RequestParam(required = false) Integer minFollowers,
@@ -86,11 +86,11 @@ public class CreatorController {
             @RequestParam(required = false) Integer maxRateCardPost,
             @RequestParam(required = false) Integer maxRateCardVideo,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int limit,
+            @RequestParam(defaultValue = "50") int limit,
             @RequestParam(defaultValue = "createdAt") String sortBy
     ) {
         CreatorService.CreatorSearchResult r = creatorService.search(
-                search, city, categories, languages,
+                search, cities, categories, languages,
                 minFollowers, maxFollowers, minRating, minPrice, maxPrice, minReviews,
                 badgeLevel, availabilityStatus, acceptsBarter, isTrending, isFastResponder,
                 ambassadorOnly, platform, minEngagementRate,

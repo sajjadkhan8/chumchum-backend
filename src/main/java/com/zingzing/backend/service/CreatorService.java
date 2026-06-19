@@ -127,7 +127,7 @@ public class CreatorService {
     }
 
     public CreatorSearchResult search(
-            String search, String city,
+            String search, List<String> cities,
             List<String> categories, List<String> languages,
             Integer minFollowers, Integer maxFollowers,
             BigDecimal minRating, Integer minPrice, Integer maxPrice,
@@ -153,7 +153,7 @@ public class CreatorService {
         Pageable pageable = PageRequest.of(safePage, safeLimit);
 
         Page<Creator> result = creatorRepository.search(
-                search, city,
+                search, toJsonArray(cities),
                 toJsonArray(categories),
                 toJsonArray(languages),
                 minFollowers, maxFollowers, minRating,

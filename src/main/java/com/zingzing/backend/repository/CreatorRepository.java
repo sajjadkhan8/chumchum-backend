@@ -56,7 +56,16 @@ public interface CreatorRepository extends JpaRepository<Creator, UUID> {
      * Uses native PostgreSQL SQL for JSONB category matching via the @> operator.
      */
     @Query(value = """
-            select c.* from core.creators c
+            select u.*,
+                   c.bio, c.cover_image_url, c.website, c.availability_status,
+                   c.is_filer, c.response_time, c.min_price, c.max_price,
+                   c.is_verified, c.badge_level, c.is_trending, c.is_fast_responder,
+                   c.completed_deals, c.accepts_barter, c.accepts_hybrid_deals,
+                   c.minimum_budget, c.languages, c.categories,
+                   c.tiktok_url, c.instagram_url, c.youtube_url, c.facebook_url,
+                   c.followers, c.avg_views, c.engagement_rate, c.rating, c.total_reviews,
+                   c.rate_card_reel, c.rate_card_story, c.rate_card_post, c.rate_card_video
+            from core.creators c
             join core.users u on u.id = c.id
             where u.is_active = true
               and (:search is null
@@ -64,7 +73,8 @@ public interface CreatorRepository extends JpaRepository<Creator, UUID> {
                    or lower(u.username) like concat('%', lower(:search), '%')
                    or lower(c.bio) like concat('%', lower(:search), '%')
                    or lower(u.city) like concat('%', lower(:search), '%'))
-              and (:city is null or lower(u.city) = lower(:city))
+              and (:cities is null or lower(u.city) in (
+                   select lower(v) from jsonb_array_elements_text((:cities)::jsonb) v))
               and (:categories is null or exists (
                    select 1 from jsonb_array_elements_text((:categories)::jsonb) v
                    where c.categories @> jsonb_build_array(v)))
@@ -115,7 +125,8 @@ public interface CreatorRepository extends JpaRepository<Creator, UUID> {
                    or lower(u.username) like concat('%', lower(:search), '%')
                    or lower(c.bio) like concat('%', lower(:search), '%')
                    or lower(u.city) like concat('%', lower(:search), '%'))
-              and (:city is null or lower(u.city) = lower(:city))
+              and (:cities is null or lower(u.city) in (
+                   select lower(v) from jsonb_array_elements_text((:cities)::jsonb) v))
               and (:categories is null or exists (
                    select 1 from jsonb_array_elements_text((:categories)::jsonb) v
                    where c.categories @> jsonb_build_array(v)))
@@ -153,7 +164,7 @@ public interface CreatorRepository extends JpaRepository<Creator, UUID> {
             nativeQuery = true)
     Page<Creator> search(
             @Param("search")             String search,
-            @Param("city")               String city,
+            @Param("cities")             String cities,
             @Param("categories")         String categories,
             @Param("languages")          String languages,
             @Param("minFollowers")       Integer minFollowers,
