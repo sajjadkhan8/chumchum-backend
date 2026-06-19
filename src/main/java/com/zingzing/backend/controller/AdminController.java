@@ -23,6 +23,7 @@ import com.zingzing.backend.repository.BrandRepository;
 import com.zingzing.backend.repository.CreatorRepository;
 import com.zingzing.backend.repository.OrderRepository;
 import com.zingzing.backend.repository.UserRepository;
+import com.zingzing.backend.repository.WithdrawalRequestRepository;
 import com.zingzing.backend.service.AdminOperationsService;
 import com.zingzing.backend.service.AdminStepUpService;
 import com.zingzing.backend.service.AmbassadorService;
@@ -47,6 +48,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -71,6 +73,7 @@ public class AdminController {
     private final AdminOperationsService adminOperationsService;
     private final WithdrawalService withdrawalService;
     private final AdminStepUpService adminStepUpService;
+    private final WithdrawalRequestRepository withdrawalRequestRepository;
 
     public AdminController(UserRepository userRepository,
                            CreatorRepository creatorRepository,
@@ -84,7 +87,8 @@ public class AdminController {
                            AmbassadorService ambassadorService,
                            AdminOperationsService adminOperationsService,
                            WithdrawalService withdrawalService,
-                           AdminStepUpService adminStepUpService) {
+                           AdminStepUpService adminStepUpService,
+                           WithdrawalRequestRepository withdrawalRequestRepository) {
         this.userRepository = userRepository;
         this.creatorRepository = creatorRepository;
         this.brandRepository = brandRepository;
@@ -98,6 +102,7 @@ public class AdminController {
         this.adminOperationsService = adminOperationsService;
         this.withdrawalService = withdrawalService;
         this.adminStepUpService = adminStepUpService;
+        this.withdrawalRequestRepository = withdrawalRequestRepository;
     }
 
     public record UserStatusRequest(@NotNull Boolean active) {}
@@ -126,6 +131,41 @@ public class AdminController {
             @NotNull @Size(max = 30) String status,
             @Size(max = 2000) String notes
     ) {}
+
+    @GetMapping("/sla-metrics")
+    public ResponseEntity<Map<String, Object>> slaMetrics(@AuthenticationPrincipal AuthenticatedUser authUser) {
+        requireAdmin(authUser);
+
+        OffsetDateTime now = OffsetDateTime.now();
+
+        // On-time delivery rate for completed orders with a deadline
+        List<Object[]> onTimeRows = orderRepository.countOnTimeVsTotal();
+        Object[] onTimeRow = onTimeRows.isEmpty() ? null : onTimeRows.get(0);
+        long onTimeCount = onTimeRow != null && onTimeRow[0] != null ? ((Number) onTimeRow[0]).longValue() : 0L;
+        long totalWithDeadline = onTimeRow != null && onTimeRow[1] != null ? ((Number) onTimeRow[1]).longValue() : 0L;
+        double ordersCompletedOnTimePct = totalWithDeadline > 0 ? Math.round((onTimeCount * 1000.0 / totalWithDeadline)) / 10.0 : 0.0;
+
+        // Avg resolution time in days (updatedAt - createdAt for COMPLETED orders)
+        Double avgResolutionHours = orderRepository.avgResolutionHours();
+        double avgDisputeResolutionDays = avgResolutionHours != null ? Math.round(avgResolutionHours / 24.0 * 10.0) / 10.0 : 0.0;
+
+        // Approximate: (COMPLETED withdrawals / total) * 100 as a proxy for within-24h processing rate
+        long completedWithdrawals = withdrawalRequestRepository.countByStatus(WithdrawalStatus.COMPLETED);
+        long totalWithdrawals = withdrawalRequestRepository.count();
+        double withdrawalsProcessedWithin24hPct = totalWithdrawals > 0 ? Math.round((completedWithdrawals * 1000.0 / totalWithdrawals)) / 10.0 : 0.0;
+
+        // Pending verifications
+        long pendingCreatorVerifications = creatorRepository.countUnverifiedActive();
+        long pendingBrandVerifications = brandRepository.countPendingVerifications();
+
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("avgDisputeResolutionDays", avgDisputeResolutionDays);
+        data.put("withdrawalsProcessedWithin24hPct", withdrawalsProcessedWithin24hPct);
+        data.put("ordersCompletedOnTimePct", ordersCompletedOnTimePct);
+        data.put("pendingCreatorVerifications", pendingCreatorVerifications);
+        data.put("pendingBrandVerifications", pendingBrandVerifications);
+        return ok(data);
+    }
 
     @GetMapping("/dashboard")
     public ResponseEntity<Map<String, Object>> dashboard(@AuthenticationPrincipal AuthenticatedUser authUser) {

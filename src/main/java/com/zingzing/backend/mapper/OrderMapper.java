@@ -6,7 +6,9 @@ import com.zingzing.backend.entity.Deliverable;
 import com.zingzing.backend.entity.Order;
 import com.zingzing.backend.entity.Review;
 import com.zingzing.backend.repository.ConversationRepository;
+import com.zingzing.backend.repository.DeliverableRepository;
 import com.zingzing.backend.repository.ReviewRepository;
+import org.hibernate.Hibernate;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -17,16 +19,29 @@ public class OrderMapper {
 
     private final ConversationRepository conversationRepository;
     private final ReviewRepository reviewRepository;
+    private final DeliverableRepository deliverableRepository;
 
-    public OrderMapper(ConversationRepository conversationRepository, ReviewRepository reviewRepository) {
+    public OrderMapper(ConversationRepository conversationRepository,
+                       ReviewRepository reviewRepository,
+                       DeliverableRepository deliverableRepository) {
         this.conversationRepository = conversationRepository;
         this.reviewRepository = reviewRepository;
+        this.deliverableRepository = deliverableRepository;
     }
 
     public OrderResponse toResponse(Order order) {
-        List<DeliverableResponse> deliverables = order.getDeliverables() == null
-                ? List.of()
-                : order.getDeliverables().stream().map(this::toDeliverableResponse).toList();
+        List<Deliverable> deliverableEntities;
+        if (order.getDeliverables() == null) {
+            deliverableEntities = List.of();
+        } else if (Hibernate.isInitialized(order.getDeliverables())) {
+            deliverableEntities = order.getDeliverables();
+        } else {
+            // Detached order: reload deliverables by order id instead of triggering lazy init.
+            deliverableEntities = deliverableRepository.findByOrderId(order.getId());
+        }
+        List<DeliverableResponse> deliverables = deliverableEntities.stream()
+                .map(this::toDeliverableResponse)
+                .toList();
 
         UUID conversationId = conversationRepository
                 .findByCreatorIdAndBrandId(order.getCreator().getId(), order.getBrand().getId())

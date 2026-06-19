@@ -12,6 +12,7 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.time.Instant;
 
 public interface OrderRepository extends JpaRepository<Order, UUID> {
 
@@ -83,8 +84,8 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
             join fetch o.creator
             join fetch o.brand
             where (:status is null or o.status = :status)
-              and (:search is null or lower(o.creator.name) like concat('%', lower(:search), '%')
-                   or lower(sp.title) like concat('%', lower(:search), '%'))
+              and (:search is null or lower(o.creator.name) like concat('%', lower(cast(:search as string)), '%')
+                   or lower(sp.title) like concat('%', lower(cast(:search as string)), '%'))
             order by o.createdAt desc
             """)
     Page<Order> findForAdminPaged(
@@ -114,10 +115,11 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
     long countByCreatorIdAndStatus(@Param("creatorId") UUID creatorId, @Param("status") OrderStatus status);
 
     @Query("""
-            select o from Order o
+            select distinct o from Order o
             join fetch o.creator
             join fetch o.brand
             join fetch o.servicePackage
+            left join fetch o.deliverables
             where o.id = :id
             """)
     Optional<Order> findByIdWithDetails(@Param("id") UUID id);
@@ -139,4 +141,52 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
                                com.zingzing.backend.entity.enums.OrderStatus.REVISION)
             """)
     List<Order> findOverdueBarterOrders(@Param("now") OffsetDateTime now);
+
+    // ── SLA metrics ──────────────────────────────────────────────────────────
+
+    /** Orders past their deadline that are still active (not completed/cancelled). */
+    @Query("""
+            select count(o) from Order o
+            where o.deadlineDate is not null
+              and o.deadlineDate < :now
+              and o.status not in (
+                com.zingzing.backend.entity.enums.OrderStatus.COMPLETED,
+                com.zingzing.backend.entity.enums.OrderStatus.CANCELLED)
+            """)
+    long countActiveOverdueOrders(@Param("now") OffsetDateTime now);
+
+    /** Active orders (not completed/cancelled) pending for more than :thresholdHours hours. */
+    @Query("""
+            select count(o) from Order o
+            where o.status = com.zingzing.backend.entity.enums.OrderStatus.PENDING
+              and o.createdAt < :cutoff
+            """)
+    long countPendingBeyondThreshold(@Param("cutoff") Instant cutoff);
+
+    /**
+     * Among completed orders that had a deadline, how many were delivered on time
+     * (deliveryDate <= deadlineDate cast to date).
+     * Returns [onTimeCount, totalWithDeadline] as Object[].
+     */
+    @Query(value = """
+            select
+              count(case when o.delivery_date <= cast(o.deadline_date as date) then 1 end),
+              count(*)
+            from orders o
+            where o.status = 'COMPLETED'
+              and o.deadline_date is not null
+              and o.delivery_date is not null
+            """, nativeQuery = true)
+    List<Object[]> countOnTimeVsTotal();
+
+    /**
+     * Average resolution time in hours for COMPLETED orders.
+     * Resolution = updatedAt - createdAt.
+     */
+    @Query(value = """
+            select extract(epoch from avg(o.updated_at - o.created_at)) / 3600
+            from orders o
+            where o.status = 'COMPLETED'
+            """, nativeQuery = true)
+    Double avgResolutionHours();
 }

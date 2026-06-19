@@ -67,4 +67,7 @@ public interface BrandRepository extends JpaRepository<Brand, UUID> {
             @Param("contactEmail") String contactEmail,
             @Param("contactPhone") String contactPhone
     );
+
+    @Query("select count(b) from Brand b where lower(b.businessVerificationStatus) = 'pending'")
+    long countPendingVerifications();
 }

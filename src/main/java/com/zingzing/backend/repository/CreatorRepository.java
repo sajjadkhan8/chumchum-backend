@@ -235,4 +235,7 @@ public interface CreatorRepository extends JpaRepository<Creator, UUID> {
             @Param("rating") BigDecimal rating,
             @Param("totalReviews") int totalReviews
     );
+
+    @Query("select count(c) from Creator c where c.isVerified = false and c.active = true")
+    long countUnverifiedActive();
 }
