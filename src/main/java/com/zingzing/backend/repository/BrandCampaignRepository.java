@@ -51,6 +51,10 @@ public interface BrandCampaignRepository extends JpaRepository<BrandCampaign, UU
                                                  @Param("today") LocalDate today,
                                                  Pageable pageable);
 
+    Page<BrandCampaign> findByBrandIdAndStatusOrderByCreatedAtDesc(UUID brandId, BrandCampaignStatus status, Pageable pageable);
+
+    long countByBrandId(UUID brandId);
+
     long countByBrandIdAndStatus(UUID brandId, BrandCampaignStatus status);
 
     long countByBrandIdAndCreatedAtAfter(UUID brandId, Instant since);

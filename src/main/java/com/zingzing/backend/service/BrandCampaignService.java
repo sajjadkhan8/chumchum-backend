@@ -290,8 +290,15 @@ public class BrandCampaignService {
     // ── Brand: listing ────────────────────────────────────────────────────────
 
     @Transactional(readOnly = true)
-    public PageResponse<BrandCampaignResponse> listBrandCampaigns(UUID brandId, UserRole role, int page, int size) {
+    public PageResponse<BrandCampaignResponse> listBrandCampaigns(UUID brandId, UserRole role, int page, int size, String status) {
         requireBrand(role);
+        if (status != null && !status.isBlank()) {
+            BrandCampaignStatus campaignStatus = BrandCampaignStatus.valueOf(status.trim().toUpperCase());
+            return PageResponse.from(
+                    brandCampaignRepository.findByBrandIdAndStatusOrderByCreatedAtDesc(brandId, campaignStatus, safePage(page, size))
+                            .map(this::toCampaignResponse)
+            );
+        }
         return PageResponse.from(
                 brandCampaignRepository.findByBrandIdOrderByCreatedAtDesc(brandId, safePage(page, size))
                         .map(this::toCampaignResponse)

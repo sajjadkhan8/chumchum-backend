@@ -34,6 +34,8 @@ public record BrandResponse(
         String contactPhone,
         ProfileUserResponse user,
         Instant createdAt,
-        Instant updatedAt
+        Instant updatedAt,
+        long totalCampaigns,
+        long activeOrders
 ) {
 }

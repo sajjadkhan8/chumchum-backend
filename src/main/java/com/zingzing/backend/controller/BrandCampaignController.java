@@ -67,9 +67,10 @@ public class BrandCampaignController {
     public ResponseEntity<PageResponse<BrandCampaignResponse>> listBrandCampaigns(
             @AuthenticationPrincipal AuthenticatedUser authUser,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) String status
     ) {
-        return ResponseEntity.ok(brandCampaignService.listBrandCampaigns(authUser.userId(), authUser.role(), page, size));
+        return ResponseEntity.ok(brandCampaignService.listBrandCampaigns(authUser.userId(), authUser.role(), page, size, status));
     }
 
     @GetMapping("/api/v1/brand/campaigns/{campaignId}")
