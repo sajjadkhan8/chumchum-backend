@@ -50,10 +50,12 @@ public class BrandService {
 
         int rows = brandRepository.insertProfile(
                 user.getId(),
-                request.companyName(),  // mapped to "name" column
+                request.companyName(),
+                null,   // logoUrl
                 request.website(),
                 request.industry(),
-                request.description()
+                request.description(),
+                null, null, null, null, null, null, null, null, null, null, null, null
         );
 
         if (rows != 1) {
@@ -102,6 +104,11 @@ public class BrandService {
         if (request.businessVerificationStatus() != null) brand.setBusinessVerificationStatus(request.businessVerificationStatus());
         if (request.verificationContactEmail() != null) brand.setVerificationContactEmail(request.verificationContactEmail());
         if (request.verificationPhoneNumber() != null) brand.setVerificationPhoneNumber(request.verificationPhoneNumber());
+        if (request.city()         != null) brand.setCity(request.city());
+        if (request.companySize()  != null) brand.setCompanySize(request.companySize());
+        if (request.contactName()  != null) brand.setContactName(request.contactName());
+        if (request.contactEmail() != null) brand.setContactEmail(request.contactEmail());
+        if (request.contactPhone() != null) brand.setContactPhone(request.contactPhone());
 
         return brandMapper.toResponse(brandRepository.save(brand));
     }

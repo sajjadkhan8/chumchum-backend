@@ -4,7 +4,9 @@ import com.zingzing.backend.dto.order.DeliverableResponse;
 import com.zingzing.backend.dto.order.OrderResponse;
 import com.zingzing.backend.entity.Deliverable;
 import com.zingzing.backend.entity.Order;
+import com.zingzing.backend.entity.Review;
 import com.zingzing.backend.repository.ConversationRepository;
+import com.zingzing.backend.repository.ReviewRepository;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -14,9 +16,11 @@ import java.util.UUID;
 public class OrderMapper {
 
     private final ConversationRepository conversationRepository;
+    private final ReviewRepository reviewRepository;
 
-    public OrderMapper(ConversationRepository conversationRepository) {
+    public OrderMapper(ConversationRepository conversationRepository, ReviewRepository reviewRepository) {
         this.conversationRepository = conversationRepository;
+        this.reviewRepository = reviewRepository;
     }
 
     public OrderResponse toResponse(Order order) {
@@ -28,6 +32,10 @@ public class OrderMapper {
                 .findByCreatorIdAndBrandId(order.getCreator().getId(), order.getBrand().getId())
                 .map(c -> c.getId())
                 .orElse(null);
+
+        boolean hasReviewedByBrand = reviewRepository
+                .findByOrderIdAndReviewerType(order.getId(), Review.ReviewerType.BRAND)
+                .isPresent();
 
         return new OrderResponse(
                 order.getId(),
@@ -49,7 +57,8 @@ public class OrderMapper {
                 order.getCreatedAt(),
                 deliverables,
                 order.isBarterProductReceived(),
-                conversationId
+                conversationId,
+                hasReviewedByBrand
         );
     }
 

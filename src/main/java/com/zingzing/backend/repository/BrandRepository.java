@@ -31,14 +31,40 @@ public interface BrandRepository extends JpaRepository<Brand, UUID> {
 
     @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query(value = """
-            INSERT INTO core.brands (id, name, website, industry, description)
-            VALUES (:id, :name, :website, :industry, :description)
+            INSERT INTO core.brands (
+                id, name, logo_url, website, industry, description,
+                monthly_budget, preferred_creator_categories, target_cities,
+                target_platforms, campaign_budget_range,
+                business_verification_status, verification_contact_email,
+                verification_phone_number,
+                company_size, contact_name, contact_email, contact_phone
+            ) VALUES (
+                :id, :name, :logoUrl, :website, :industry, :description,
+                :monthlyBudget, :preferredCreatorCategories, :targetCities,
+                :targetPlatforms, :campaignBudgetRange,
+                :businessVerificationStatus, :verificationContactEmail,
+                :verificationPhoneNumber,
+                :companySize, :contactName, :contactEmail, :contactPhone
+            )
             """, nativeQuery = true)
     int insertProfile(
             @Param("id") UUID id,
             @Param("name") String name,
+            @Param("logoUrl") String logoUrl,
             @Param("website") String website,
             @Param("industry") String industry,
-            @Param("description") String description
+            @Param("description") String description,
+            @Param("monthlyBudget") Integer monthlyBudget,
+            @Param("preferredCreatorCategories") String preferredCreatorCategories,
+            @Param("targetCities") String targetCities,
+            @Param("targetPlatforms") String targetPlatforms,
+            @Param("campaignBudgetRange") String campaignBudgetRange,
+            @Param("businessVerificationStatus") String businessVerificationStatus,
+            @Param("verificationContactEmail") String verificationContactEmail,
+            @Param("verificationPhoneNumber") String verificationPhoneNumber,
+            @Param("companySize") String companySize,
+            @Param("contactName") String contactName,
+            @Param("contactEmail") String contactEmail,
+            @Param("contactPhone") String contactPhone
     );
 }

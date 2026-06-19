@@ -38,6 +38,12 @@ public class BrandMapper {
                 publicView ? null : brand.getVerificationContactEmail(),
                 publicView ? null : brand.getVerificationPhoneNumber(),
                 brand.getPlanTier(),
+                brand.getBrandRating(),
+                brand.getBrandTotalReviews(),
+                brand.getCompanySize(),
+                publicView ? null : brand.getContactName(),
+                publicView ? null : brand.getContactEmail(),
+                publicView ? null : brand.getContactPhone(),
                 publicView ? profileUserMapper.toPublicResponse(brand) : profileUserMapper.toResponse(brand),
                 brand.getCreatedAt(),
                 brand.getUpdatedAt()

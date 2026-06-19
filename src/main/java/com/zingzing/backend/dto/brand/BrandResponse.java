@@ -5,6 +5,7 @@ import com.zingzing.backend.entity.enums.BrandPlanTier;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -25,6 +26,12 @@ public record BrandResponse(
         String verificationContactEmail,
         String verificationPhoneNumber,
         BrandPlanTier planTier,
+        BigDecimal brandRating,
+        int brandTotalReviews,
+        String companySize,
+        String contactName,
+        String contactEmail,
+        String contactPhone,
         ProfileUserResponse user,
         Instant createdAt,
         Instant updatedAt

@@ -26,6 +26,7 @@ public record OrderResponse(
         Instant createdAt,
         List<DeliverableResponse> deliverables,
         boolean barterProductReceived,
-        UUID conversationId
+        UUID conversationId,
+        boolean hasReviewedByBrand
 ) {
 }

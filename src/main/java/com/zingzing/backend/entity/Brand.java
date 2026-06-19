@@ -72,6 +72,18 @@ public class Brand extends User {
     @Column(name = "brand_total_reviews", nullable = false)
     private int brandTotalReviews = 0;
 
+    @Column(name = "company_size", length = 50)
+    private String companySize;
+
+    @Column(name = "contact_name", length = 100)
+    private String contactName;
+
+    @Column(name = "contact_email", length = 120)
+    private String contactEmail;
+
+    @Column(name = "contact_phone", length = 30)
+    private String contactPhone;
+
     public String getDisplayName() {
         return name != null && !name.isBlank() ? name : super.getName();
     }
