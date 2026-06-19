@@ -91,19 +91,6 @@ public class Creator extends User {
     @Column(name = "categories", columnDefinition = "jsonb")
     private List<String> categories = new ArrayList<>();
 
-    // legacy social URL fields (kept for backward compat, new data uses social_accounts table)
-    @Column(name = "tiktok_url", length = 255)
-    private String tiktokUrl;
-
-    @Column(name = "instagram_url", length = 255)
-    private String instagramUrl;
-
-    @Column(name = "youtube_url", length = 255)
-    private String youtubeUrl;
-
-    @Column(name = "facebook_url", length = 255)
-    private String facebookUrl;
-
     @Column(nullable = false)
     private int followers = 0;
 

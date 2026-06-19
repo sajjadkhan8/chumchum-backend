@@ -54,17 +54,17 @@ from (
 where u.id = s.id;
 
 insert into creators (
-    id, username, bio, tiktok_url, instagram_url, youtube_url, facebook_url, availability_status, response_time,
+    id, username, bio, availability_status, response_time,
     min_price, max_price, followers, avg_views, engagement_rate,
     is_verified, is_trending, is_fast_responder, rating, total_reviews, completed_deals,
     accepts_barter, accepts_hybrid_deals, minimum_budget, languages, categories
 )
 values
-    ('a1f8db5c-6a4b-4d76-a001-0fd5f9c10101', 'ali.rehmani', 'Tech reviewer focused on practical smartphone and gadget content for Urdu-speaking audiences.', 'https://www.tiktok.com/@alirehmani', 'https://www.instagram.com/ali.rehmani', 'https://www.youtube.com/@AliRehmaniTech', 'https://www.facebook.com/alirehmanitech', 'AVAILABLE', 'within_6_hours', 45000, 250000, 785000, 162000, 6.40, true, true, true, 4.80, 132, 286, true, true, 30000, '["Urdu", "English"]'::jsonb, '["Technology", "Mobile Reviews", "Unboxing"]'::jsonb),
-    ('a1f8db5c-6a4b-4d76-a001-0fd5f9c10102', 'sana.waqar', 'Beauty and lifestyle creator with a strong female audience in Lahore and Islamabad.', 'https://www.tiktok.com/@sanawaqar.official', 'https://www.instagram.com/sana.waqar', 'https://www.youtube.com/@SanaWaqarOfficial', 'https://www.facebook.com/sanawaqarofficial', 'AVAILABLE', 'within_12_hours', 35000, 180000, 612000, 128000, 7.10, true, true, false, 4.70, 94, 211, true, true, 25000, '["Urdu", "Punjabi", "English"]'::jsonb, '["Beauty", "Skincare", "Lifestyle"]'::jsonb),
-    ('a1f8db5c-6a4b-4d76-a001-0fd5f9c10103', 'hamza.tariq', 'Fitness coach and nutrition creator producing short-form workout plans and diet guides.', 'https://www.tiktok.com/@hamzatariq.fit', 'https://www.instagram.com/hamza.tariq.fit', 'https://www.youtube.com/@HamzaTariqFit', 'https://www.facebook.com/hamzatariqfit', 'BUSY', 'within_24_hours', 30000, 140000, 458000, 97000, 5.80, true, false, true, 4.60, 73, 167, true, true, 20000, '["Urdu", "English"]'::jsonb, '["Fitness", "Nutrition", "Motivation"]'::jsonb),
-    ('a1f8db5c-6a4b-4d76-a001-0fd5f9c10104', 'zoya.naseem', 'Home decor and modest fashion content creator with strong regional reach in Punjab.', 'https://www.tiktok.com/@zoya.naseem.home', 'https://www.instagram.com/zoya.naseem', 'https://www.youtube.com/@ZoyaNaseemHome', 'https://www.facebook.com/zoyanaseemhome', 'AVAILABLE', 'within_24_hours', 20000, 90000, 239000, 53000, 4.90, false, false, false, 4.40, 29, 81, true, true, 15000, '["Urdu", "Punjabi"]'::jsonb, '["Home Decor", "Fashion", "DIY"]'::jsonb),
-    ('a1f8db5c-6a4b-4d76-a001-0fd5f9c10105', 'usman.shahid', 'Food vlogger covering street food and family dining spots across KPK and Islamabad.', 'https://www.tiktok.com/@usman.shahid', 'https://www.instagram.com/usman.shahid.food', 'https://www.youtube.com/@UsmanShahidFood', 'https://www.facebook.com/usmanshahidfood', 'AVAILABLE', 'within_12_hours', 25000, 120000, 371000, 89000, 6.10, false, true, true, 4.50, 41, 104, true, true, 18000, '["Urdu", "Pashto", "English"]'::jsonb, '["Food", "Restaurant Reviews", "Travel"]'::jsonb)
+    ('a1f8db5c-6a4b-4d76-a001-0fd5f9c10101', 'ali.rehmani', 'Tech reviewer focused on practical smartphone and gadget content for Urdu-speaking audiences.', 'AVAILABLE', 'within_6_hours', 45000, 250000, 785000, 162000, 6.40, true, true, true, 4.80, 132, 286, true, true, 30000, '["Urdu", "English"]'::jsonb, '["Technology", "Mobile Reviews", "Unboxing"]'::jsonb),
+    ('a1f8db5c-6a4b-4d76-a001-0fd5f9c10102', 'sana.waqar', 'Beauty and lifestyle creator with a strong female audience in Lahore and Islamabad.', 'AVAILABLE', 'within_12_hours', 35000, 180000, 612000, 128000, 7.10, true, true, false, 4.70, 94, 211, true, true, 25000, '["Urdu", "Punjabi", "English"]'::jsonb, '["Beauty", "Skincare", "Lifestyle"]'::jsonb),
+    ('a1f8db5c-6a4b-4d76-a001-0fd5f9c10103', 'hamza.tariq', 'Fitness coach and nutrition creator producing short-form workout plans and diet guides.', 'BUSY', 'within_24_hours', 30000, 140000, 458000, 97000, 5.80, true, false, true, 4.60, 73, 167, true, true, 20000, '["Urdu", "English"]'::jsonb, '["Fitness", "Nutrition", "Motivation"]'::jsonb),
+    ('a1f8db5c-6a4b-4d76-a001-0fd5f9c10104', 'zoya.naseem', 'Home decor and modest fashion content creator with strong regional reach in Punjab.', 'AVAILABLE', 'within_24_hours', 20000, 90000, 239000, 53000, 4.90, false, false, false, 4.40, 29, 81, true, true, 15000, '["Urdu", "Punjabi"]'::jsonb, '["Home Decor", "Fashion", "DIY"]'::jsonb),
+    ('a1f8db5c-6a4b-4d76-a001-0fd5f9c10105', 'usman.shahid', 'Food vlogger covering street food and family dining spots across KPK and Islamabad.', 'AVAILABLE', 'within_12_hours', 25000, 120000, 371000, 89000, 6.10, false, true, true, 4.50, 41, 104, true, true, 18000, '["Urdu", "Pashto", "English"]'::jsonb, '["Food", "Restaurant Reviews", "Travel"]'::jsonb)
 on conflict (id) do nothing;
 
 insert into brands (id, name, logo_url, website, industry, description, monthly_budget)
@@ -148,10 +148,31 @@ on conflict (id) do nothing;
 
 insert into social_accounts (id, creator_id, platform, username, profile_url, followers, avg_views, engagement_rate, is_verified)
 values
-    ('d2b056d1-4890-4bb0-b801-6f0bb9a00101', 'a1f8db5c-6a4b-4d76-a001-0fd5f9c10101', 'YOUTUBE', 'AliRehmaniTech', 'https://youtube.com/@AliRehmaniTech', 421000, 176000, 5.90, true),
-    ('d2b056d1-4890-4bb0-b801-6f0bb9a00102', 'a1f8db5c-6a4b-4d76-a001-0fd5f9c10101', 'INSTAGRAM', 'ali.rehmani', 'https://instagram.com/ali.rehmani', 242000, 95000, 6.70, true),
-    ('d2b056d1-4890-4bb0-b801-6f0bb9a00103', 'a1f8db5c-6a4b-4d76-a001-0fd5f9c10102', 'INSTAGRAM', 'sana.waqar', 'https://instagram.com/sana.waqar', 389000, 121000, 7.40, true),
-    ('d2b056d1-4890-4bb0-b801-6f0bb9a00104', 'a1f8db5c-6a4b-4d76-a001-0fd5f9c10105', 'TIKTOK', 'usman.shahid', 'https://tiktok.com/@usman.shahid', 214000, 87000, 6.30, false)
+    ('d2b056d1-4890-4bb0-b801-6f0bb9a00101', 'a1f8db5c-6a4b-4d76-a001-0fd5f9c10101', 'YOUTUBE',    'AliRehmaniTech',     'https://youtube.com/@AliRehmaniTech',     421000, 176000, 5.90, true),
+    ('d2b056d1-4890-4bb0-b801-6f0bb9a00102', 'a1f8db5c-6a4b-4d76-a001-0fd5f9c10101', 'INSTAGRAM',  'ali.rehmani',        'https://instagram.com/ali.rehmani',       242000, 95000,  6.70, true),
+    ('d2b056d1-4890-4bb0-b801-6f0bb9a00103', 'a1f8db5c-6a4b-4d76-a001-0fd5f9c10102', 'INSTAGRAM',  'sana.waqar',         'https://instagram.com/sana.waqar',        389000, 121000, 7.40, true),
+    ('d2b056d1-4890-4bb0-b801-6f0bb9a00104', 'a1f8db5c-6a4b-4d76-a001-0fd5f9c10105', 'TIKTOK',     'usman.shahid',       'https://tiktok.com/@usman.shahid',        214000, 87000,  6.30, false),
+    -- ali.rehmani: TIKTOK + FACEBOOK
+    ('d2b056d1-4890-4bb0-b801-6f0bb9a00105', 'a1f8db5c-6a4b-4d76-a001-0fd5f9c10101', 'TIKTOK',     'alirehmani',         'https://www.tiktok.com/@alirehmani',      0, 0, 0, false),
+    ('d2b056d1-4890-4bb0-b801-6f0bb9a00106', 'a1f8db5c-6a4b-4d76-a001-0fd5f9c10101', 'FACEBOOK',   'alirehmanitech',     'https://www.facebook.com/alirehmanitech', 0, 0, 0, false),
+    -- sana.waqar: TIKTOK + YOUTUBE + FACEBOOK
+    ('d2b056d1-4890-4bb0-b801-6f0bb9a00107', 'a1f8db5c-6a4b-4d76-a001-0fd5f9c10102', 'TIKTOK',     'sanawaqar.official', 'https://www.tiktok.com/@sanawaqar.official', 0, 0, 0, false),
+    ('d2b056d1-4890-4bb0-b801-6f0bb9a00108', 'a1f8db5c-6a4b-4d76-a001-0fd5f9c10102', 'YOUTUBE',    'SanaWaqarOfficial',  'https://www.youtube.com/@SanaWaqarOfficial', 0, 0, 0, false),
+    ('d2b056d1-4890-4bb0-b801-6f0bb9a00109', 'a1f8db5c-6a4b-4d76-a001-0fd5f9c10102', 'FACEBOOK',   'sanawaqarofficial',  'https://www.facebook.com/sanawaqarofficial', 0, 0, 0, false),
+    -- hamza.tariq: all 4
+    ('d2b056d1-4890-4bb0-b801-6f0bb9a00110', 'a1f8db5c-6a4b-4d76-a001-0fd5f9c10103', 'TIKTOK',     'hamzatariq.fit',     'https://www.tiktok.com/@hamzatariq.fit',     0, 0, 0, false),
+    ('d2b056d1-4890-4bb0-b801-6f0bb9a00111', 'a1f8db5c-6a4b-4d76-a001-0fd5f9c10103', 'INSTAGRAM',  'hamza.tariq.fit',    'https://www.instagram.com/hamza.tariq.fit',  0, 0, 0, false),
+    ('d2b056d1-4890-4bb0-b801-6f0bb9a00112', 'a1f8db5c-6a4b-4d76-a001-0fd5f9c10103', 'YOUTUBE',    'HamzaTariqFit',      'https://www.youtube.com/@HamzaTariqFit',     0, 0, 0, false),
+    ('d2b056d1-4890-4bb0-b801-6f0bb9a00113', 'a1f8db5c-6a4b-4d76-a001-0fd5f9c10103', 'FACEBOOK',   'hamzatariqfit',      'https://www.facebook.com/hamzatariqfit',     0, 0, 0, false),
+    -- zoya.naseem: all 4
+    ('d2b056d1-4890-4bb0-b801-6f0bb9a00114', 'a1f8db5c-6a4b-4d76-a001-0fd5f9c10104', 'TIKTOK',     'zoya.naseem.home',   'https://www.tiktok.com/@zoya.naseem.home',   0, 0, 0, false),
+    ('d2b056d1-4890-4bb0-b801-6f0bb9a00115', 'a1f8db5c-6a4b-4d76-a001-0fd5f9c10104', 'INSTAGRAM',  'zoya.naseem',        'https://www.instagram.com/zoya.naseem',      0, 0, 0, false),
+    ('d2b056d1-4890-4bb0-b801-6f0bb9a00116', 'a1f8db5c-6a4b-4d76-a001-0fd5f9c10104', 'YOUTUBE',    'ZoyaNaseemHome',     'https://www.youtube.com/@ZoyaNaseemHome',    0, 0, 0, false),
+    ('d2b056d1-4890-4bb0-b801-6f0bb9a00117', 'a1f8db5c-6a4b-4d76-a001-0fd5f9c10104', 'FACEBOOK',   'zoyanaseemhome',     'https://www.facebook.com/zoyanaseemhome',    0, 0, 0, false),
+    -- usman.shahid: INSTAGRAM + YOUTUBE + FACEBOOK
+    ('d2b056d1-4890-4bb0-b801-6f0bb9a00118', 'a1f8db5c-6a4b-4d76-a001-0fd5f9c10105', 'INSTAGRAM',  'usman.shahid.food',  'https://www.instagram.com/usman.shahid.food', 0, 0, 0, false),
+    ('d2b056d1-4890-4bb0-b801-6f0bb9a00119', 'a1f8db5c-6a4b-4d76-a001-0fd5f9c10105', 'YOUTUBE',    'UsmanShahidFood',    'https://www.youtube.com/@UsmanShahidFood',    0, 0, 0, false),
+    ('d2b056d1-4890-4bb0-b801-6f0bb9a00120', 'a1f8db5c-6a4b-4d76-a001-0fd5f9c10105', 'FACEBOOK',   'usmanshahidfood',    'https://www.facebook.com/usmanshahidfood',    0, 0, 0, false)
 on conflict (id) do nothing;
 
 insert into content_previews (id, creator_id, type, thumbnail_url, media_url, platform, views, likes)
@@ -341,32 +362,6 @@ from (
 ) as s(id, username, role, name)
 on conflict (id) do nothing;
 
-insert into creators (id, tiktok_url, instagram_url, youtube_url, facebook_url)
-select s.id, s.tiktok_url, s.instagram_url, s.youtube_url, s.facebook_url
-from (
-    values
-        ('10000000-0000-4000-8000-000000000001'::uuid, 'https://www.tiktok.com/@hira.ashraf.style', 'https://www.instagram.com/hira.ashraf', 'https://www.youtube.com/@HiraAshrafStyle', 'https://www.facebook.com/hiraashrafstyle'),
-        ('10000000-0000-4000-8000-000000000002'::uuid, 'https://www.tiktok.com/@bilal.naeem.tech', 'https://www.instagram.com/bilal.naeem', 'https://www.youtube.com/@BilalNaeemTech', 'https://www.facebook.com/bilalnaeemtech'),
-        ('10000000-0000-4000-8000-000000000003'::uuid, 'https://www.tiktok.com/@mariam.ikram.family', 'https://www.instagram.com/mariam.ikram', 'https://www.youtube.com/@MariamIkramFamily', 'https://www.facebook.com/mariamikramfamily'),
-        ('10000000-0000-4000-8000-000000000004'::uuid, 'https://www.tiktok.com/@ahmed.sheraz.auto', 'https://www.instagram.com/ahmed.sheraz', 'https://www.youtube.com/@AhmedSherazAuto', 'https://www.facebook.com/ahmedsherazauto'),
-        ('10000000-0000-4000-8000-000000000005'::uuid, 'https://www.tiktok.com/@kinza.rana.skin', 'https://www.instagram.com/kinza.rana', 'https://www.youtube.com/@KinzaRanaSkincare', 'https://www.facebook.com/kinzaranaskincare'),
-        ('10000000-0000-4000-8000-000000000006'::uuid, 'https://www.tiktok.com/@daniyal.qureshi.food', 'https://www.instagram.com/daniyal.qureshi', 'https://www.youtube.com/@DaniyalQureshiFood', 'https://www.facebook.com/daniyalqureshifood'),
-        ('10000000-0000-4000-8000-000000000007'::uuid, 'https://www.tiktok.com/@ayesha.sami.study', 'https://www.instagram.com/ayesha.sami', 'https://www.youtube.com/@AyeshaSamiStudy', 'https://www.facebook.com/ayeshasamistudy'),
-        ('10000000-0000-4000-8000-000000000008'::uuid, 'https://www.tiktok.com/@talha.javed.travel', 'https://www.instagram.com/talha.javed', 'https://www.youtube.com/@TalhaJavedTravel', 'https://www.facebook.com/talhajavedtravel'),
-        ('10000000-0000-4000-8000-000000000009'::uuid, 'https://www.tiktok.com/@meesha.khalid.home', 'https://www.instagram.com/meesha.khalid', 'https://www.youtube.com/@MeeshaKhalidHome', 'https://www.facebook.com/meeshakhalidhome'),
-        ('10000000-0000-4000-8000-000000000010'::uuid, 'https://www.tiktok.com/@farhan.aslam.cricket', 'https://www.instagram.com/farhan.aslam', 'https://www.youtube.com/@FarhanAslamCricket', 'https://www.facebook.com/farhanaslamcricket'),
-        ('10000000-0000-4000-8000-000000000011'::uuid, 'https://www.tiktok.com/@iqra.hassan.lifestyle', 'https://www.instagram.com/iqra.hassan', 'https://www.youtube.com/@IqraHassanLifestyle', 'https://www.facebook.com/iqrahassanlifestyle'),
-        ('10000000-0000-4000-8000-000000000012'::uuid, 'https://www.tiktok.com/@saad.farooq.finance', 'https://www.instagram.com/saad.farooq', 'https://www.youtube.com/@SaadFarooqFinance', 'https://www.facebook.com/saadfarooqfinance'),
-        ('10000000-0000-4000-8000-000000000013'::uuid, 'https://www.tiktok.com/@nida.kamran.health', 'https://www.instagram.com/nida.kamran', 'https://www.youtube.com/@NidaKamranWellness', 'https://www.facebook.com/nidakamranwellness'),
-        ('10000000-0000-4000-8000-000000000014'::uuid, 'https://www.tiktok.com/@umair.latif.gaming', 'https://www.instagram.com/umair.latif', 'https://www.youtube.com/@UmairLatifGaming', 'https://www.facebook.com/umairlatifgaming'),
-        ('10000000-0000-4000-8000-000000000015'::uuid, 'https://www.tiktok.com/@rabia.yousaf.cooking', 'https://www.instagram.com/rabia.yousaf', 'https://www.youtube.com/@RabiaYousafKitchen', 'https://www.facebook.com/rabiayousafkitchen'),
-        ('10000000-0000-4000-8000-000000000016'::uuid, 'https://www.tiktok.com/@adnan.maqsood.agri', 'https://www.instagram.com/adnan.maqsood', 'https://www.youtube.com/@AdnanMaqsoodAgri', 'https://www.facebook.com/adnanmaqsoodagri'),
-        ('10000000-0000-4000-8000-000000000017'::uuid, 'https://www.tiktok.com/@mahnoor.zahid.books', 'https://www.instagram.com/mahnoor.zahid', 'https://www.youtube.com/@MahnoorZahidBooks', 'https://www.facebook.com/mahnoorzahidbooks'),
-        ('10000000-0000-4000-8000-000000000018'::uuid, 'https://www.tiktok.com/@shahzaib.rauf.bikes', 'https://www.instagram.com/shahzaib.rauf', 'https://www.youtube.com/@ShahzaibRaufBikes', 'https://www.facebook.com/shahzaibraufbikes'),
-        ('10000000-0000-4000-8000-000000000019'::uuid, 'https://www.tiktok.com/@areeba.naz.fashion', 'https://www.instagram.com/areeba.naz', 'https://www.youtube.com/@AreebaNazFashion', 'https://www.facebook.com/areebanazfashion'),
-        ('10000000-0000-4000-8000-000000000020'::uuid, 'https://www.tiktok.com/@hassan.imran.comedy', 'https://www.instagram.com/hassan.imran', 'https://www.youtube.com/@HassanImranComedy', 'https://www.facebook.com/hassanimrancomedy')
-) as s(id, tiktok_url, instagram_url, youtube_url, facebook_url)
-on conflict (id) do nothing;
 
 insert into brands (id, name)
 select s.id, s.name
@@ -383,6 +378,33 @@ from (
         ('20000000-0000-4000-8000-000000000009'::uuid, 'Bank Alfalah'),
         ('20000000-0000-4000-8000-000000000010'::uuid, 'Careem Food')
 ) as s(id, name)
+on conflict (id) do nothing;
+
+insert into creators (id)
+select s.id
+from (
+    values
+        ('10000000-0000-4000-8000-000000000001'::uuid),
+        ('10000000-0000-4000-8000-000000000002'::uuid),
+        ('10000000-0000-4000-8000-000000000003'::uuid),
+        ('10000000-0000-4000-8000-000000000004'::uuid),
+        ('10000000-0000-4000-8000-000000000005'::uuid),
+        ('10000000-0000-4000-8000-000000000006'::uuid),
+        ('10000000-0000-4000-8000-000000000007'::uuid),
+        ('10000000-0000-4000-8000-000000000008'::uuid),
+        ('10000000-0000-4000-8000-000000000009'::uuid),
+        ('10000000-0000-4000-8000-000000000010'::uuid),
+        ('10000000-0000-4000-8000-000000000011'::uuid),
+        ('10000000-0000-4000-8000-000000000012'::uuid),
+        ('10000000-0000-4000-8000-000000000013'::uuid),
+        ('10000000-0000-4000-8000-000000000014'::uuid),
+        ('10000000-0000-4000-8000-000000000015'::uuid),
+        ('10000000-0000-4000-8000-000000000016'::uuid),
+        ('10000000-0000-4000-8000-000000000017'::uuid),
+        ('10000000-0000-4000-8000-000000000018'::uuid),
+        ('10000000-0000-4000-8000-000000000019'::uuid),
+        ('10000000-0000-4000-8000-000000000020'::uuid)
+) as s(id)
 on conflict (id) do nothing;
 
 
@@ -489,35 +511,146 @@ values
     ('20000000-0000-4000-8000-000000000010', 'careem.food', 'influencer@careem.com', '$2y$10$gPlvx3weE7hKTU1nf5cN5eT2KGyte9ShYXmf/0qxc0DO/TwPKvM1u', 'BRAND', 'Careem Food Marketing', 'Karachi', '+92-21-111-227-336', 'NONE', true),
     ('20000000-0000-4000-8000-000000000011', 'cheezious.media', 'influencer@cheezious.com', '$2y$10$gPlvx3weE7hKTU1nf5cN5eT2KGyte9ShYXmf/0qxc0DO/TwPKvM1u', 'BRAND', 'Cheezious Media Team', 'Islamabad', '+92-51-111-111-119', 'NONE', true),
     ('20000000-0000-4000-8000-000000000012', 'jazz.digital', 'creators@jazz.com.pk', '$2y$10$gPlvx3weE7hKTU1nf5cN5eT2KGyte9ShYXmf/0qxc0DO/TwPKvM1u', 'BRAND', 'Jazz Digital Marketing', 'Islamabad', '+92-51-111-300-300', 'NONE', true)
-on conflict (id) do nothing;
+on conflict (id) do update set
+    email                   = excluded.email,
+    password_hash           = excluded.password_hash,
+    name                    = excluded.name,
+    city                    = excluded.city,
+    phone                   = excluded.phone,
+    creator_program_status  = excluded.creator_program_status,
+    is_active               = excluded.is_active;
 
 insert into creators (
-    id, username, bio, tiktok_url, instagram_url, youtube_url, facebook_url, availability_status, response_time,
+    id, username, bio, availability_status, response_time,
     min_price, max_price, followers, avg_views, engagement_rate,
     is_verified, is_trending, is_fast_responder, rating, total_reviews, completed_deals,
     accepts_barter, accepts_hybrid_deals, minimum_budget, languages, categories
 )
 values
-    ('10000000-0000-4000-8000-000000000001', 'hira.ashraf', 'Modest fashion creator known for festive and everyday wardrobe styling.', 'https://www.tiktok.com/@hira.ashraf.style', 'https://www.instagram.com/hira.ashraf', 'https://www.youtube.com/@HiraAshrafStyle', 'https://www.facebook.com/hiraashrafstyle', 'AVAILABLE', 'within_12_hours', 28000, 125000, 354000, 76000, 6.90, true, true, false, 4.70, 66, 149, true, true, 20000, '["Urdu", "English"]'::jsonb, '["Fashion", "Styling", "Reels"]'::jsonb),
-    ('10000000-0000-4000-8000-000000000002', 'bilal.naeem', 'Consumer tech explainer focused on value-for-money gadgets and smartphones.', 'https://www.tiktok.com/@bilal.naeem.tech', 'https://www.instagram.com/bilal.naeem', 'https://www.youtube.com/@BilalNaeemTech', 'https://www.facebook.com/bilalnaeemtech', 'AVAILABLE', 'within_6_hours', 32000, 165000, 428000, 94000, 6.20, true, true, true, 4.80, 71, 172, true, true, 25000, '["Urdu", "English"]'::jsonb, '["Technology", "Reviews", "Deals"]'::jsonb),
-    ('10000000-0000-4000-8000-000000000003', 'mariam.ikram', 'Parenting creator covering practical routines for young urban families.', 'https://www.tiktok.com/@mariam.ikram.family', 'https://www.instagram.com/mariam.ikram', 'https://www.youtube.com/@MariamIkramFamily', 'https://www.facebook.com/mariamikramfamily', 'AVAILABLE', 'within_24_hours', 22000, 95000, 266000, 51000, 5.70, false, false, false, 4.50, 38, 96, true, true, 15000, '["Urdu", "English"]'::jsonb, '["Parenting", "Family", "Lifestyle"]'::jsonb),
-    ('10000000-0000-4000-8000-000000000004', 'ahmed.sheraz', 'Automotive reviewer producing ownership-cost and resale-value explainers.', 'https://www.tiktok.com/@ahmed.sheraz.auto', 'https://www.instagram.com/ahmed.sheraz', 'https://www.youtube.com/@AhmedSherazAuto', 'https://www.facebook.com/ahmedsherazauto', 'AVAILABLE', 'within_12_hours', 30000, 150000, 301000, 69000, 5.90, true, false, true, 4.60, 47, 114, true, true, 22000, '["Urdu", "English"]'::jsonb, '["Cars", "Automotive", "Reviews"]'::jsonb),
-    ('10000000-0000-4000-8000-000000000005', 'kinza.rana', 'Skincare educator creating climate-appropriate routines for Pakistan audiences.', 'https://www.tiktok.com/@kinza.rana.skin', 'https://www.instagram.com/kinza.rana', 'https://www.youtube.com/@KinzaRanaSkincare', 'https://www.facebook.com/kinzaranaskincare', 'AVAILABLE', 'within_12_hours', 26000, 110000, 332000, 74000, 7.00, true, true, false, 4.70, 59, 137, true, true, 18000, '["Urdu", "Punjabi", "English"]'::jsonb, '["Beauty", "Skincare", "Routine"]'::jsonb),
-    ('10000000-0000-4000-8000-000000000006', 'daniyal.qureshi', 'Food discovery creator covering local dining and app-based offers in South Punjab.', 'https://www.tiktok.com/@daniyal.qureshi.food', 'https://www.instagram.com/daniyal.qureshi', 'https://www.youtube.com/@DaniyalQureshiFood', 'https://www.facebook.com/daniyalqureshifood', 'AVAILABLE', 'within_24_hours', 24000, 98000, 281000, 58000, 6.00, false, true, true, 4.50, 42, 101, true, true, 17000, '["Urdu", "Saraiki", "English"]'::jsonb, '["Food", "Dining", "Deals"]'::jsonb),
-    ('10000000-0000-4000-8000-000000000007', 'ayesha.sami', 'Education creator helping students with exam prep and productivity systems.', 'https://www.tiktok.com/@ayesha.sami.study', 'https://www.instagram.com/ayesha.sami', 'https://www.youtube.com/@AyeshaSamiStudy', 'https://www.facebook.com/ayeshasamistudy', 'AVAILABLE', 'within_24_hours', 18000, 76000, 219000, 47000, 5.40, false, false, false, 4.40, 31, 79, true, true, 12000, '["Urdu", "English", "Pashto"]'::jsonb, '["Education", "Productivity", "Student Life"]'::jsonb),
-    ('10000000-0000-4000-8000-000000000008', 'talha.javed', 'Travel vlogger focused on domestic routes, budgets, and itinerary planning.', 'https://www.tiktok.com/@talha.javed.travel', 'https://www.instagram.com/talha.javed', 'https://www.youtube.com/@TalhaJavedTravel', 'https://www.facebook.com/talhajavedtravel', 'AVAILABLE', 'within_24_hours', 27000, 118000, 247000, 55000, 5.60, false, false, false, 4.50, 34, 88, true, true, 18000, '["Urdu", "English"]'::jsonb, '["Travel", "Vlogs", "Guides"]'::jsonb),
-    ('10000000-0000-4000-8000-000000000009', 'meesha.khalid', 'Home organization creator focused on affordable household optimization.', 'https://www.tiktok.com/@meesha.khalid.home', 'https://www.instagram.com/meesha.khalid', 'https://www.youtube.com/@MeeshaKhalidHome', 'https://www.facebook.com/meeshakhalidhome', 'AVAILABLE', 'within_24_hours', 19000, 86000, 208000, 46000, 5.10, false, false, false, 4.30, 26, 67, true, true, 13000, '["Urdu", "Sindhi"]'::jsonb, '["Home Decor", "Organization", "DIY"]'::jsonb),
-    ('10000000-0000-4000-8000-000000000010', 'farhan.aslam', 'Cricket analyst with high-retention short videos around match cycles.', 'https://www.tiktok.com/@farhan.aslam.cricket', 'https://www.instagram.com/farhan.aslam', 'https://www.youtube.com/@FarhanAslamCricket', 'https://www.facebook.com/farhanaslamcricket', 'AVAILABLE', 'within_12_hours', 25000, 130000, 396000, 84000, 6.30, true, true, true, 4.70, 52, 126, true, true, 19000, '["Urdu", "English"]'::jsonb, '["Sports", "Cricket", "Commentary"]'::jsonb),
-    ('10000000-0000-4000-8000-000000000011', 'iqra.hassan', 'Lifestyle creator with strong female audience in central Punjab.', 'https://www.tiktok.com/@iqra.hassan.lifestyle', 'https://www.instagram.com/iqra.hassan', 'https://www.youtube.com/@IqraHassanLifestyle', 'https://www.facebook.com/iqrahassanlifestyle', 'AVAILABLE', 'within_12_hours', 21000, 92000, 256000, 52000, 5.80, false, false, false, 4.50, 37, 90, true, true, 14000, '["Urdu", "Punjabi"]'::jsonb, '["Lifestyle", "Home", "Daily Routines"]'::jsonb),
-    ('10000000-0000-4000-8000-000000000012', 'saad.farooq', 'Personal finance creator simplifying digital banking for salaried users.', 'https://www.tiktok.com/@saad.farooq.finance', 'https://www.instagram.com/saad.farooq', 'https://www.youtube.com/@SaadFarooqFinance', 'https://www.facebook.com/saadfarooqfinance', 'AVAILABLE', 'within_12_hours', 34000, 170000, 312000, 68000, 5.50, true, false, true, 4.60, 45, 109, true, true, 25000, '["Urdu", "English"]'::jsonb, '["Finance", "Savings", "Investing"]'::jsonb),
-    ('10000000-0000-4000-8000-000000000013', 'nida.kamran', 'Nutrition creator sharing practical wellness habits for working families.', 'https://www.tiktok.com/@nida.kamran.health', 'https://www.instagram.com/nida.kamran', 'https://www.youtube.com/@NidaKamranWellness', 'https://www.facebook.com/nidakamranwellness', 'AVAILABLE', 'within_24_hours', 23000, 98000, 241000, 49000, 5.90, false, false, false, 4.50, 33, 82, true, true, 16000, '["Urdu", "English"]'::jsonb, '["Health", "Nutrition", "Wellness"]'::jsonb),
-    ('10000000-0000-4000-8000-000000000014', 'umair.latif', 'Gaming creator covering mobile esports and gear recommendations.', 'https://www.tiktok.com/@umair.latif.gaming', 'https://www.instagram.com/umair.latif', 'https://www.youtube.com/@UmairLatifGaming', 'https://www.facebook.com/umairlatifgaming', 'AVAILABLE', 'within_6_hours', 30000, 145000, 377000, 91000, 6.80, true, true, true, 4.70, 49, 121, true, true, 22000, '["Urdu", "English"]'::jsonb, '["Gaming", "Esports", "Livestream"]'::jsonb),
-    ('10000000-0000-4000-8000-000000000015', 'rabia.yousaf', 'Home-cooking creator focused on weekly meal planning and traditional recipes.', 'https://www.tiktok.com/@rabia.yousaf.cooking', 'https://www.instagram.com/rabia.yousaf', 'https://www.youtube.com/@RabiaYousafKitchen', 'https://www.facebook.com/rabiayousafkitchen', 'AVAILABLE', 'within_24_hours', 20000, 88000, 289000, 61000, 6.20, false, true, false, 4.60, 40, 97, true, true, 15000, '["Urdu", "Punjabi"]'::jsonb, '["Cooking", "Recipes", "Meal Prep"]'::jsonb),
-    ('10000000-0000-4000-8000-000000000016', 'adnan.maqsood', 'Agri creator producing practical content for modern farming workflows.', 'https://www.tiktok.com/@adnan.maqsood.agri', 'https://www.instagram.com/adnan.maqsood', 'https://www.youtube.com/@AdnanMaqsoodAgri', 'https://www.facebook.com/adnanmaqsoodagri', 'AVAILABLE', 'within_24_hours', 26000, 116000, 184000, 39000, 5.00, false, false, false, 4.30, 24, 58, true, true, 17000, '["Urdu", "Punjabi"]'::jsonb, '["Agriculture", "Technology", "Field Tips"]'::jsonb),
-    ('10000000-0000-4000-8000-000000000017', 'mahnoor.zahid', 'Books and study productivity creator for university audiences.', 'https://www.tiktok.com/@mahnoor.zahid.books', 'https://www.instagram.com/mahnoor.zahid', 'https://www.youtube.com/@MahnoorZahidBooks', 'https://www.facebook.com/mahnoorzahidbooks', 'AVAILABLE', 'within_12_hours', 17000, 74000, 196000, 43000, 5.30, false, false, false, 4.40, 28, 72, true, true, 11000, '["Urdu", "English"]'::jsonb, '["Books", "Study", "Productivity"]'::jsonb),
-    ('10000000-0000-4000-8000-000000000018', 'shahzaib.rauf', 'Motorbike creator focused on maintenance and rider safety.', 'https://www.tiktok.com/@shahzaib.rauf.bikes', 'https://www.instagram.com/shahzaib.rauf', 'https://www.youtube.com/@ShahzaibRaufBikes', 'https://www.facebook.com/shahzaibraufbikes', 'AVAILABLE', 'within_12_hours', 22000, 100000, 267000, 57000, 5.70, false, false, true, 4.50, 35, 87, true, true, 16000, '["Urdu", "Pashto"]'::jsonb, '["Motorbikes", "Maintenance", "Safety"]'::jsonb),
-    ('10000000-0000-4000-8000-000000000019', 'areeba.naz', 'Bridal and festive fashion creator known for high purchase-intent content.', 'https://www.tiktok.com/@areeba.naz.fashion', 'https://www.instagram.com/areeba.naz', 'https://www.youtube.com/@AreebaNazFashion', 'https://www.facebook.com/areebanazfashion', 'AVAILABLE', 'within_12_hours', 32000, 155000, 348000, 81000, 6.60, true, true, false, 4.70, 54, 132, true, true, 24000, '["Urdu", "English"]'::jsonb, '["Bridal", "Fashion", "Festive"]'::jsonb),
-    ('10000000-0000-4000-8000-000000000020', 'hassan.imran', 'Comedy creator with strong short-form reach in metro markets.', 'https://www.tiktok.com/@hassan.imran.comedy', 'https://www.instagram.com/hassan.imran', 'https://www.youtube.com/@HassanImranComedy', 'https://www.facebook.com/hassanimrancomedy', 'AVAILABLE', 'within_6_hours', 28000, 138000, 503000, 125000, 7.20, true, true, true, 4.80, 63, 158, true, true, 21000, '["Urdu", "English"]'::jsonb, '["Comedy", "Entertainment", "Shorts"]'::jsonb)
+    ('10000000-0000-4000-8000-000000000001', 'hira.ashraf',    'Modest fashion creator known for festive and everyday wardrobe styling.',                         'AVAILABLE', 'within_12_hours', 28000, 125000, 354000, 76000, 6.90, true,  true,  false, 4.70, 66, 149, true, true, 20000, '["Urdu", "English"]'::jsonb,          '["Fashion", "Styling", "Reels"]'::jsonb),
+    ('10000000-0000-4000-8000-000000000002', 'bilal.naeem',    'Consumer tech explainer focused on value-for-money gadgets and smartphones.',                    'AVAILABLE', 'within_6_hours',  32000, 165000, 428000, 94000, 6.20, true,  true,  true,  4.80, 71, 172, true, true, 25000, '["Urdu", "English"]'::jsonb,          '["Technology", "Reviews", "Deals"]'::jsonb),
+    ('10000000-0000-4000-8000-000000000003', 'mariam.ikram',   'Parenting creator covering practical routines for young urban families.',                        'AVAILABLE', 'within_24_hours', 22000, 95000,  266000, 51000, 5.70, false, false, false, 4.50, 38, 96,  true, true, 15000, '["Urdu", "English"]'::jsonb,          '["Parenting", "Family", "Lifestyle"]'::jsonb),
+    ('10000000-0000-4000-8000-000000000004', 'ahmed.sheraz',   'Automotive reviewer producing ownership-cost and resale-value explainers.',                     'AVAILABLE', 'within_12_hours', 30000, 150000, 301000, 69000, 5.90, true,  false, true,  4.60, 47, 114, true, true, 22000, '["Urdu", "English"]'::jsonb,          '["Cars", "Automotive", "Reviews"]'::jsonb),
+    ('10000000-0000-4000-8000-000000000005', 'kinza.rana',     'Skincare educator creating climate-appropriate routines for Pakistan audiences.',               'AVAILABLE', 'within_12_hours', 26000, 110000, 332000, 74000, 7.00, true,  true,  false, 4.70, 59, 137, true, true, 18000, '["Urdu", "Punjabi", "English"]'::jsonb, '["Beauty", "Skincare", "Routine"]'::jsonb),
+    ('10000000-0000-4000-8000-000000000006', 'daniyal.qureshi','Food discovery creator covering local dining and app-based offers in South Punjab.',           'AVAILABLE', 'within_24_hours', 24000, 98000,  281000, 58000, 6.00, false, true,  true,  4.50, 42, 101, true, true, 17000, '["Urdu", "Saraiki", "English"]'::jsonb, '["Food", "Dining", "Deals"]'::jsonb),
+    ('10000000-0000-4000-8000-000000000007', 'ayesha.sami',    'Education creator helping students with exam prep and productivity systems.',                   'AVAILABLE', 'within_24_hours', 18000, 76000,  219000, 47000, 5.40, false, false, false, 4.40, 31, 79,  true, true, 12000, '["Urdu", "English", "Pashto"]'::jsonb, '["Education", "Productivity", "Student Life"]'::jsonb),
+    ('10000000-0000-4000-8000-000000000008', 'talha.javed',    'Travel vlogger focused on domestic routes, budgets, and itinerary planning.',                  'AVAILABLE', 'within_24_hours', 27000, 118000, 247000, 55000, 5.60, false, false, false, 4.50, 34, 88,  true, true, 18000, '["Urdu", "English"]'::jsonb,          '["Travel", "Vlogs", "Guides"]'::jsonb),
+    ('10000000-0000-4000-8000-000000000009', 'meesha.khalid',  'Home organization creator focused on affordable household optimization.',                       'AVAILABLE', 'within_24_hours', 19000, 86000,  208000, 46000, 5.10, false, false, false, 4.30, 26, 67,  true, true, 13000, '["Urdu", "Sindhi"]'::jsonb,           '["Home Decor", "Organization", "DIY"]'::jsonb),
+    ('10000000-0000-4000-8000-000000000010', 'farhan.aslam',   'Cricket analyst with high-retention short videos around match cycles.',                        'AVAILABLE', 'within_12_hours', 25000, 130000, 396000, 84000, 6.30, true,  true,  true,  4.70, 52, 126, true, true, 19000, '["Urdu", "English"]'::jsonb,          '["Sports", "Cricket", "Commentary"]'::jsonb),
+    ('10000000-0000-4000-8000-000000000011', 'iqra.hassan',    'Lifestyle creator with strong female audience in central Punjab.',                             'AVAILABLE', 'within_12_hours', 21000, 92000,  256000, 52000, 5.80, false, false, false, 4.50, 37, 90,  true, true, 14000, '["Urdu", "Punjabi"]'::jsonb,          '["Lifestyle", "Home", "Daily Routines"]'::jsonb),
+    ('10000000-0000-4000-8000-000000000012', 'saad.farooq',    'Personal finance creator simplifying digital banking for salaried users.',                    'AVAILABLE', 'within_12_hours', 34000, 170000, 312000, 68000, 5.50, true,  false, true,  4.60, 45, 109, true, true, 25000, '["Urdu", "English"]'::jsonb,          '["Finance", "Savings", "Investing"]'::jsonb),
+    ('10000000-0000-4000-8000-000000000013', 'nida.kamran',    'Nutrition creator sharing practical wellness habits for working families.',                    'AVAILABLE', 'within_24_hours', 23000, 98000,  241000, 49000, 5.90, false, false, false, 4.50, 33, 82,  true, true, 16000, '["Urdu", "English"]'::jsonb,          '["Health", "Nutrition", "Wellness"]'::jsonb),
+    ('10000000-0000-4000-8000-000000000014', 'umair.latif',    'Gaming creator covering mobile esports and gear recommendations.',                             'AVAILABLE', 'within_6_hours',  30000, 145000, 377000, 91000, 6.80, true,  true,  true,  4.70, 49, 121, true, true, 22000, '["Urdu", "English"]'::jsonb,          '["Gaming", "Esports", "Livestream"]'::jsonb),
+    ('10000000-0000-4000-8000-000000000015', 'rabia.yousaf',   'Home-cooking creator focused on weekly meal planning and traditional recipes.',               'AVAILABLE', 'within_24_hours', 20000, 88000,  289000, 61000, 6.20, false, true,  false, 4.60, 40, 97,  true, true, 15000, '["Urdu", "Punjabi"]'::jsonb,          '["Cooking", "Recipes", "Meal Prep"]'::jsonb),
+    ('10000000-0000-4000-8000-000000000016', 'adnan.maqsood',  'Agri creator producing practical content for modern farming workflows.',                      'AVAILABLE', 'within_24_hours', 26000, 116000, 184000, 39000, 5.00, false, false, false, 4.30, 24, 58,  true, true, 17000, '["Urdu", "Punjabi"]'::jsonb,          '["Agriculture", "Technology", "Field Tips"]'::jsonb),
+    ('10000000-0000-4000-8000-000000000017', 'mahnoor.zahid',  'Books and study productivity creator for university audiences.',                              'AVAILABLE', 'within_12_hours', 17000, 74000,  196000, 43000, 5.30, false, false, false, 4.40, 28, 72,  true, true, 11000, '["Urdu", "English"]'::jsonb,          '["Books", "Study", "Productivity"]'::jsonb),
+    ('10000000-0000-4000-8000-000000000018', 'shahzaib.rauf',  'Motorbike creator focused on maintenance and rider safety.',                                  'AVAILABLE', 'within_12_hours', 22000, 100000, 267000, 57000, 5.70, false, false, true,  4.50, 35, 87,  true, true, 16000, '["Urdu", "Pashto"]'::jsonb,           '["Motorbikes", "Maintenance", "Safety"]'::jsonb),
+    ('10000000-0000-4000-8000-000000000019', 'areeba.naz',     'Bridal and festive fashion creator known for high purchase-intent content.',                  'AVAILABLE', 'within_12_hours', 32000, 155000, 348000, 81000, 6.60, true,  true,  false, 4.70, 54, 132, true, true, 24000, '["Urdu", "English"]'::jsonb,          '["Bridal", "Fashion", "Festive"]'::jsonb),
+    ('10000000-0000-4000-8000-000000000020', 'hassan.imran',   'Comedy creator with strong short-form reach in metro markets.',                               'AVAILABLE', 'within_6_hours',  28000, 138000, 503000, 125000,7.20, true,  true,  true,  4.80, 63, 158, true, true, 21000, '["Urdu", "English"]'::jsonb,          '["Comedy", "Entertainment", "Shorts"]'::jsonb)
+on conflict (id) do update set
+    username          = excluded.username,
+    bio               = excluded.bio,
+    availability_status = excluded.availability_status,
+    response_time     = excluded.response_time,
+    min_price         = excluded.min_price,
+    max_price         = excluded.max_price,
+    followers         = excluded.followers,
+    avg_views         = excluded.avg_views,
+    engagement_rate   = excluded.engagement_rate,
+    is_verified       = excluded.is_verified,
+    is_trending       = excluded.is_trending,
+    is_fast_responder = excluded.is_fast_responder,
+    rating            = excluded.rating,
+    total_reviews     = excluded.total_reviews,
+    completed_deals   = excluded.completed_deals,
+    accepts_barter    = excluded.accepts_barter,
+    accepts_hybrid_deals = excluded.accepts_hybrid_deals,
+    minimum_budget    = excluded.minimum_budget,
+    languages         = excluded.languages,
+    categories        = excluded.categories;
+
+insert into social_accounts (id, creator_id, platform, username, profile_url, followers, avg_views, engagement_rate, is_verified)
+values
+    ('e1000000-0000-4000-8000-000000000001', '10000000-0000-4000-8000-000000000001', 'TIKTOK',    'hira.ashraf.style',    'https://www.tiktok.com/@hira.ashraf.style',      0, 0, 0, false),
+    ('e1000000-0000-4000-8000-000000000002', '10000000-0000-4000-8000-000000000001', 'INSTAGRAM', 'hira.ashraf',          'https://www.instagram.com/hira.ashraf',          0, 0, 0, false),
+    ('e1000000-0000-4000-8000-000000000003', '10000000-0000-4000-8000-000000000001', 'YOUTUBE',   'HiraAshrafStyle',      'https://www.youtube.com/@HiraAshrafStyle',       0, 0, 0, false),
+    ('e1000000-0000-4000-8000-000000000004', '10000000-0000-4000-8000-000000000001', 'FACEBOOK',  'hiraashrafstyle',      'https://www.facebook.com/hiraashrafstyle',       0, 0, 0, false),
+    ('e1000000-0000-4000-8000-000000000005', '10000000-0000-4000-8000-000000000002', 'TIKTOK',    'bilal.naeem.tech',     'https://www.tiktok.com/@bilal.naeem.tech',       0, 0, 0, false),
+    ('e1000000-0000-4000-8000-000000000006', '10000000-0000-4000-8000-000000000002', 'INSTAGRAM', 'bilal.naeem',          'https://www.instagram.com/bilal.naeem',          0, 0, 0, false),
+    ('e1000000-0000-4000-8000-000000000007', '10000000-0000-4000-8000-000000000002', 'YOUTUBE',   'BilalNaeemTech',       'https://www.youtube.com/@BilalNaeemTech',        0, 0, 0, false),
+    ('e1000000-0000-4000-8000-000000000008', '10000000-0000-4000-8000-000000000002', 'FACEBOOK',  'bilalnaeemtech',       'https://www.facebook.com/bilalnaeemtech',        0, 0, 0, false),
+    ('e1000000-0000-4000-8000-000000000009', '10000000-0000-4000-8000-000000000003', 'TIKTOK',    'mariam.ikram.family',  'https://www.tiktok.com/@mariam.ikram.family',    0, 0, 0, false),
+    ('e1000000-0000-4000-8000-000000000010', '10000000-0000-4000-8000-000000000003', 'INSTAGRAM', 'mariam.ikram',         'https://www.instagram.com/mariam.ikram',         0, 0, 0, false),
+    ('e1000000-0000-4000-8000-000000000011', '10000000-0000-4000-8000-000000000003', 'YOUTUBE',   'MariamIkramFamily',    'https://www.youtube.com/@MariamIkramFamily',     0, 0, 0, false),
+    ('e1000000-0000-4000-8000-000000000012', '10000000-0000-4000-8000-000000000003', 'FACEBOOK',  'mariamikramfamily',    'https://www.facebook.com/mariamikramfamily',     0, 0, 0, false),
+    ('e1000000-0000-4000-8000-000000000013', '10000000-0000-4000-8000-000000000004', 'TIKTOK',    'ahmed.sheraz.auto',    'https://www.tiktok.com/@ahmed.sheraz.auto',      0, 0, 0, false),
+    ('e1000000-0000-4000-8000-000000000014', '10000000-0000-4000-8000-000000000004', 'INSTAGRAM', 'ahmed.sheraz',         'https://www.instagram.com/ahmed.sheraz',         0, 0, 0, false),
+    ('e1000000-0000-4000-8000-000000000015', '10000000-0000-4000-8000-000000000004', 'YOUTUBE',   'AhmedSherazAuto',      'https://www.youtube.com/@AhmedSherazAuto',       0, 0, 0, false),
+    ('e1000000-0000-4000-8000-000000000016', '10000000-0000-4000-8000-000000000004', 'FACEBOOK',  'ahmedsherazauto',      'https://www.facebook.com/ahmedsherazauto',       0, 0, 0, false),
+    ('e1000000-0000-4000-8000-000000000017', '10000000-0000-4000-8000-000000000005', 'TIKTOK',    'kinza.rana.skin',      'https://www.tiktok.com/@kinza.rana.skin',        0, 0, 0, false),
+    ('e1000000-0000-4000-8000-000000000018', '10000000-0000-4000-8000-000000000005', 'INSTAGRAM', 'kinza.rana',           'https://www.instagram.com/kinza.rana',           0, 0, 0, false),
+    ('e1000000-0000-4000-8000-000000000019', '10000000-0000-4000-8000-000000000005', 'YOUTUBE',   'KinzaRanaSkincare',    'https://www.youtube.com/@KinzaRanaSkincare',     0, 0, 0, false),
+    ('e1000000-0000-4000-8000-000000000020', '10000000-0000-4000-8000-000000000005', 'FACEBOOK',  'kinzaranaskincare',    'https://www.facebook.com/kinzaranaskincare',     0, 0, 0, false),
+    ('e1000000-0000-4000-8000-000000000021', '10000000-0000-4000-8000-000000000006', 'TIKTOK',    'daniyal.qureshi.food', 'https://www.tiktok.com/@daniyal.qureshi.food',   0, 0, 0, false),
+    ('e1000000-0000-4000-8000-000000000022', '10000000-0000-4000-8000-000000000006', 'INSTAGRAM', 'daniyal.qureshi',      'https://www.instagram.com/daniyal.qureshi',      0, 0, 0, false),
+    ('e1000000-0000-4000-8000-000000000023', '10000000-0000-4000-8000-000000000006', 'YOUTUBE',   'DaniyalQureshiFood',   'https://www.youtube.com/@DaniyalQureshiFood',    0, 0, 0, false),
+    ('e1000000-0000-4000-8000-000000000024', '10000000-0000-4000-8000-000000000006', 'FACEBOOK',  'daniyalqureshifood',   'https://www.facebook.com/daniyalqureshifood',    0, 0, 0, false),
+    ('e1000000-0000-4000-8000-000000000025', '10000000-0000-4000-8000-000000000007', 'TIKTOK',    'ayesha.sami.study',    'https://www.tiktok.com/@ayesha.sami.study',      0, 0, 0, false),
+    ('e1000000-0000-4000-8000-000000000026', '10000000-0000-4000-8000-000000000007', 'INSTAGRAM', 'ayesha.sami',          'https://www.instagram.com/ayesha.sami',          0, 0, 0, false),
+    ('e1000000-0000-4000-8000-000000000027', '10000000-0000-4000-8000-000000000007', 'YOUTUBE',   'AyeshaSamiStudy',      'https://www.youtube.com/@AyeshaSamiStudy',       0, 0, 0, false),
+    ('e1000000-0000-4000-8000-000000000028', '10000000-0000-4000-8000-000000000007', 'FACEBOOK',  'ayeshasamistudy',      'https://www.facebook.com/ayeshasamistudy',       0, 0, 0, false),
+    ('e1000000-0000-4000-8000-000000000029', '10000000-0000-4000-8000-000000000008', 'TIKTOK',    'talha.javed.travel',   'https://www.tiktok.com/@talha.javed.travel',     0, 0, 0, false),
+    ('e1000000-0000-4000-8000-000000000030', '10000000-0000-4000-8000-000000000008', 'INSTAGRAM', 'talha.javed',          'https://www.instagram.com/talha.javed',          0, 0, 0, false),
+    ('e1000000-0000-4000-8000-000000000031', '10000000-0000-4000-8000-000000000008', 'YOUTUBE',   'TalhaJavedTravel',     'https://www.youtube.com/@TalhaJavedTravel',      0, 0, 0, false),
+    ('e1000000-0000-4000-8000-000000000032', '10000000-0000-4000-8000-000000000008', 'FACEBOOK',  'talhajavedtravel',     'https://www.facebook.com/talhajavedtravel',      0, 0, 0, false),
+    ('e1000000-0000-4000-8000-000000000033', '10000000-0000-4000-8000-000000000009', 'TIKTOK',    'meesha.khalid.home',   'https://www.tiktok.com/@meesha.khalid.home',     0, 0, 0, false),
+    ('e1000000-0000-4000-8000-000000000034', '10000000-0000-4000-8000-000000000009', 'INSTAGRAM', 'meesha.khalid',        'https://www.instagram.com/meesha.khalid',        0, 0, 0, false),
+    ('e1000000-0000-4000-8000-000000000035', '10000000-0000-4000-8000-000000000009', 'YOUTUBE',   'MeeshaKhalidHome',     'https://www.youtube.com/@MeeshaKhalidHome',      0, 0, 0, false),
+    ('e1000000-0000-4000-8000-000000000036', '10000000-0000-4000-8000-000000000009', 'FACEBOOK',  'meeshakhalidhome',     'https://www.facebook.com/meeshakhalidhome',      0, 0, 0, false),
+    ('e1000000-0000-4000-8000-000000000037', '10000000-0000-4000-8000-000000000010', 'TIKTOK',    'farhan.aslam.cricket', 'https://www.tiktok.com/@farhan.aslam.cricket',   0, 0, 0, false),
+    ('e1000000-0000-4000-8000-000000000038', '10000000-0000-4000-8000-000000000010', 'INSTAGRAM', 'farhan.aslam',         'https://www.instagram.com/farhan.aslam',         0, 0, 0, false),
+    ('e1000000-0000-4000-8000-000000000039', '10000000-0000-4000-8000-000000000010', 'YOUTUBE',   'FarhanAslamCricket',   'https://www.youtube.com/@FarhanAslamCricket',    0, 0, 0, false),
+    ('e1000000-0000-4000-8000-000000000040', '10000000-0000-4000-8000-000000000010', 'FACEBOOK',  'farhanaslamcricket',   'https://www.facebook.com/farhanaslamcricket',    0, 0, 0, false),
+    ('e1000000-0000-4000-8000-000000000041', '10000000-0000-4000-8000-000000000011', 'TIKTOK',    'iqra.hassan.lifestyle','https://www.tiktok.com/@iqra.hassan.lifestyle',  0, 0, 0, false),
+    ('e1000000-0000-4000-8000-000000000042', '10000000-0000-4000-8000-000000000011', 'INSTAGRAM', 'iqra.hassan',          'https://www.instagram.com/iqra.hassan',          0, 0, 0, false),
+    ('e1000000-0000-4000-8000-000000000043', '10000000-0000-4000-8000-000000000011', 'YOUTUBE',   'IqraHassanLifestyle',  'https://www.youtube.com/@IqraHassanLifestyle',   0, 0, 0, false),
+    ('e1000000-0000-4000-8000-000000000044', '10000000-0000-4000-8000-000000000011', 'FACEBOOK',  'iqrahassanlifestyle',  'https://www.facebook.com/iqrahassanlifestyle',   0, 0, 0, false),
+    ('e1000000-0000-4000-8000-000000000045', '10000000-0000-4000-8000-000000000012', 'TIKTOK',    'saad.farooq.finance',  'https://www.tiktok.com/@saad.farooq.finance',    0, 0, 0, false),
+    ('e1000000-0000-4000-8000-000000000046', '10000000-0000-4000-8000-000000000012', 'INSTAGRAM', 'saad.farooq',          'https://www.instagram.com/saad.farooq',          0, 0, 0, false),
+    ('e1000000-0000-4000-8000-000000000047', '10000000-0000-4000-8000-000000000012', 'YOUTUBE',   'SaadFarooqFinance',    'https://www.youtube.com/@SaadFarooqFinance',     0, 0, 0, false),
+    ('e1000000-0000-4000-8000-000000000048', '10000000-0000-4000-8000-000000000012', 'FACEBOOK',  'saadfarooqfinance',    'https://www.facebook.com/saadfarooqfinance',     0, 0, 0, false),
+    ('e1000000-0000-4000-8000-000000000049', '10000000-0000-4000-8000-000000000013', 'TIKTOK',    'nida.kamran.health',   'https://www.tiktok.com/@nida.kamran.health',     0, 0, 0, false),
+    ('e1000000-0000-4000-8000-000000000050', '10000000-0000-4000-8000-000000000013', 'INSTAGRAM', 'nida.kamran',          'https://www.instagram.com/nida.kamran',          0, 0, 0, false),
+    ('e1000000-0000-4000-8000-000000000051', '10000000-0000-4000-8000-000000000013', 'YOUTUBE',   'NidaKamranWellness',   'https://www.youtube.com/@NidaKamranWellness',    0, 0, 0, false),
+    ('e1000000-0000-4000-8000-000000000052', '10000000-0000-4000-8000-000000000013', 'FACEBOOK',  'nidakamranwellness',   'https://www.facebook.com/nidakamranwellness',    0, 0, 0, false),
+    ('e1000000-0000-4000-8000-000000000053', '10000000-0000-4000-8000-000000000014', 'TIKTOK',    'umair.latif.gaming',   'https://www.tiktok.com/@umair.latif.gaming',     0, 0, 0, false),
+    ('e1000000-0000-4000-8000-000000000054', '10000000-0000-4000-8000-000000000014', 'INSTAGRAM', 'umair.latif',          'https://www.instagram.com/umair.latif',          0, 0, 0, false),
+    ('e1000000-0000-4000-8000-000000000055', '10000000-0000-4000-8000-000000000014', 'YOUTUBE',   'UmairLatifGaming',     'https://www.youtube.com/@UmairLatifGaming',      0, 0, 0, false),
+    ('e1000000-0000-4000-8000-000000000056', '10000000-0000-4000-8000-000000000014', 'FACEBOOK',  'umairlatifgaming',     'https://www.facebook.com/umairlatifgaming',      0, 0, 0, false),
+    ('e1000000-0000-4000-8000-000000000057', '10000000-0000-4000-8000-000000000015', 'TIKTOK',    'rabia.yousaf.cooking', 'https://www.tiktok.com/@rabia.yousaf.cooking',   0, 0, 0, false),
+    ('e1000000-0000-4000-8000-000000000058', '10000000-0000-4000-8000-000000000015', 'INSTAGRAM', 'rabia.yousaf',         'https://www.instagram.com/rabia.yousaf',         0, 0, 0, false),
+    ('e1000000-0000-4000-8000-000000000059', '10000000-0000-4000-8000-000000000015', 'YOUTUBE',   'RabiaYousafKitchen',   'https://www.youtube.com/@RabiaYousafKitchen',    0, 0, 0, false),
+    ('e1000000-0000-4000-8000-000000000060', '10000000-0000-4000-8000-000000000015', 'FACEBOOK',  'rabiayousafkitchen',   'https://www.facebook.com/rabiayousafkitchen',    0, 0, 0, false),
+    ('e1000000-0000-4000-8000-000000000061', '10000000-0000-4000-8000-000000000016', 'TIKTOK',    'adnan.maqsood.agri',   'https://www.tiktok.com/@adnan.maqsood.agri',     0, 0, 0, false),
+    ('e1000000-0000-4000-8000-000000000062', '10000000-0000-4000-8000-000000000016', 'INSTAGRAM', 'adnan.maqsood',        'https://www.instagram.com/adnan.maqsood',        0, 0, 0, false),
+    ('e1000000-0000-4000-8000-000000000063', '10000000-0000-4000-8000-000000000016', 'YOUTUBE',   'AdnanMaqsoodAgri',     'https://www.youtube.com/@AdnanMaqsoodAgri',      0, 0, 0, false),
+    ('e1000000-0000-4000-8000-000000000064', '10000000-0000-4000-8000-000000000016', 'FACEBOOK',  'adnanmaqsoodagri',     'https://www.facebook.com/adnanmaqsoodagri',      0, 0, 0, false),
+    ('e1000000-0000-4000-8000-000000000065', '10000000-0000-4000-8000-000000000017', 'TIKTOK',    'mahnoor.zahid.books',  'https://www.tiktok.com/@mahnoor.zahid.books',    0, 0, 0, false),
+    ('e1000000-0000-4000-8000-000000000066', '10000000-0000-4000-8000-000000000017', 'INSTAGRAM', 'mahnoor.zahid',        'https://www.instagram.com/mahnoor.zahid',        0, 0, 0, false),
+    ('e1000000-0000-4000-8000-000000000067', '10000000-0000-4000-8000-000000000017', 'YOUTUBE',   'MahnoorZahidBooks',    'https://www.youtube.com/@MahnoorZahidBooks',     0, 0, 0, false),
+    ('e1000000-0000-4000-8000-000000000068', '10000000-0000-4000-8000-000000000017', 'FACEBOOK',  'mahnoorzahidbooks',    'https://www.facebook.com/mahnoorzahidbooks',     0, 0, 0, false),
+    ('e1000000-0000-4000-8000-000000000069', '10000000-0000-4000-8000-000000000018', 'TIKTOK',    'shahzaib.rauf.bikes',  'https://www.tiktok.com/@shahzaib.rauf.bikes',    0, 0, 0, false),
+    ('e1000000-0000-4000-8000-000000000070', '10000000-0000-4000-8000-000000000018', 'INSTAGRAM', 'shahzaib.rauf',        'https://www.instagram.com/shahzaib.rauf',        0, 0, 0, false),
+    ('e1000000-0000-4000-8000-000000000071', '10000000-0000-4000-8000-000000000018', 'YOUTUBE',   'ShahzaibRaufBikes',    'https://www.youtube.com/@ShahzaibRaufBikes',     0, 0, 0, false),
+    ('e1000000-0000-4000-8000-000000000072', '10000000-0000-4000-8000-000000000018', 'FACEBOOK',  'shahzaibraufbikes',    'https://www.facebook.com/shahzaibraufbikes',     0, 0, 0, false),
+    ('e1000000-0000-4000-8000-000000000073', '10000000-0000-4000-8000-000000000019', 'TIKTOK',    'areeba.naz.fashion',   'https://www.tiktok.com/@areeba.naz.fashion',     0, 0, 0, false),
+    ('e1000000-0000-4000-8000-000000000074', '10000000-0000-4000-8000-000000000019', 'INSTAGRAM', 'areeba.naz',           'https://www.instagram.com/areeba.naz',           0, 0, 0, false),
+    ('e1000000-0000-4000-8000-000000000075', '10000000-0000-4000-8000-000000000019', 'YOUTUBE',   'AreebaNazFashion',     'https://www.youtube.com/@AreebaNazFashion',      0, 0, 0, false),
+    ('e1000000-0000-4000-8000-000000000076', '10000000-0000-4000-8000-000000000019', 'FACEBOOK',  'areebanazfashion',     'https://www.facebook.com/areebanazfashion',      0, 0, 0, false),
+    ('e1000000-0000-4000-8000-000000000077', '10000000-0000-4000-8000-000000000020', 'TIKTOK',    'hassan.imran.comedy',  'https://www.tiktok.com/@hassan.imran.comedy',    0, 0, 0, false),
+    ('e1000000-0000-4000-8000-000000000078', '10000000-0000-4000-8000-000000000020', 'INSTAGRAM', 'hassan.imran',         'https://www.instagram.com/hassan.imran',         0, 0, 0, false),
+    ('e1000000-0000-4000-8000-000000000079', '10000000-0000-4000-8000-000000000020', 'YOUTUBE',   'HassanImranComedy',    'https://www.youtube.com/@HassanImranComedy',     0, 0, 0, false),
+    ('e1000000-0000-4000-8000-000000000080', '10000000-0000-4000-8000-000000000020', 'FACEBOOK',  'hassanimrancomedy',    'https://www.facebook.com/hassanimrancomedy',     0, 0, 0, false)
 on conflict (id) do nothing;
 
 insert into brands (id, name, logo_url, website, industry, description, monthly_budget)
@@ -585,13 +718,21 @@ values
 on conflict (id) do nothing;
 
 insert into creators (
-    id, username, bio, tiktok_url, instagram_url, youtube_url, facebook_url, availability_status, response_time,
+    id, username, bio, availability_status, response_time,
     min_price, max_price, followers, avg_views, engagement_rate,
     is_verified, is_trending, is_fast_responder, rating, total_reviews, completed_deals,
     accepts_barter, accepts_hybrid_deals, minimum_budget, languages, categories
 )
 values
-    ('31000000-0000-4000-8000-000000000002', 'sara.islamabad', 'Islamabad-focused lifestyle and retail creator covering openings, local deals, and family shopping content.', 'https://www.tiktok.com/@sara.islamabad.city', 'https://www.instagram.com/sara.islamabad', 'https://www.youtube.com/@SaraIslamabadCity', 'https://www.facebook.com/saraislamabadcity', 'AVAILABLE', 'within_6_hours', 35000, 165000, 412000, 99000, 6.80, true, true, true, 4.80, 76, 183, true, true, 25000, '["Urdu", "English"]'::jsonb, '["Lifestyle", "Retail", "City Guides"]'::jsonb)
+    ('31000000-0000-4000-8000-000000000002', 'sara.islamabad', 'Islamabad-focused lifestyle and retail creator covering openings, local deals, and family shopping content.', 'AVAILABLE', 'within_6_hours', 35000, 165000, 412000, 99000, 6.80, true, true, true, 4.80, 76, 183, true, true, 25000, '["Urdu", "English"]'::jsonb, '["Lifestyle", "Retail", "City Guides"]'::jsonb)
+on conflict (id) do nothing;
+
+insert into social_accounts (id, creator_id, platform, username, profile_url, followers, avg_views, engagement_rate, is_verified)
+values
+    ('f1000000-0000-4000-8000-000000000001', '31000000-0000-4000-8000-000000000002', 'TIKTOK',    'sara.islamabad.city', 'https://www.tiktok.com/@sara.islamabad.city',    0, 0, 0, false),
+    ('f1000000-0000-4000-8000-000000000002', '31000000-0000-4000-8000-000000000002', 'INSTAGRAM', 'sara.islamabad',      'https://www.instagram.com/sara.islamabad',      0, 0, 0, false),
+    ('f1000000-0000-4000-8000-000000000003', '31000000-0000-4000-8000-000000000002', 'YOUTUBE',   'SaraIslamabadCity',   'https://www.youtube.com/@SaraIslamabadCity',    0, 0, 0, false),
+    ('f1000000-0000-4000-8000-000000000004', '31000000-0000-4000-8000-000000000002', 'FACEBOOK',  'saraislamabadcity',   'https://www.facebook.com/saraislamabadcity',    0, 0, 0, false)
 on conflict (id) do nothing;
 
 insert into brands (id, name, logo_url, website, industry, description, monthly_budget)

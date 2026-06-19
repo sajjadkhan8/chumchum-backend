@@ -29,10 +29,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
-import java.util.EnumMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 @Service
 public class CreatorService {
@@ -83,10 +80,6 @@ public class CreatorService {
         int insertedRows = creatorRepository.insertProfile(
                 user.getId(),
                 request.bio(),
-                request.tiktokUrl(),
-                request.instagramUrl(),
-                request.youtubeUrl(),
-                request.facebookUrl(),
                 0,
                 0,
                 null,
@@ -100,6 +93,11 @@ public class CreatorService {
 
         Creator created = creatorRepository.findById(user.getId())
                 .orElseThrow(() -> new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "Creator profile created but could not be loaded"));
+
+        saveSocialAccountsFromUrls(created,
+                request.instagramUrl(), request.tiktokUrl(),
+                request.youtubeUrl(), request.facebookUrl());
+
         return creatorMapper.toResponse(created);
     }
 
@@ -267,18 +265,9 @@ public class CreatorService {
         if (request.categories() != null) {
             creator.setCategories(request.categories());
         }
-        if (request.tiktokUrl() != null) {
-            creator.setTiktokUrl(request.tiktokUrl());
-        }
-        if (request.instagramUrl() != null) {
-            creator.setInstagramUrl(request.instagramUrl());
-        }
-        if (request.youtubeUrl() != null) {
-            creator.setYoutubeUrl(request.youtubeUrl());
-        }
-        if (request.facebookUrl() != null) {
-            creator.setFacebookUrl(request.facebookUrl());
-        }
+        saveSocialAccountsFromUrls(creator,
+                request.instagramUrl(), request.tiktokUrl(),
+                request.youtubeUrl(), request.facebookUrl());
         if (request.followers() != null) {
             creator.setFollowers(request.followers());
         }
@@ -303,6 +292,37 @@ public class CreatorService {
     }
 
     // ---- Social accounts ----
+
+    private void saveSocialAccountsFromUrls(Creator creator,
+                                             String instagramUrl, String tiktokUrl,
+                                             String youtubeUrl, String facebookUrl) {
+        Set<String> existing = socialAccountRepository.findByCreatorId(creator.getId()).stream()
+                .map(sa -> sa.getPlatform().toUpperCase())
+                .collect(java.util.stream.Collectors.toSet());
+        List<SocialAccount> toSave = new ArrayList<>();
+        addFromUrl(toSave, existing, creator, "INSTAGRAM", instagramUrl);
+        addFromUrl(toSave, existing, creator, "TIKTOK",    tiktokUrl);
+        addFromUrl(toSave, existing, creator, "YOUTUBE",   youtubeUrl);
+        addFromUrl(toSave, existing, creator, "FACEBOOK",  facebookUrl);
+        if (!toSave.isEmpty()) socialAccountRepository.saveAll(toSave);
+    }
+
+    private void addFromUrl(List<SocialAccount> list, Set<String> existing,
+                             Creator creator, String platform, String url) {
+        if (url == null || url.isBlank() || existing.contains(platform)) return;
+        String path = url.replaceAll("/$", "");
+        int slash = path.lastIndexOf('/');
+        String raw = slash >= 0 ? path.substring(slash + 1) : path;
+        String username = raw.startsWith("@") ? raw.substring(1) : raw;
+        list.add(SocialAccount.builder()
+                .creator(creator)
+                .platform(platform)
+                .username(username.isBlank() ? "unknown" : username)
+                .profileUrl(url)
+                .followers(0)
+                .engagementRate(BigDecimal.ZERO)
+                .build());
+    }
 
     public record SocialAccountRequest(
             String platform, String username, String profileUrl,

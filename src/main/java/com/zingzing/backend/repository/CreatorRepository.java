@@ -62,7 +62,6 @@ public interface CreatorRepository extends JpaRepository<Creator, UUID> {
                    c.is_verified, c.badge_level, c.is_trending, c.is_fast_responder,
                    c.completed_deals, c.accepts_barter, c.accepts_hybrid_deals,
                    c.minimum_budget, c.languages, c.categories,
-                   c.tiktok_url, c.instagram_url, c.youtube_url, c.facebook_url,
                    c.followers, c.avg_views, c.engagement_rate, c.rating, c.total_reviews,
                    c.rate_card_reel, c.rate_card_story, c.rate_card_post, c.rate_card_video
             from core.creators c
@@ -220,20 +219,16 @@ public interface CreatorRepository extends JpaRepository<Creator, UUID> {
     @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query(value = """
             INSERT INTO core.creators (
-                id, bio, tiktok_url, instagram_url, youtube_url, facebook_url,
+                id, bio,
                 followers, avg_views, engagement_rate, rating, total_reviews
             ) VALUES (
-                :id, :bio, :tiktokUrl, :instagramUrl, :youtubeUrl, :facebookUrl,
+                :id, :bio,
                 :followers, :avgViews, :engagementRate, :rating, :totalReviews
             )
             """, nativeQuery = true)
     int insertProfile(
             @Param("id") UUID id,
             @Param("bio") String bio,
-            @Param("tiktokUrl") String tiktokUrl,
-            @Param("instagramUrl") String instagramUrl,
-            @Param("youtubeUrl") String youtubeUrl,
-            @Param("facebookUrl") String facebookUrl,
             @Param("followers") int followers,
             @Param("avgViews") int avgViews,
             @Param("engagementRate") BigDecimal engagementRate,

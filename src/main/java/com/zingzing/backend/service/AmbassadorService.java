@@ -20,6 +20,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -113,8 +114,7 @@ public class AmbassadorService {
         if (creator.getCity() != null && !creator.getCity().isBlank()) completenessScore += 2;
         if (creator.getAvatarUrl() != null && !creator.getAvatarUrl().isBlank()) completenessScore += 2;
         if (creator.getWebsite() != null && !creator.getWebsite().isBlank()) completenessScore += 2;
-        boolean hasSocialLink = creator.getInstagramUrl() != null || creator.getTiktokUrl() != null
-                || creator.getYoutubeUrl() != null || creator.getFacebookUrl() != null;
+        boolean hasSocialLink = !CollectionUtils.isEmpty(creator.getSocialAccounts());
         if (hasSocialLink) completenessScore += 2;
 
         // consistencyScore: 0–5 pts based on number of linked social accounts
