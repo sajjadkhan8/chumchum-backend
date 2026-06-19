@@ -3,6 +3,7 @@ package com.zingzing.backend.repository;
 import com.zingzing.backend.entity.Conversation;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
@@ -21,10 +22,13 @@ public interface ConversationRepository extends JpaRepository<Conversation, UUID
 
     List<Conversation> findByBrandIdOrderByUpdatedAtDesc(UUID brandId);
 
+    @EntityGraph(attributePaths = {"creator", "brand"})
     Page<Conversation> findByCreatorIdOrderByUpdatedAtDesc(UUID creatorId, Pageable pageable);
 
+    @EntityGraph(attributePaths = {"creator", "brand"})
     Page<Conversation> findByBrandIdOrderByUpdatedAtDesc(UUID brandId, Pageable pageable);
 
+    @EntityGraph(attributePaths = {"creator", "brand"})
     Optional<Conversation> findByCreatorIdAndBrandId(UUID creatorId, UUID brandId);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)

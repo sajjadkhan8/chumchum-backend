@@ -113,39 +113,59 @@ public class CreatorService {
     public record CreatorSearchResult(
             List<CreatorResponse> creators, long total, int page, int limit) {}
 
+    private static String toJsonArray(List<String> items) {
+        if (items == null || items.isEmpty()) return null;
+        StringBuilder sb = new StringBuilder("[");
+        for (int i = 0; i < items.size(); i++) {
+            if (i > 0) sb.append(",");
+            sb.append("\"");
+            sb.append(items.get(i).replace("\\", "\\\\").replace("\"", "\\\""));
+            sb.append("\"");
+        }
+        sb.append("]");
+        return sb.toString();
+    }
+
     public CreatorSearchResult search(
-            String search, String city, String category,
+            String search, String city,
+            List<String> categories, List<String> languages,
             Integer minFollowers, Integer maxFollowers,
             BigDecimal minRating, Integer minPrice, Integer maxPrice,
+            Integer minReviews,
             CreatorBadgeLevel badgeLevel, AvailabilityStatus availabilityStatus,
             Boolean acceptsBarter, Boolean isTrending, Boolean isFastResponder,
             Boolean ambassadorOnly, String platform, BigDecimal minEngagementRate,
+            Integer minCompletionRate,
+            Integer maxRateCardReel, Integer maxRateCardStory,
+            Integer maxRateCardPost, Integer maxRateCardVideo,
             int page, int limit, String sortBy) {
 
-        String normalizedSort = sortBy == null ? "" : sortBy;
-        String sortField = switch (normalizedSort) {
-            case "trending"        -> "isTrending";
-            case "top_rated"       -> "rating";
-            case "budget_friendly" -> "minPrice";
-            default                -> "createdAt";
+        String normalizedSort = sortBy == null ? "" : sortBy.trim().toLowerCase();
+        String safeSort = switch (normalizedSort) {
+            case "trending", "top_rated", "budget_friendly", "budget_high" -> normalizedSort;
+            default -> "created_at";
         };
-        Sort.Direction sortDirection = "budget_friendly".equals(normalizedSort)
-                ? Sort.Direction.ASC
-                : Sort.Direction.DESC;
 
         Boolean isVerified = Boolean.TRUE.equals(ambassadorOnly) ? Boolean.TRUE : null;
 
-        Pageable pageable = cappedPageable(page, limit, sortField, sortDirection);
+        int safePage = Math.max(page, 0);
+        int safeLimit = Math.clamp(limit, 1, 100);
+        Pageable pageable = PageRequest.of(safePage, safeLimit);
 
         Page<Creator> result = creatorRepository.search(
                 search, city,
-                category == null || category.isBlank() ? null : category.trim(),
+                toJsonArray(categories),
+                toJsonArray(languages),
                 minFollowers, maxFollowers, minRating,
-                minPrice, maxPrice, badgeLevel,
-                availabilityStatus,
+                minPrice, maxPrice, minReviews,
+                badgeLevel != null ? badgeLevel.name() : null,
+                availabilityStatus != null ? availabilityStatus.name() : null,
                 acceptsBarter, isTrending, isFastResponder,
                 isVerified, minEngagementRate,
                 platform == null || platform.isBlank() ? null : platform.trim().toLowerCase(),
+                minCompletionRate,
+                maxRateCardReel, maxRateCardStory, maxRateCardPost, maxRateCardVideo,
+                safeSort,
                 pageable);
 
         return new CreatorSearchResult(

@@ -1,5 +1,6 @@
 package com.zingzing.backend.controller;
 
+import com.zingzing.backend.repository.CreatorRepository;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -11,6 +12,12 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/v1")
 public class MetadataController {
+
+    private final CreatorRepository creatorRepository;
+
+    public MetadataController(CreatorRepository creatorRepository) {
+        this.creatorRepository = creatorRepository;
+    }
 
     @GetMapping({"/creators/metadata", "/creators/filters", "/metadata/creators"})
     public ResponseEntity<Map<String, Object>> creatorFilterMetadata() {
@@ -65,6 +72,19 @@ public class MetadataController {
         );
 
         return ResponseEntity.ok(Map.of("success", true, "data", metadata));
+    }
+
+    @GetMapping("/metadata/search-filters")
+    public ResponseEntity<Map<String, Object>> searchFilters() {
+        List<String> categories = creatorRepository.findDistinctCategories();
+        List<String> languages  = creatorRepository.findDistinctLanguages();
+        return ResponseEntity.ok(Map.of(
+                "success", true,
+                "data", Map.of(
+                        "categories", categories,
+                        "languages", languages
+                )
+        ));
     }
 
     private Map<String, Object> option(String value, String label) {

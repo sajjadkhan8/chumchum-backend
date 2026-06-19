@@ -15,6 +15,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
@@ -40,6 +41,7 @@ public class ConversationService {
         this.conversationMapper = conversationMapper;
     }
 
+    @Transactional
     public ConversationResponse createConversation(UUID userId, UserRole role, ConversationCreateRequest request) {
         if (role.isAdmin()) {
             throw new ApiException(HttpStatus.FORBIDDEN, "Admin cannot start marketplace conversations");
@@ -73,6 +75,7 @@ public class ConversationService {
         return conversationMapper.toResponse(conversationRepository.save(conversation));
     }
 
+    @Transactional(readOnly = true)
     public Map<String, Object> getConversations(UUID userId, UserRole role, int page, int limit) {
         if (role.isAdmin()) {
             throw new ApiException(HttpStatus.FORBIDDEN, "Admin does not have creator/brand conversations");
@@ -97,6 +100,7 @@ public class ConversationService {
         );
     }
 
+    @Transactional(readOnly = true)
     public ConversationResponse getSingleConversation(UUID creatorId, UUID brandId, UUID userId, UserRole role) {
         if (role.isAdmin() || (!creatorId.equals(userId) && !brandId.equals(userId))) {
             throw new ApiException(HttpStatus.FORBIDDEN, "Cannot access this conversation");

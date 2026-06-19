@@ -64,12 +64,14 @@ public class CreatorController {
     public ResponseEntity<Map<String, Object>> search(
             @RequestParam(required = false) String search,
             @RequestParam(required = false) String city,
-            @RequestParam(required = false) String category,
+            @RequestParam(required = false) List<String> categories,
+            @RequestParam(required = false) List<String> languages,
             @RequestParam(required = false) Integer minFollowers,
             @RequestParam(required = false) Integer maxFollowers,
             @RequestParam(required = false) BigDecimal minRating,
             @RequestParam(required = false) Integer minPrice,
             @RequestParam(required = false) Integer maxPrice,
+            @RequestParam(required = false) Integer minReviews,
             @RequestParam(required = false) CreatorBadgeLevel badgeLevel,
             @RequestParam(required = false) AvailabilityStatus availabilityStatus,
             @RequestParam(required = false) Boolean acceptsBarter,
@@ -78,14 +80,22 @@ public class CreatorController {
             @RequestParam(defaultValue = "false") Boolean ambassadorOnly,
             @RequestParam(required = false) String platform,
             @RequestParam(required = false) BigDecimal minEngagementRate,
+            @RequestParam(required = false) Integer minCompletionRate,
+            @RequestParam(required = false) Integer maxRateCardReel,
+            @RequestParam(required = false) Integer maxRateCardStory,
+            @RequestParam(required = false) Integer maxRateCardPost,
+            @RequestParam(required = false) Integer maxRateCardVideo,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int limit,
             @RequestParam(defaultValue = "createdAt") String sortBy
     ) {
         CreatorService.CreatorSearchResult r = creatorService.search(
-                search, city, category, minFollowers, maxFollowers, minRating, minPrice, maxPrice,
+                search, city, categories, languages,
+                minFollowers, maxFollowers, minRating, minPrice, maxPrice, minReviews,
                 badgeLevel, availabilityStatus, acceptsBarter, isTrending, isFastResponder,
-                ambassadorOnly, platform, minEngagementRate, page, limit, sortBy);
+                ambassadorOnly, platform, minEngagementRate,
+                minCompletionRate, maxRateCardReel, maxRateCardStory, maxRateCardPost, maxRateCardVideo,
+                page, limit, sortBy);
         return ResponseEntity.ok(Map.of("success", true, "data",
                 Map.of("creators", r.creators(), "total", r.total(),
                         "page", r.page(), "limit", r.limit())));

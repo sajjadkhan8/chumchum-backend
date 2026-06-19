@@ -1,8 +1,6 @@
 package com.zingzing.backend.repository;
 
 import com.zingzing.backend.entity.Creator;
-import com.zingzing.backend.entity.enums.AvailabilityStatus;
-import com.zingzing.backend.entity.enums.CreatorBadgeLevel;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -58,22 +56,27 @@ public interface CreatorRepository extends JpaRepository<Creator, UUID> {
      * Uses native PostgreSQL SQL for JSONB category matching via the @> operator.
      */
     @Query(value = """
-            select distinct c.* from core.creators c
+            select c.* from core.creators c
             join core.users u on u.id = c.id
             where u.is_active = true
               and (:search is null
                    or lower(u.name) like concat('%', lower(:search), '%')
-                   or lower(c.username) like concat('%', lower(:search), '%')
+                   or lower(u.username) like concat('%', lower(:search), '%')
                    or lower(c.bio) like concat('%', lower(:search), '%')
                    or lower(u.city) like concat('%', lower(:search), '%'))
               and (:city is null or lower(u.city) = lower(:city))
-              and (:category is null
-                   or c.categories @> jsonb_build_array(:category::text))
+              and (:categories is null or exists (
+                   select 1 from jsonb_array_elements_text((:categories)::jsonb) v
+                   where c.categories @> jsonb_build_array(v)))
+              and (:languages is null or exists (
+                   select 1 from jsonb_array_elements_text((:languages)::jsonb) v
+                   where c.languages @> jsonb_build_array(v)))
               and (:minFollowers is null or c.followers >= :minFollowers)
               and (:maxFollowers is null or c.followers <= :maxFollowers)
               and (:minRating is null or c.rating >= :minRating)
               and (:minPrice is null or c.min_price >= :minPrice)
               and (:maxPrice is null or c.max_price <= :maxPrice)
+              and (:minReviews is null or c.total_reviews >= :minReviews)
               and (:badgeLevel is null or c.badge_level = :badgeLevel)
               and (:availabilityStatus is null or c.availability_status = :availabilityStatus)
               and (:acceptsBarter is null or c.accepts_barter = :acceptsBarter)
@@ -84,24 +87,47 @@ public interface CreatorRepository extends JpaRepository<Creator, UUID> {
               and (:platform is null or exists (
                    select 1 from core.social_accounts sa
                    where sa.creator_id = c.id and lower(sa.platform) = lower(:platform)))
+              and (:minCompletionRate is null or (
+                   select case
+                            when count(*) = 0 then 0
+                            else round(sum(case when o.status = 'COMPLETED' then 1.0 else 0.0 end) * 100 / count(*))
+                          end
+                   from core.orders o
+                   where o.creator_id = c.id) >= :minCompletionRate)
+              and (:maxRateCardReel is null or c.rate_card_reel is null or c.rate_card_reel <= :maxRateCardReel)
+              and (:maxRateCardStory is null or c.rate_card_story is null or c.rate_card_story <= :maxRateCardStory)
+              and (:maxRateCardPost is null or c.rate_card_post is null or c.rate_card_post <= :maxRateCardPost)
+              and (:maxRateCardVideo is null or c.rate_card_video is null or c.rate_card_video <= :maxRateCardVideo)
+            order by
+              case when :sortBy = 'trending' then c.is_trending end desc,
+              case when :sortBy = 'top_rated' then c.rating end desc nulls last,
+              case when :sortBy = 'budget_friendly' then coalesce(c.min_price, 2147483647) end asc,
+              case when :sortBy = 'budget_high' then coalesce(c.max_price, c.min_price, 0) end desc,
+              case when :sortBy = 'created_at' then u.created_at end desc nulls last,
+              u.created_at desc
             """,
             countQuery = """
-            select count(distinct c.id) from core.creators c
+            select count(c.id) from core.creators c
             join core.users u on u.id = c.id
             where u.is_active = true
               and (:search is null
                    or lower(u.name) like concat('%', lower(:search), '%')
-                   or lower(c.username) like concat('%', lower(:search), '%')
+                   or lower(u.username) like concat('%', lower(:search), '%')
                    or lower(c.bio) like concat('%', lower(:search), '%')
                    or lower(u.city) like concat('%', lower(:search), '%'))
               and (:city is null or lower(u.city) = lower(:city))
-              and (:category is null
-                   or c.categories @> jsonb_build_array(:category::text))
+              and (:categories is null or exists (
+                   select 1 from jsonb_array_elements_text((:categories)::jsonb) v
+                   where c.categories @> jsonb_build_array(v)))
+              and (:languages is null or exists (
+                   select 1 from jsonb_array_elements_text((:languages)::jsonb) v
+                   where c.languages @> jsonb_build_array(v)))
               and (:minFollowers is null or c.followers >= :minFollowers)
               and (:maxFollowers is null or c.followers <= :maxFollowers)
               and (:minRating is null or c.rating >= :minRating)
               and (:minPrice is null or c.min_price >= :minPrice)
               and (:maxPrice is null or c.max_price <= :maxPrice)
+              and (:minReviews is null or c.total_reviews >= :minReviews)
               and (:badgeLevel is null or c.badge_level = :badgeLevel)
               and (:availabilityStatus is null or c.availability_status = :availabilityStatus)
               and (:acceptsBarter is null or c.accepts_barter = :acceptsBarter)
@@ -112,30 +138,73 @@ public interface CreatorRepository extends JpaRepository<Creator, UUID> {
               and (:platform is null or exists (
                    select 1 from core.social_accounts sa
                    where sa.creator_id = c.id and lower(sa.platform) = lower(:platform)))
+              and (:minCompletionRate is null or (
+                   select case
+                            when count(*) = 0 then 0
+                            else round(sum(case when o.status = 'COMPLETED' then 1.0 else 0.0 end) * 100 / count(*))
+                          end
+                   from core.orders o
+                   where o.creator_id = c.id) >= :minCompletionRate)
+              and (:maxRateCardReel is null or c.rate_card_reel is null or c.rate_card_reel <= :maxRateCardReel)
+              and (:maxRateCardStory is null or c.rate_card_story is null or c.rate_card_story <= :maxRateCardStory)
+              and (:maxRateCardPost is null or c.rate_card_post is null or c.rate_card_post <= :maxRateCardPost)
+              and (:maxRateCardVideo is null or c.rate_card_video is null or c.rate_card_video <= :maxRateCardVideo)
             """,
             nativeQuery = true)
     Page<Creator> search(
             @Param("search")             String search,
             @Param("city")               String city,
-            @Param("category")           String category,
+            @Param("categories")         String categories,
+            @Param("languages")          String languages,
             @Param("minFollowers")       Integer minFollowers,
             @Param("maxFollowers")       Integer maxFollowers,
             @Param("minRating")          BigDecimal minRating,
             @Param("minPrice")           Integer minPrice,
             @Param("maxPrice")           Integer maxPrice,
-            @Param("badgeLevel")         CreatorBadgeLevel badgeLevel,
-            @Param("availabilityStatus") AvailabilityStatus availabilityStatus,
+            @Param("minReviews")         Integer minReviews,
+            @Param("badgeLevel")         String badgeLevel,
+            @Param("availabilityStatus") String availabilityStatus,
             @Param("acceptsBarter")      Boolean acceptsBarter,
             @Param("isTrending")         Boolean isTrending,
             @Param("isFastResponder")    Boolean isFastResponder,
             @Param("isVerified")         Boolean isVerified,
             @Param("minEngagementRate")  BigDecimal minEngagementRate,
             @Param("platform")           String platform,
+            @Param("minCompletionRate")  Integer minCompletionRate,
+            @Param("maxRateCardReel")    Integer maxRateCardReel,
+            @Param("maxRateCardStory")   Integer maxRateCardStory,
+            @Param("maxRateCardPost")    Integer maxRateCardPost,
+            @Param("maxRateCardVideo")   Integer maxRateCardVideo,
+            @Param("sortBy")             String sortBy,
             Pageable pageable
     );
 
     @Query("select c.id from Creator c")
     List<UUID> findAllIds();
+
+    @Query(value = """
+            select distinct t.elem
+            from core.creators c
+            join core.users u on u.id = c.id,
+            lateral jsonb_array_elements_text(c.categories) as t(elem)
+            where u.is_active = true
+              and c.categories is not null
+              and jsonb_array_length(c.categories) > 0
+            order by t.elem
+            """, nativeQuery = true)
+    List<String> findDistinctCategories();
+
+    @Query(value = """
+            select distinct t.elem
+            from core.creators c
+            join core.users u on u.id = c.id,
+            lateral jsonb_array_elements_text(c.languages) as t(elem)
+            where u.is_active = true
+              and c.languages is not null
+              and jsonb_array_length(c.languages) > 0
+            order by t.elem
+            """, nativeQuery = true)
+    List<String> findDistinctLanguages();
 
     @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query(value = """

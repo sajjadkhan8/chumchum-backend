@@ -188,7 +188,7 @@ create table packages (
     thumbnail_url varchar(500),
     media_urls text[],
     tags jsonb not null default '[]'::jsonb,
-    status varchar(30) not null default 'draft',
+    status varchar(30) not null default 'DRAFT',
     visibility varchar(30) not null default 'public',
     short_description varchar(300),
     full_description text,
@@ -244,11 +244,11 @@ create table orders (
     creator_id uuid not null references creators(id) on delete restrict,
     brand_id uuid not null references brands(id) on delete restrict,
     order_number varchar(20),
-    deal_type varchar(30) not null default 'paid',
+    deal_type varchar(30) not null default 'PAID',
     amount integer,
     barter_details text,
     message text,
-    status varchar(30) not null default 'pending',
+    status varchar(30) not null default 'PENDING',
     progress integer not null default 0,
     delivery_date date,
     deadline_date timestamptz,
@@ -451,7 +451,7 @@ create table transactions (
     type varchar(30) not null,
     amount integer not null,
     description varchar(300) not null,
-    status varchar(30) not null default 'pending',
+    status varchar(30) not null default 'PENDING',
     created_at timestamptz not null default now()
 );
 
@@ -470,7 +470,7 @@ create table withdrawal_requests (
     creator_id uuid not null references creators(id) on delete cascade,
     payout_method_id uuid not null references payout_methods(id) on delete restrict,
     amount integer not null,
-    status varchar(30) not null default 'pending',
+    status varchar(30) not null default 'PENDING',
     processed_at timestamptz,
     created_at timestamptz not null default now()
 );
@@ -478,7 +478,7 @@ create table withdrawal_requests (
 create table ambassador_applications (
     id uuid primary key default gen_random_uuid(),
     creator_id uuid not null unique references creators(id) on delete cascade,
-    status varchar(30) not null default 'draft',
+    status varchar(30) not null default 'DRAFT',
     submitted_at timestamptz,
     identity_verified boolean not null default false,
     engagement_verified boolean not null default false,
@@ -781,3 +781,27 @@ create index idx_safepay_sessions_brand on safepay_payment_sessions(brand_id);
 create index idx_safepay_sessions_status on safepay_payment_sessions(status);
 create index idx_safepay_sessions_order on safepay_payment_sessions(order_id)
     where order_id is not null;
+
+-- Creator search filter indexes
+create index idx_creators_languages_gin on core.creators using gin(languages);
+create index idx_creators_rating_desc on core.creators(rating desc);
+create index idx_creators_followers_desc on core.creators(followers desc);
+create index idx_creators_engagement_rate_desc on core.creators(engagement_rate desc)
+    where engagement_rate is not null;
+create index idx_creators_availability_status on core.creators(availability_status)
+    where availability_status is not null;
+create index idx_creators_accepts_barter on core.creators(accepts_barter);
+create index idx_creators_is_verified on core.creators(is_verified);
+create index idx_creators_total_reviews_desc on core.creators(total_reviews desc);
+create index idx_creators_min_price on core.creators(min_price)
+    where min_price is not null;
+create index idx_creators_max_price_desc on core.creators(max_price desc)
+    where max_price is not null;
+create index idx_creators_rate_card_reel on core.creators(rate_card_reel)
+    where rate_card_reel is not null;
+create index idx_creators_rate_card_story on core.creators(rate_card_story)
+    where rate_card_story is not null;
+create index idx_creators_rate_card_post on core.creators(rate_card_post)
+    where rate_card_post is not null;
+create index idx_creators_rate_card_video on core.creators(rate_card_video)
+    where rate_card_video is not null;
