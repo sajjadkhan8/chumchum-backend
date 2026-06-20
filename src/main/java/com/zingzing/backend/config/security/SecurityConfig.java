@@ -44,7 +44,8 @@ public class SecurityConfig {
                         auth.requestMatchers(HttpMethod.POST,
                                 "/api/v1/auth/login", "/api/v1/auth/register", "/api/v1/auth/google",
                                 "/api/v1/auth/send-otp", "/api/v1/auth/verify-otp", "/api/v1/auth/refresh",
-                                "/api/v1/auth/forgot-password", "/api/v1/auth/reset-password", "/api/v1/auth/logout"
+                                "/api/v1/auth/forgot-password", "/api/v1/auth/reset-password",
+                                "/api/v1/auth/email-verification/verify", "/api/v1/auth/logout"
                         ).permitAll();
                         // Webhook endpoints (verified by signature in handler — no JWT required)
                         auth.requestMatchers(HttpMethod.POST, "/api/v1/webhooks/refunds/*").permitAll();
@@ -65,6 +66,7 @@ public class SecurityConfig {
                                 "/api/v1/ambassador/eligibility",
                                 "/api/v1/ambassador/requirements"
                         ).permitAll();
+                        auth.requestMatchers(HttpMethod.POST, "/api/v1/packages/*/track").permitAll();
                         // Public creator discovery endpoints (named single-segment paths)
                         auth.requestMatchers(HttpMethod.GET,
                                 "/api/v1/creators",

@@ -78,6 +78,17 @@ public class PackageController {
         return ResponseEntity.ok(servicePackageService.getAnalytics(id, authUser.userId(), authUser.role()));
     }
 
+    @PostMapping("/{id}/track")
+    public ResponseEntity<Map<String, Object>> trackPackageEvent(
+            @PathVariable UUID id,
+            @RequestBody(required = false) Map<String, String> request
+    ) {
+        String eventType = request == null ? "VIEW" : request.getOrDefault("eventType", "VIEW");
+        String source = request == null ? "package_detail" : request.getOrDefault("source", "package_detail");
+        servicePackageService.trackPackageEvent(id, eventType, source);
+        return ResponseEntity.ok(Map.of("success", true));
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<Map<String, Object>> deletePackage(
             @PathVariable UUID id,

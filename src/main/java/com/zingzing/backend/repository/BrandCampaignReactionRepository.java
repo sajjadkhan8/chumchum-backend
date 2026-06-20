@@ -49,4 +49,5 @@ public interface BrandCampaignReactionRepository extends JpaRepository<BrandCamp
     Optional<BrandCampaignReaction> findByCampaignIdAndCreatorId(UUID campaignId, UUID creatorId);
 
     long countByCampaignId(UUID campaignId);
+    long countByCampaignIdAndStatus(UUID campaignId, BrandCampaignReactionStatus status);
 }

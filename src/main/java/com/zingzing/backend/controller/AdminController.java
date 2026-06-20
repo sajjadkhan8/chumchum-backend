@@ -3,6 +3,8 @@ package com.zingzing.backend.controller;
 import com.zingzing.backend.config.security.AuthenticatedUser;
 import com.zingzing.backend.dto.order.OrderResponse;
 import com.zingzing.backend.entity.AmbassadorApplication;
+import com.zingzing.backend.entity.AmbassadorScore;
+import com.zingzing.backend.entity.ApiLog;
 import com.zingzing.backend.entity.Brand;
 import com.zingzing.backend.entity.Creator;
 import com.zingzing.backend.entity.Order;
@@ -22,6 +24,9 @@ import com.zingzing.backend.mapper.UserMapper;
 import com.zingzing.backend.repository.BrandRepository;
 import com.zingzing.backend.repository.CreatorRepository;
 import com.zingzing.backend.repository.OrderRepository;
+import com.zingzing.backend.repository.AmbassadorScoreRepository;
+import com.zingzing.backend.repository.ApiLogRepository;
+import com.zingzing.backend.repository.ReviewRepository;
 import com.zingzing.backend.repository.UserRepository;
 import com.zingzing.backend.repository.WithdrawalRequestRepository;
 import com.zingzing.backend.service.AdminOperationsService;
@@ -42,6 +47,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -74,6 +80,9 @@ public class AdminController {
     private final WithdrawalService withdrawalService;
     private final AdminStepUpService adminStepUpService;
     private final WithdrawalRequestRepository withdrawalRequestRepository;
+    private final ReviewRepository reviewRepository;
+    private final AmbassadorScoreRepository ambassadorScoreRepository;
+    private final ApiLogRepository apiLogRepository;
 
     public AdminController(UserRepository userRepository,
                            CreatorRepository creatorRepository,
@@ -88,7 +97,10 @@ public class AdminController {
                            AdminOperationsService adminOperationsService,
                            WithdrawalService withdrawalService,
                            AdminStepUpService adminStepUpService,
-                           WithdrawalRequestRepository withdrawalRequestRepository) {
+                           WithdrawalRequestRepository withdrawalRequestRepository,
+                           ReviewRepository reviewRepository,
+                           AmbassadorScoreRepository ambassadorScoreRepository,
+                           ApiLogRepository apiLogRepository) {
         this.userRepository = userRepository;
         this.creatorRepository = creatorRepository;
         this.brandRepository = brandRepository;
@@ -103,12 +115,22 @@ public class AdminController {
         this.withdrawalService = withdrawalService;
         this.adminStepUpService = adminStepUpService;
         this.withdrawalRequestRepository = withdrawalRequestRepository;
+        this.reviewRepository = reviewRepository;
+        this.ambassadorScoreRepository = ambassadorScoreRepository;
+        this.apiLogRepository = apiLogRepository;
     }
 
     public record UserStatusRequest(@NotNull Boolean active) {}
 
     public record UserModerateRequest(
             @NotNull @NotBlank @Size(max = 20) String action,  // "suspend" | "ban" | "unban"
+            @Size(max = 500) String reason,
+            Integer suspendDays
+    ) {}
+
+    public record BulkModerateRequest(
+            @NotNull List<UUID> userIds,
+            @NotNull @NotBlank @Size(max = 20) String action,
             @Size(max = 500) String reason,
             Integer suspendDays
     ) {}
@@ -517,6 +539,151 @@ public class AdminController {
         return ok(userMapper.toResponse(saved));
     }
 
+    @PostMapping("/users/bulk-moderate")
+    @Transactional
+    public ResponseEntity<Map<String, Object>> bulkModerateUsers(
+            @AuthenticationPrincipal AuthenticatedUser authUser,
+            @Valid @RequestBody BulkModerateRequest request,
+            @RequestHeader(value = "X-Step-Up-Token", required = false) String stepUpToken
+    ) {
+        requireAdmin(authUser);
+        if (!authUser.role().canModerateUsers()) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "Support or Platform Admin role required for user moderation");
+        }
+        String action = request.action().trim().toLowerCase();
+        if ("ban".equals(action) || "suspend".equals(action)) {
+            adminStepUpService.requireStepUp(authUser, stepUpToken);
+        }
+        List<String> succeeded = new java.util.ArrayList<>();
+        List<String> failed = new java.util.ArrayList<>();
+        for (UUID id : request.userIds()) {
+            try {
+                if (authUser.userId().equals(id)) throw new ApiException(HttpStatus.BAD_REQUEST, "Admins cannot moderate their own account");
+                User user = userRepository.findById(id)
+                        .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "User not found"));
+                if (user.getRole().isAdmin()) throw new ApiException(HttpStatus.FORBIDDEN, "Cannot moderate admin accounts");
+                switch (action) {
+                    case "enable", "unban" -> {
+                        user.setActive(true);
+                        user.setBanReason(null);
+                        user.setSuspendedUntil(null);
+                        user.setDeletedAt(null);
+                    }
+                    case "disable" -> user.setActive(false);
+                    case "ban" -> {
+                        user.setActive(false);
+                        user.setBanReason(request.reason());
+                        user.setSuspendedUntil(null);
+                        user.setDeletedAt(OffsetDateTime.now());
+                    }
+                    case "suspend" -> {
+                        int days = request.suspendDays() != null && request.suspendDays() > 0 ? request.suspendDays() : 30;
+                        user.setActive(false);
+                        user.setBanReason(request.reason());
+                        user.setSuspendedUntil(OffsetDateTime.now().plusDays(days));
+                    }
+                    default -> throw new ApiException(HttpStatus.BAD_REQUEST, "Invalid action: " + request.action());
+                }
+                userRepository.save(user);
+                succeeded.add(id.toString());
+            } catch (Exception ex) {
+                failed.add(id.toString());
+            }
+        }
+        adminOperationsService.log(authUser.userId(), "USERS_BULK_MODERATED", "user", String.join(",", succeeded),
+                "action=" + action + ", succeeded=" + succeeded.size() + ", failed=" + failed.size());
+        return ok(Map.of("succeeded", succeeded, "failed", failed));
+    }
+
+    @GetMapping("/brands/{brandId}/metrics")
+    public ResponseEntity<Map<String, Object>> brandMetrics(
+            @AuthenticationPrincipal AuthenticatedUser authUser,
+            @PathVariable UUID brandId
+    ) {
+        requireAdmin(authUser);
+        Brand brand = brandRepository.findById(brandId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Brand not found"));
+        List<Order> orders = orderRepository.findByBrandIdOrderByCreatedAtDesc(brandId);
+        long totalOrders = orders.size();
+        long completedOrders = orders.stream().filter(order -> order.getStatus() == OrderStatus.COMPLETED).count();
+        long uniqueCreators = orders.stream().map(order -> order.getCreator().getId()).distinct().count();
+        long repeatCreators = orders.stream()
+                .collect(java.util.stream.Collectors.groupingBy(order -> order.getCreator().getId(), java.util.stream.Collectors.counting()))
+                .values()
+                .stream()
+                .filter(count -> count > 1)
+                .count();
+        double completionRate = totalOrders == 0 ? 0.0 : Math.round((completedOrders * 1000.0 / totalOrders)) / 10.0;
+        double repeatCreatorRate = uniqueCreators == 0 ? 0.0 : Math.round((repeatCreators * 1000.0 / uniqueCreators)) / 10.0;
+        double avgRating = Math.round(reviewRepository.averageRatingByBrand(brandId) * 10.0) / 10.0;
+        boolean missingVerification = brand.getBusinessVerificationStatus() == null
+                || brand.getBusinessVerificationStatus().isBlank()
+                || "rejected".equalsIgnoreCase(brand.getBusinessVerificationStatus());
+        boolean flagged = missingVerification || (totalOrders >= 5 && completionRate < 60.0);
+        String flagReason = missingVerification
+                ? "Business verification is incomplete"
+                : flagged ? "Completion rate is below operational target" : null;
+        return ok(Map.of(
+                "brandId", brandId,
+                "totalOrders", totalOrders,
+                "completedOrders", completedOrders,
+                "completionRate", completionRate,
+                "avgRating", avgRating,
+                "repeatCreatorRate", repeatCreatorRate,
+                "flaggedForReview", flagged,
+                "flagReason", flagReason == null ? "" : flagReason
+        ));
+    }
+
+    @GetMapping("/creators/{creatorId}/ambassador-score")
+    public ResponseEntity<Map<String, Object>> creatorAmbassadorScore(
+            @AuthenticationPrincipal AuthenticatedUser authUser,
+            @PathVariable UUID creatorId
+    ) {
+        requireAdmin(authUser);
+        creatorRepository.findById(creatorId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Creator not found"));
+        AmbassadorScore score = ambassadorScoreRepository.findByCreatorId(creatorId)
+                .orElseGet(() -> AmbassadorScore.builder().creatorId(creatorId).build());
+        int nextTierPoints = Math.max(0, 100 - score.getTotal());
+        return ok(Map.of(
+                "creatorId", creatorId,
+                "score", Map.of(
+                        "total", score.getTotal(),
+                        "deliveryScore", score.getDeliveryScore(),
+                        "ratingScore", score.getRatingScore(),
+                        "accountAgeScore", score.getAccountAgeScore(),
+                        "cancellationScore", score.getCancellationScore(),
+                        "profileCompletenessScore", score.getProfileCompletenessScore(),
+                        "consistencyScore", score.getConsistencyScore()
+                ),
+                "tier", score.getTier().name().toLowerCase(),
+                "percentileRank", score.getPercentileRank(),
+                "strengths", score.getStrengths(),
+                "improvements", score.getImprovements(),
+                "nextTierPoints", nextTierPoints
+        ));
+    }
+
+    @GetMapping("/api-logs")
+    public ResponseEntity<Map<String, Object>> apiLogs(
+            @AuthenticationPrincipal AuthenticatedUser authUser,
+            @RequestParam(required = false) String service,
+            @RequestParam(required = false) String status,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int limit
+    ) {
+        requireAdmin(authUser);
+        Boolean success = null;
+        if ("success".equalsIgnoreCase(status)) success = true;
+        if ("error".equalsIgnoreCase(status)) success = false;
+        Page<ApiLog> result = apiLogRepository.search(blankToNull(service), success, PageRequest.of(safePage(page), safeLimit(limit)));
+        return ok(Map.of(
+                "logs", result.getContent().stream().map(this::toApiLogMap).toList(),
+                "total", result.getTotalElements()
+        ));
+    }
+
     @GetMapping("/payments/withdrawals")
     public ResponseEntity<Map<String, Object>> listWithdrawals(
             @AuthenticationPrincipal AuthenticatedUser authUser,
@@ -582,6 +749,19 @@ public class AdminController {
 
     private ResponseEntity<Map<String, Object>> ok(Object data) {
         return ResponseEntity.ok(Map.of("success", true, "data", data));
+    }
+
+    private Map<String, Object> toApiLogMap(ApiLog log) {
+        Map<String, Object> row = new LinkedHashMap<>();
+        row.put("id", log.getId());
+        row.put("timestamp", log.getCreatedAt());
+        row.put("method", log.getMethod());
+        row.put("path", log.getPath());
+        row.put("statusCode", log.getStatusCode());
+        row.put("durationMs", log.getDurationMs());
+        row.put("service", log.getService());
+        row.put("errorMessage", log.getErrorMessage());
+        return row;
     }
 
     private void requireAdmin(AuthenticatedUser authUser) {

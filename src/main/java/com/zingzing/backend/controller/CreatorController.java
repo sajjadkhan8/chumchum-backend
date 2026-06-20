@@ -273,6 +273,8 @@ public class CreatorController {
             @NotBlank String platform
     ) {}
 
+    public record PortfolioReorderRequest(List<UUID> ids) {}
+
     @PostMapping("/me/portfolio")
     public ResponseEntity<Map<String, Object>> addPortfolioItem(
             @AuthenticationPrincipal AuthenticatedUser authUser,
@@ -295,6 +297,31 @@ public class CreatorController {
         row.put("mediaUrl", saved.getMediaUrl());
         row.put("platform", saved.getPlatform());
         return ResponseEntity.ok(Map.of("success", true, "data", row));
+    }
+
+    @PutMapping("/me/portfolio/reorder")
+    public ResponseEntity<Map<String, Object>> reorderPortfolioItems(
+            @AuthenticationPrincipal AuthenticatedUser authUser,
+            @RequestBody PortfolioReorderRequest request
+    ) {
+        List<UUID> ids = request.ids() == null ? List.of() : request.ids();
+        List<ContentPreview> ownItems = contentPreviewRepository.findByCreatorIdOrderByPositionAscCreatedAtDesc(authUser.userId());
+        Map<UUID, ContentPreview> byId = ownItems.stream()
+                .collect(java.util.stream.Collectors.toMap(ContentPreview::getId, item -> item));
+        int position = 0;
+        for (UUID id : ids) {
+            ContentPreview item = byId.remove(id);
+            if (item == null) {
+                throw new ApiException(HttpStatus.BAD_REQUEST, "Portfolio item does not belong to this creator: " + id);
+            }
+            item.setPosition(position++);
+            contentPreviewRepository.save(item);
+        }
+        for (ContentPreview item : byId.values()) {
+            item.setPosition(position++);
+            contentPreviewRepository.save(item);
+        }
+        return ResponseEntity.ok(Map.of("success", true, "message", "Portfolio order updated"));
     }
 
     @DeleteMapping("/me/portfolio/{itemId}")

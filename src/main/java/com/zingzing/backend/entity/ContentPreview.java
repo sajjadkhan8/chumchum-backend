@@ -41,8 +41,11 @@ public class ContentPreview {
     private Integer views;
     private Integer likes;
 
+    @Column(nullable = false)
+    @Builder.Default
+    private int position = 0;
+
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 }
-

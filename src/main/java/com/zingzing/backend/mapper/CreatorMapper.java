@@ -115,7 +115,10 @@ public class CreatorMapper {
                 socialAccount.getAvgViews(),
                 socialAccount.getEngagementRate(),
                 socialAccount.isVerified(),
-                socialAccount.getVerifiedBy()
+                socialAccount.getVerifiedBy(),
+                socialAccount.getOauthStatus(),
+                socialAccount.getLastSyncedAt(),
+                socialAccount.getSyncError()
         );
     }
 

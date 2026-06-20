@@ -11,6 +11,7 @@ import com.zingzing.backend.dto.campaign.BrandCampaignUpdateRequest;
 import com.zingzing.backend.entity.Brand;
 import com.zingzing.backend.entity.BrandCampaign;
 import com.zingzing.backend.entity.BrandCampaignReaction;
+import com.zingzing.backend.entity.CampaignAlertRule;
 import com.zingzing.backend.entity.Creator;
 import com.zingzing.backend.entity.ServicePackage;
 import com.zingzing.backend.entity.enums.BrandCampaignReactionStatus;
@@ -26,6 +27,7 @@ import com.zingzing.backend.entity.enums.UserRole;
 import com.zingzing.backend.exception.ApiException;
 import com.zingzing.backend.repository.BrandCampaignReactionRepository;
 import com.zingzing.backend.repository.BrandCampaignRepository;
+import com.zingzing.backend.repository.CampaignAlertRuleRepository;
 import com.zingzing.backend.repository.BrandRepository;
 import com.zingzing.backend.repository.CreatorRepository;
 import com.zingzing.backend.repository.OrderRepository;
@@ -60,6 +62,7 @@ public class BrandCampaignService {
     private final ServicePackageRepository servicePackageRepository;
     private final OrderRepository orderRepository;
     private final OrderService orderService;
+    private final CampaignAlertRuleRepository campaignAlertRuleRepository;
 
     public BrandCampaignService(BrandCampaignRepository brandCampaignRepository,
                              BrandCampaignReactionRepository brandCampaignReactionRepository,
@@ -68,7 +71,8 @@ public class BrandCampaignService {
                              NotificationService notificationService,
                              ServicePackageRepository servicePackageRepository,
                              OrderRepository orderRepository,
-                             OrderService orderService) {
+                             OrderService orderService,
+                             CampaignAlertRuleRepository campaignAlertRuleRepository) {
         this.brandCampaignRepository = brandCampaignRepository;
         this.brandCampaignReactionRepository = brandCampaignReactionRepository;
         this.brandRepository = brandRepository;
@@ -77,6 +81,7 @@ public class BrandCampaignService {
         this.servicePackageRepository = servicePackageRepository;
         this.orderRepository = orderRepository;
         this.orderService = orderService;
+        this.campaignAlertRuleRepository = campaignAlertRuleRepository;
     }
 
     // ── Brand: create / update ────────────────────────────────────────────────
@@ -460,6 +465,7 @@ public class BrandCampaignService {
                 ? ": " + truncate(request.message(), 120) : "");
         notificationService.send(campaign.getBrand().getId(), "CAMPAIGN_REACTION", notifTitle, notifBody,
                 "BRAND_CAMPAIGN", campaign.getId());
+        evaluateAlertRules(campaign);
 
         return toReactionResponse(saved);
     }
@@ -517,6 +523,53 @@ public class BrandCampaignService {
             throw new ApiException(HttpStatus.FORBIDDEN, "You do not own this campaign");
         }
         return campaign;
+    }
+
+    private void evaluateAlertRules(BrandCampaign campaign) {
+        List<CampaignAlertRule> rules = campaignAlertRuleRepository.findByCampaignIdAndIsActiveTrue(campaign.getId());
+        if (rules.isEmpty()) return;
+
+        long reactionCount = brandCampaignReactionRepository.countByCampaignId(campaign.getId());
+        long acceptedCount = brandCampaignReactionRepository.countByCampaignIdAndStatus(campaign.getId(), BrandCampaignReactionStatus.ACCEPTED);
+        double acceptanceRate = reactionCount > 0 ? acceptedCount * 100.0 / reactionCount : 0.0;
+        long projectedSpend = brandCampaignReactionRepository.findByCampaignIdWithCreator(campaign.getId()).stream()
+                .filter(reaction -> reaction.getProposedPrice() != null)
+                .mapToLong(BrandCampaignReaction::getProposedPrice)
+                .sum();
+        long budgetMax = campaign.getBudgetMax() == null ? 0 : campaign.getBudgetMax();
+
+        for (CampaignAlertRule rule : rules) {
+            String type = rule.getType() == null ? "" : rule.getType().trim().toLowerCase(Locale.ROOT);
+            boolean triggered = switch (type) {
+                case "reaction_threshold" -> reactionCount >= rule.getThreshold();
+                case "low_acceptance_rate" -> reactionCount > 0 && acceptanceRate <= rule.getThreshold();
+                case "spend_exceeded" -> budgetMax > 0 && projectedSpend >= budgetMax + Math.round(budgetMax * (rule.getThreshold() / 100.0));
+                default -> false;
+            };
+            if (triggered && shouldTrigger(rule)) {
+                rule.setLastTriggeredAt(Instant.now());
+                campaignAlertRuleRepository.save(rule);
+                notificationService.send(
+                        campaign.getBrand().getId(),
+                        "CAMPAIGN_ALERT",
+                        "Campaign alert triggered",
+                        alertBody(campaign, rule, reactionCount, acceptanceRate, projectedSpend),
+                        "BRAND_CAMPAIGN",
+                        campaign.getId()
+                );
+            }
+        }
+    }
+
+    private boolean shouldTrigger(CampaignAlertRule rule) {
+        return rule.getLastTriggeredAt() == null || rule.getLastTriggeredAt().isBefore(Instant.now().minusSeconds(3600));
+    }
+
+    private String alertBody(BrandCampaign campaign, CampaignAlertRule rule, long reactions, double acceptanceRate, long spend) {
+        String type = rule.getType() == null ? "alert" : rule.getType().replace('_', ' ');
+        return "\"" + campaign.getTitle() + "\" reached " + type
+                + " (threshold " + rule.getThreshold() + "; reactions " + reactions
+                + "; acceptance " + Math.round(acceptanceRate) + "%; projected spend PKR " + spend + ").";
     }
 
     private void notifyCreatorOfReactionAction(BrandCampaignReaction reaction, BrandCampaign campaign,

@@ -32,6 +32,9 @@ public class SocialAccount {
     @Column(nullable = false, length = 30)
     private String platform;   // instagram | tiktok | youtube | facebook | snapchat
 
+    @Column(name = "external_id", length = 120)
+    private String externalId;
+
     @Column(nullable = false, length = 100)
     private String username;
 
@@ -58,6 +61,16 @@ public class SocialAccount {
     @Builder.Default
     private VerificationSource verifiedBy = VerificationSource.SELF;
 
+    @Column(name = "oauth_status", nullable = false, length = 30)
+    @Builder.Default
+    private String oauthStatus = "DISCONNECTED";
+
+    @Column(name = "last_synced_at")
+    private Instant lastSyncedAt;
+
+    @Column(name = "sync_error", length = 500)
+    private String syncError;
+
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
@@ -66,4 +79,3 @@ public class SocialAccount {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 }
-

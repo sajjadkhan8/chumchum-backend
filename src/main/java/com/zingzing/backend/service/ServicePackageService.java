@@ -38,6 +38,7 @@ public class ServicePackageService {
     private final CreatorRepository creatorRepository;
     private final ServicePackageMapper servicePackageMapper;
     private final PackageAnalyticsRepository packageAnalyticsRepository;
+    private final PackageAnalyticsTrackingService packageAnalyticsTrackingService;
 
     private static final Map<PackageStatus, Set<PackageStatus>> STATUS_TRANSITIONS = Map.of(
             PackageStatus.DRAFT,        EnumSet.of(PackageStatus.ACTIVE, PackageStatus.ARCHIVED),
@@ -55,12 +56,14 @@ public class ServicePackageService {
             ServicePackageRepository servicePackageRepository,
             CreatorRepository creatorRepository,
             ServicePackageMapper servicePackageMapper,
-            PackageAnalyticsRepository packageAnalyticsRepository
+            PackageAnalyticsRepository packageAnalyticsRepository,
+            PackageAnalyticsTrackingService packageAnalyticsTrackingService
     ) {
         this.servicePackageRepository = servicePackageRepository;
         this.creatorRepository = creatorRepository;
         this.servicePackageMapper = servicePackageMapper;
         this.packageAnalyticsRepository = packageAnalyticsRepository;
+        this.packageAnalyticsTrackingService = packageAnalyticsTrackingService;
     }
 
     public ServicePackageResponse createPackage(UUID userId, UserRole role, ServicePackageCreateRequest request) {
@@ -287,11 +290,19 @@ public class ServicePackageService {
         return Map.of("success", true, "data", data);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public ServicePackageResponse getPackage(UUID packageId) {
         ServicePackage servicePackage = servicePackageRepository.findById(packageId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Package not found!"));
+        packageAnalyticsTrackingService.track(servicePackage, "VIEW", null, null, "package_detail", "{}");
         return servicePackageMapper.toResponse(servicePackage);
+    }
+
+    @Transactional
+    public void trackPackageEvent(UUID packageId, String eventType, String source) {
+        ServicePackage servicePackage = servicePackageRepository.findById(packageId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Package not found!"));
+        packageAnalyticsTrackingService.track(servicePackage, eventType, null, null, source, "{}");
     }
 
     @Transactional(readOnly = true)

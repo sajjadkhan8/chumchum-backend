@@ -70,6 +70,7 @@ public class OrderService {
     private final NotificationService notificationService;
     private final AffiliateService affiliateService;
     private final BrandWalletRepository brandWalletRepository;
+    private final PackageAnalyticsTrackingService packageAnalyticsTrackingService;
     private final double feeRate;
 
     public OrderService(OrderRepository orderRepository,
@@ -83,6 +84,7 @@ public class OrderService {
                         NotificationService notificationService,
                         AffiliateService affiliateService,
                         BrandWalletRepository brandWalletRepository,
+                        PackageAnalyticsTrackingService packageAnalyticsTrackingService,
                         @Value("${platform.fee-rate:0.10}") double feeRate) {
         this.orderRepository = orderRepository;
         this.servicePackageRepository = servicePackageRepository;
@@ -95,6 +97,7 @@ public class OrderService {
         this.notificationService = notificationService;
         this.affiliateService = affiliateService;
         this.brandWalletRepository = brandWalletRepository;
+        this.packageAnalyticsTrackingService = packageAnalyticsTrackingService;
         this.feeRate = feeRate;
     }
 
@@ -208,6 +211,7 @@ public class OrderService {
         order.setDeliverables(deliverables);
 
         Order saved = orderRepository.save(order);
+        packageAnalyticsTrackingService.track(pkg, "INQUIRY", brand, brand, "order_created", "{\"orderId\":\"" + saved.getId() + "\"}");
         notificationService.send(saved.getCreator().getId(), "order_placed", "New order received",
                 "You have a new order for: " + pkg.getTitle(), "order", saved.getId());
         return orderMapper.toResponse(saved);

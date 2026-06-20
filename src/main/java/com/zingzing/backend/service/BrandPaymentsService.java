@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -79,6 +80,16 @@ public class BrandPaymentsService {
             String status,
             Instant issuedAt,
             Instant dueAt
+    ) {}
+
+    public record BrandInvoiceDetailResponse(
+            UUID id,
+            String periodLabel,
+            int amount,
+            String status,
+            Instant issuedAt,
+            Instant dueAt,
+            List<Map<String, Object>> lineItems
     ) {}
 
     public record BrandDisbursementResponse(
@@ -250,6 +261,30 @@ public class BrandPaymentsService {
     }
 
     @Transactional
+    public BrandInvoiceDetailResponse getInvoiceDetail(BrandScope scope, UUID invoiceId) {
+        requireView(scope.role());
+        BrandInvoice invoice = brandInvoiceRepository.findById(invoiceId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Invoice not found"));
+        if (!invoice.getBrand().getId().equals(scope.brandId())) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "Invoice does not belong to this brand");
+        }
+        int serviceFee = Math.round(invoice.getAmount() * 0.1f);
+        int campaignSpend = Math.max(0, invoice.getAmount() - serviceFee);
+        return new BrandInvoiceDetailResponse(
+                invoice.getId(),
+                invoice.getPeriodLabel(),
+                invoice.getAmount(),
+                invoice.getStatus().name().toLowerCase(),
+                invoice.getIssuedAt(),
+                invoice.getDueAt(),
+                List.of(
+                        Map.of("description", "Campaign spend", "amount", campaignSpend),
+                        Map.of("description", "Platform service fee", "amount", serviceFee)
+                )
+        );
+    }
+
+    @Transactional
     public List<BrandDisbursementResponse> getDisbursements(BrandScope scope) {
         requireView(scope.role());
         return brandDisbursementRepository.findByBrandIdOrderByReleaseDateDesc(scope.brandId())
@@ -417,4 +452,3 @@ public class BrandPaymentsService {
         return value == null ? "" : value.trim();
     }
 }
-

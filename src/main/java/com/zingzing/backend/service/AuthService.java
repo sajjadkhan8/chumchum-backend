@@ -48,6 +48,7 @@ public class AuthService {
     private final EmailNotificationService emailNotificationService;
     private final AuthRefreshTokenRepository refreshTokenRepository;
     private final AuthPasswordResetTokenRepository resetTokenRepository;
+    private final AuthEmailVerificationTokenRepository emailVerificationTokenRepository;
     private final AuthOtpChallengeRepository otpChallengeRepository;
     private final AuthRateLimitService rateLimitService;
     private final AffiliateService affiliateService;
@@ -71,6 +72,7 @@ public class AuthService {
             EmailNotificationService emailNotificationService,
             AuthRefreshTokenRepository refreshTokenRepository,
             AuthPasswordResetTokenRepository resetTokenRepository,
+            AuthEmailVerificationTokenRepository emailVerificationTokenRepository,
             AuthOtpChallengeRepository otpChallengeRepository,
             AuthRateLimitService rateLimitService,
             AffiliateService affiliateService,
@@ -90,6 +92,7 @@ public class AuthService {
         this.emailNotificationService = emailNotificationService;
         this.refreshTokenRepository = refreshTokenRepository;
         this.resetTokenRepository = resetTokenRepository;
+        this.emailVerificationTokenRepository = emailVerificationTokenRepository;
         this.otpChallengeRepository = otpChallengeRepository;
         this.rateLimitService = rateLimitService;
         this.affiliateService = affiliateService;
@@ -384,6 +387,45 @@ public class AuthService {
         token.setUsedAt(Instant.now());
         resetTokenRepository.save(token);
         refreshTokenRepository.revokeAllByUserId(user.getId(), Instant.now());
+    }
+
+    @Transactional
+    public void sendEmailVerification(UUID userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "User not found"));
+        requireActive(user);
+        if (user.getEmail() == null || user.getEmail().isBlank()) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "No email address is available for this account");
+        }
+        if (user.isEmailVerified()) {
+            return;
+        }
+        enforceRateLimit("email_verification", user.getEmail(), 3, 15, 60);
+        String rawToken = randomToken();
+        emailVerificationTokenRepository.save(AuthEmailVerificationToken.builder()
+                .tokenHash(hash(rawToken))
+                .user(user)
+                .createdAt(Instant.now())
+                .expiresAt(Instant.now().plus(24, ChronoUnit.HOURS))
+                .build());
+        emailNotificationService.send(user.getEmail(), user.getName(), "Verify your ZingZing email",
+                frontendBaseUrl + "/verify-email?token=" + rawToken);
+    }
+
+    @Transactional
+    public void verifyEmail(String rawToken) {
+        AuthEmailVerificationToken token = emailVerificationTokenRepository.findById(hash(rawToken))
+                .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "Invalid/expired verification token"));
+        if (token.getUsedAt() != null || token.getExpiresAt().isBefore(Instant.now())) {
+            throw new ApiException(HttpStatus.UNAUTHORIZED, "Invalid/expired verification token");
+        }
+        User user = token.getUser();
+        requireActive(user);
+        user.setEmailVerified(true);
+        userRepository.save(user);
+        token.setUsedAt(Instant.now());
+        emailVerificationTokenRepository.save(token);
+        clearRateLimit("email_verification", user.getEmail());
     }
 
     @Transactional

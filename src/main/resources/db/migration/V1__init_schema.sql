@@ -45,6 +45,14 @@ create table auth_password_reset_tokens (
     created_at timestamptz not null default now()
 );
 
+create table auth_email_verification_tokens (
+    token_hash varchar(64) primary key,
+    user_id uuid not null references users(id) on delete cascade,
+    expires_at timestamptz not null,
+    used_at timestamptz,
+    created_at timestamptz not null default now()
+);
+
 create table auth_otp_challenges (
     phone varchar(30) primary key,
     otp_hash varchar(64) not null,
@@ -61,6 +69,16 @@ create table auth_rate_limits (
     window_started_at timestamptz not null,
     blocked_until timestamptz,
     unique (action, identifier)
+);
+
+create table auth_security_events (
+    id uuid primary key default gen_random_uuid(),
+    user_id uuid references users(id) on delete set null,
+    event_type varchar(60) not null,
+    ip_address varchar(80),
+    user_agent varchar(500),
+    details text,
+    created_at timestamptz not null default now()
 );
 
 create table creators (
@@ -332,6 +350,28 @@ create table payment_audit_logs (
     created_at timestamptz not null default now()
 );
 
+create table brand_verification_documents (
+    id uuid primary key default gen_random_uuid(),
+    brand_id uuid not null references brands(id) on delete cascade,
+    type varchar(40) not null,
+    file_name varchar(255) not null,
+    file_url varchar(600) not null,
+    status varchar(30) not null default 'PENDING',
+    rejection_reason varchar(500),
+    uploaded_at timestamptz not null default now(),
+    updated_at timestamptz not null default now()
+);
+
+create table brand_verification_events (
+    id uuid primary key default gen_random_uuid(),
+    brand_id uuid not null references brands(id) on delete cascade,
+    document_id uuid references brand_verification_documents(id) on delete set null,
+    actor_id uuid references users(id) on delete set null,
+    event_type varchar(60) not null,
+    details text,
+    created_at timestamptz not null default now()
+);
+
 create table reviews (
     id uuid primary key,
     package_id uuid not null references packages(id) on delete cascade,
@@ -400,6 +440,7 @@ create table social_accounts (
     id uuid primary key default gen_random_uuid(),
     creator_id uuid not null references creators(id) on delete cascade,
     platform varchar(30) not null,
+    external_id varchar(120),
     username varchar(100) not null,
     profile_url varchar(500),
     followers integer not null default 0,
@@ -408,8 +449,21 @@ create table social_accounts (
     is_verified boolean not null default false,
     -- SELF = creator-entered; PLATFORM_REVIEWED = manually checked by team; API_CONNECTED = pulled via OAuth
     verified_by varchar(30) not null default 'SELF',
+    oauth_status varchar(30) not null default 'DISCONNECTED',
+    last_synced_at timestamptz,
+    sync_error varchar(500),
     created_at timestamptz not null default now(),
     updated_at timestamptz not null default now()
+);
+
+create table social_oauth_states (
+    state_hash varchar(64) primary key,
+    creator_id uuid not null references creators(id) on delete cascade,
+    platform varchar(30) not null,
+    redirect_uri varchar(600),
+    expires_at timestamptz not null,
+    used_at timestamptz,
+    created_at timestamptz not null default now()
 );
 
 create table content_previews (
@@ -421,6 +475,7 @@ create table content_previews (
     platform varchar(30) not null,
     views integer,
     likes integer,
+    position integer not null default 0,
     created_at timestamptz not null default now()
 );
 
@@ -434,6 +489,18 @@ create table package_analytics (
     repeat_brands integer not null default 0,
     engagement_performance numeric(5,2) not null default 0,
     updated_at timestamptz not null default now()
+);
+
+create table package_analytics_events (
+    id uuid primary key default gen_random_uuid(),
+    package_id uuid references packages(id) on delete set null,
+    creator_id uuid references creators(id) on delete set null,
+    brand_id uuid references brands(id) on delete set null,
+    actor_id uuid references users(id) on delete set null,
+    event_type varchar(40) not null,
+    source varchar(80),
+    metadata text not null default '{}',
+    occurred_at timestamptz not null default now()
 );
 
 create table wallets (
@@ -626,6 +693,17 @@ create table brand_campaign_reactions (
     constraint uk_campaign_creator unique (campaign_id, creator_id)
 );
 
+create table campaign_alert_rules (
+    id uuid primary key default gen_random_uuid(),
+    campaign_id uuid not null references brand_campaigns(id) on delete cascade,
+    type varchar(40) not null,
+    threshold integer not null,
+    is_active boolean not null default true,
+    last_triggered_at timestamptz,
+    created_at timestamptz not null default now(),
+    updated_at timestamptz not null default now()
+);
+
 create table notifications (
     id uuid primary key default gen_random_uuid(),
     user_id uuid not null references users(id) on delete cascade,
@@ -681,6 +759,17 @@ create table payment_refunds (
     constraint uq_payment_refunds_provider_refund_id unique (provider_refund_id)
 );
 
+create table api_logs (
+    id uuid primary key default gen_random_uuid(),
+    method varchar(10) not null,
+    path varchar(500) not null,
+    status_code integer not null,
+    duration_ms integer not null,
+    service varchar(80) not null,
+    error_message varchar(1000),
+    created_at timestamptz not null default now()
+);
+
 create table affiliate_links (
     id uuid primary key default gen_random_uuid(),
     owner_user_id uuid not null references users(id) on delete cascade,
@@ -734,10 +823,17 @@ create index idx_auth_refresh_tokens_user on auth_refresh_tokens(user_id);
 create index idx_auth_refresh_tokens_expires on auth_refresh_tokens(expires_at);
 create index idx_auth_password_reset_tokens_user on auth_password_reset_tokens(user_id);
 create index idx_auth_password_reset_tokens_expires on auth_password_reset_tokens(expires_at);
+create index idx_auth_email_verification_tokens_user on auth_email_verification_tokens(user_id);
+create index idx_auth_email_verification_tokens_expires on auth_email_verification_tokens(expires_at);
 create index idx_auth_rate_limits_blocked on auth_rate_limits(blocked_until);
+create index idx_auth_security_events_user_created on auth_security_events(user_id, created_at desc);
+create index idx_auth_security_events_type_created on auth_security_events(event_type, created_at desc);
 create index idx_deliverables_order_id on deliverables(order_id);
 create index idx_social_accounts_creator_id on social_accounts(creator_id);
+create index idx_social_accounts_oauth_status on social_accounts(oauth_status, last_synced_at desc);
+create index idx_social_oauth_states_creator on social_oauth_states(creator_id, expires_at desc);
 create index idx_content_previews_creator_id on content_previews(creator_id);
+create index idx_content_previews_creator_position on content_previews(creator_id, position, created_at desc);
 create index idx_transactions_creator_type on transactions(creator_id, type);
 create index idx_transactions_creator_date on transactions(creator_id, created_at desc);
 create index idx_payout_methods_creator_id on payout_methods(creator_id);
@@ -753,6 +849,11 @@ create index idx_brand_invoices_brand_id on brand_invoices(brand_id, due_at desc
 create index idx_brand_disbursements_brand_id on brand_disbursements(brand_id, release_date desc);
 create index idx_brand_payment_access_lookup on brand_payment_access(user_id, brand_id);
 create index idx_payment_audit_logs_brand_created on payment_audit_logs(brand_id, created_at desc);
+create index idx_brand_verification_documents_brand on brand_verification_documents(brand_id, uploaded_at desc);
+create index idx_brand_verification_documents_status on brand_verification_documents(status, uploaded_at desc);
+create index idx_brand_verification_events_brand on brand_verification_events(brand_id, created_at desc);
+create index idx_package_analytics_events_package on package_analytics_events(package_id, occurred_at desc);
+create index idx_package_analytics_events_creator on package_analytics_events(creator_id, occurred_at desc);
 alter table core.creators add constraint ck_creators_rate_card check (
     (rate_card_reel is null or rate_card_reel >= 0) and
     (rate_card_story is null or rate_card_story >= 0) and
@@ -764,6 +865,7 @@ create index idx_brand_campaigns_brand_status on brand_campaigns(brand_id, statu
 create index idx_brand_campaigns_feed on brand_campaigns(status, deadline_date, published_at desc);
 create index idx_brand_campaign_reactions_offer on brand_campaign_reactions(campaign_id, created_at desc);
 create index idx_brand_campaign_reactions_creator on brand_campaign_reactions(creator_id, updated_at desc);
+create index idx_campaign_alert_rules_campaign on campaign_alert_rules(campaign_id, is_active);
 create index idx_notifications_user_unread on notifications(user_id, is_read, created_at desc);
 create index idx_notifications_user_created on notifications(user_id, created_at desc);
 create index idx_dispute_cases_status_created on dispute_cases(status, created_at desc);
@@ -772,6 +874,9 @@ create index idx_admin_audit_logs_created on admin_audit_logs(created_at desc);
 create index idx_admin_audit_logs_action on admin_audit_logs(action);
 create index idx_payment_refunds_order on payment_refunds(order_id);
 create index idx_payment_refunds_created on payment_refunds(created_at desc);
+create index idx_api_logs_created on api_logs(created_at desc);
+create index idx_api_logs_service_created on api_logs(service, created_at desc);
+create index idx_api_logs_status_created on api_logs(status_code, created_at desc);
 create index idx_affiliate_links_owner on affiliate_links(owner_user_id);
 create index idx_affiliate_links_code on affiliate_links(lower(code));
 create index idx_affiliate_attributions_owner on affiliate_attributions(affiliate_owner_user_id);
@@ -805,3 +910,11 @@ create index idx_creators_rate_card_post on core.creators(rate_card_post)
     where rate_card_post is not null;
 create index idx_creators_rate_card_video on core.creators(rate_card_video)
     where rate_card_video is not null;
+create index idx_users_role_active_created on core.users(role, is_active, created_at desc);
+create index idx_brands_verification_status on core.brands(lower(business_verification_status), created_at desc);
+create index idx_brands_plan_tier on core.brands(plan_tier, created_at desc);
+create index idx_ambassador_applications_status_created on core.ambassador_applications(status, created_at desc);
+create index idx_transactions_status_created on core.transactions(status, created_at desc);
+create index idx_withdrawals_status_created on core.withdrawal_requests(status, created_at desc);
+create index idx_reviews_creator_created on core.reviews(creator_id, created_at desc);
+create index idx_reviews_brand_created on core.reviews(brand_id, created_at desc);

@@ -8,5 +8,5 @@ import java.util.UUID;
 
 public interface ContentPreviewRepository extends JpaRepository<ContentPreview, UUID> {
     List<ContentPreview> findByCreatorIdOrderByCreatedAtDesc(UUID creatorId);
+    List<ContentPreview> findByCreatorIdOrderByPositionAscCreatedAtDesc(UUID creatorId);
 }
-

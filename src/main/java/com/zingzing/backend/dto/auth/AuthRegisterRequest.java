@@ -11,7 +11,7 @@ public record AuthRegisterRequest(
         @NotBlank @Size(min = 2, max = 100) String name,
         @NotBlank @Email String email,
         @NotBlank @Size(min = 8, max = 120)
-        @Pattern(regexp = ".*(?=.*[A-Z])(?=.*\\d).*") String password,
+        @Pattern(regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&]).+$") String password,
         @NotNull UserRole role,
         @Size(max = 40) String affiliateCode,
         Boolean termsAccepted

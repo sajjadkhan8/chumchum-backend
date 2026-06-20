@@ -120,6 +120,7 @@ public class AuthController {
 
     // HIGH-9: Admin step-up re-authentication for destructive operations
     public record StepUpRequest(@NotBlank String password) {}
+    public record VerifyEmailRequest(@NotBlank String token) {}
 
     @PostMapping("/admin/step-up")
     public ResponseEntity<ApiResponse<Map<String, String>>> stepUp(
@@ -156,6 +157,23 @@ public class AuthController {
     @PostMapping("/reset-password")
     public ResponseEntity<ApiResponse<Void>> resetPassword(@Valid @RequestBody AuthResetPasswordRequest request) {
         authService.resetPassword(request);
+        return ResponseEntity.ok(ApiResponse.<Void>ok(null));
+    }
+
+    @PostMapping("/email-verification/send")
+    public ResponseEntity<ApiResponse<Map<String, String>>> sendEmailVerification(
+            @AuthenticationPrincipal AuthenticatedUser authUser
+    ) {
+        if (authUser == null) {
+            throw new ApiException(HttpStatus.UNAUTHORIZED, "Authentication required");
+        }
+        authService.sendEmailVerification(authUser.userId());
+        return ResponseEntity.ok(ApiResponse.ok(Map.of("message", "Verification email sent.")));
+    }
+
+    @PostMapping("/email-verification/verify")
+    public ResponseEntity<ApiResponse<Void>> verifyEmail(@Valid @RequestBody VerifyEmailRequest request) {
+        authService.verifyEmail(request.token());
         return ResponseEntity.ok(ApiResponse.<Void>ok(null));
     }
 
