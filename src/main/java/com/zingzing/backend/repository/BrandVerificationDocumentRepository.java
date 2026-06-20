@@ -4,8 +4,10 @@ import com.zingzing.backend.entity.BrandVerificationDocument;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 public interface BrandVerificationDocumentRepository extends JpaRepository<BrandVerificationDocument, UUID> {
     List<BrandVerificationDocument> findByBrandIdOrderByUploadedAtDesc(UUID brandId);
+    Optional<BrandVerificationDocument> findByIdAndBrandId(UUID id, UUID brandId);
 }

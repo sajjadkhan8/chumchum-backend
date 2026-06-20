@@ -358,6 +358,8 @@ create table brand_verification_documents (
     file_url varchar(600) not null,
     status varchar(30) not null default 'PENDING',
     rejection_reason varchar(500),
+    reviewed_by uuid references users(id) on delete set null,
+    reviewed_at timestamptz,
     uploaded_at timestamptz not null default now(),
     updated_at timestamptz not null default now()
 );

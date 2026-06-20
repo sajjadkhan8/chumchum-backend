@@ -50,6 +50,7 @@ public class AuthService {
     private final AuthPasswordResetTokenRepository resetTokenRepository;
     private final AuthEmailVerificationTokenRepository emailVerificationTokenRepository;
     private final AuthOtpChallengeRepository otpChallengeRepository;
+    private final AuthSecurityEventRepository securityEventRepository;
     private final AuthRateLimitService rateLimitService;
     private final AffiliateService affiliateService;
     private final TotpService totpService;
@@ -74,6 +75,7 @@ public class AuthService {
             AuthPasswordResetTokenRepository resetTokenRepository,
             AuthEmailVerificationTokenRepository emailVerificationTokenRepository,
             AuthOtpChallengeRepository otpChallengeRepository,
+            AuthSecurityEventRepository securityEventRepository,
             AuthRateLimitService rateLimitService,
             AffiliateService affiliateService,
             TotpService totpService,
@@ -94,6 +96,7 @@ public class AuthService {
         this.resetTokenRepository = resetTokenRepository;
         this.emailVerificationTokenRepository = emailVerificationTokenRepository;
         this.otpChallengeRepository = otpChallengeRepository;
+        this.securityEventRepository = securityEventRepository;
         this.rateLimitService = rateLimitService;
         this.affiliateService = affiliateService;
         this.totpService = totpService;
@@ -158,10 +161,12 @@ public class AuthService {
         }
 
         clearRateLimit("login", email);
+        logSecurityEvent(user, "LOGIN_SUCCESS", "password");
 
         // HIGH-8: Admin accounts with MFA enabled require a TOTP step before issuing tokens
         if (user.getRole().isAdmin() && user.isMfaEnabled()) {
             String challengeToken = jwtService.generateShortLivedToken(user.getId(), "mfa_challenge", 300);
+            logSecurityEvent(user, "MFA_CHALLENGE_ISSUED", "admin login");
             return new LoginResult(null, challengeToken);
         }
         return new LoginResult(issueTokens(user), null);
@@ -387,6 +392,7 @@ public class AuthService {
         token.setUsedAt(Instant.now());
         resetTokenRepository.save(token);
         refreshTokenRepository.revokeAllByUserId(user.getId(), Instant.now());
+        logSecurityEvent(user, "PASSWORD_RESET_COMPLETED", "refresh tokens revoked");
     }
 
     @Transactional
@@ -410,6 +416,7 @@ public class AuthService {
                 .build());
         emailNotificationService.send(user.getEmail(), user.getName(), "Verify your ZingZing email",
                 frontendBaseUrl + "/verify-email?token=" + rawToken);
+        logSecurityEvent(user, "EMAIL_VERIFICATION_SENT", "verification email requested");
     }
 
     @Transactional
@@ -426,6 +433,19 @@ public class AuthService {
         token.setUsedAt(Instant.now());
         emailVerificationTokenRepository.save(token);
         clearRateLimit("email_verification", user.getEmail());
+        logSecurityEvent(user, "EMAIL_VERIFIED", "email verification completed");
+    }
+
+    private void logSecurityEvent(User user, String eventType, String details) {
+        try {
+            securityEventRepository.save(AuthSecurityEvent.builder()
+                    .user(user)
+                    .eventType(eventType)
+                    .details(details)
+                    .build());
+        } catch (Exception ignored) {
+            // Security-event persistence should never block an auth flow.
+        }
     }
 
     @Transactional

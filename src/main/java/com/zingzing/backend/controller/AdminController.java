@@ -6,6 +6,8 @@ import com.zingzing.backend.entity.AmbassadorApplication;
 import com.zingzing.backend.entity.AmbassadorScore;
 import com.zingzing.backend.entity.ApiLog;
 import com.zingzing.backend.entity.Brand;
+import com.zingzing.backend.entity.BrandVerificationDocument;
+import com.zingzing.backend.entity.BrandVerificationEvent;
 import com.zingzing.backend.entity.Creator;
 import com.zingzing.backend.entity.Order;
 import com.zingzing.backend.entity.User;
@@ -22,6 +24,8 @@ import com.zingzing.backend.mapper.CreatorMapper;
 import com.zingzing.backend.mapper.OrderMapper;
 import com.zingzing.backend.mapper.UserMapper;
 import com.zingzing.backend.repository.BrandRepository;
+import com.zingzing.backend.repository.BrandVerificationDocumentRepository;
+import com.zingzing.backend.repository.BrandVerificationEventRepository;
 import com.zingzing.backend.repository.CreatorRepository;
 import com.zingzing.backend.repository.OrderRepository;
 import com.zingzing.backend.repository.AmbassadorScoreRepository;
@@ -56,6 +60,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.time.Instant;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -83,6 +88,8 @@ public class AdminController {
     private final ReviewRepository reviewRepository;
     private final AmbassadorScoreRepository ambassadorScoreRepository;
     private final ApiLogRepository apiLogRepository;
+    private final BrandVerificationDocumentRepository brandVerificationDocumentRepository;
+    private final BrandVerificationEventRepository brandVerificationEventRepository;
 
     public AdminController(UserRepository userRepository,
                            CreatorRepository creatorRepository,
@@ -100,7 +107,9 @@ public class AdminController {
                            WithdrawalRequestRepository withdrawalRequestRepository,
                            ReviewRepository reviewRepository,
                            AmbassadorScoreRepository ambassadorScoreRepository,
-                           ApiLogRepository apiLogRepository) {
+                           ApiLogRepository apiLogRepository,
+                           BrandVerificationDocumentRepository brandVerificationDocumentRepository,
+                           BrandVerificationEventRepository brandVerificationEventRepository) {
         this.userRepository = userRepository;
         this.creatorRepository = creatorRepository;
         this.brandRepository = brandRepository;
@@ -118,6 +127,8 @@ public class AdminController {
         this.reviewRepository = reviewRepository;
         this.ambassadorScoreRepository = ambassadorScoreRepository;
         this.apiLogRepository = apiLogRepository;
+        this.brandVerificationDocumentRepository = brandVerificationDocumentRepository;
+        this.brandVerificationEventRepository = brandVerificationEventRepository;
     }
 
     public record UserStatusRequest(@NotNull Boolean active) {}
@@ -143,6 +154,18 @@ public class AdminController {
 
     public record BrandVerificationRequest(
             @Size(max = 50) String status,
+            @Size(max = 255) String contactEmail,
+            @Size(max = 50) String phoneNumber
+    ) {}
+
+    public record BrandVerificationDocumentReviewRequest(
+            @NotNull @NotBlank @Size(max = 30) String status,
+            @Size(max = 500) String reason
+    ) {}
+
+    public record BrandVerificationDecisionRequest(
+            @NotNull @NotBlank @Size(max = 30) String decision,
+            @Size(max = 500) String reason,
             @Size(max = 255) String contactEmail,
             @Size(max = 50) String phoneNumber
     ) {}
@@ -388,13 +411,103 @@ public class AdminController {
             @Valid @RequestBody BrandVerificationRequest request
     ) {
         requireAdmin(authUser);
-        Brand brand = brandRepository.findById(id)
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Brand not found"));
+        Brand brand = findBrand(id);
         if (request.status() != null) brand.setBusinessVerificationStatus(request.status());
         if (request.contactEmail() != null) brand.setVerificationContactEmail(request.contactEmail());
         if (request.phoneNumber() != null) brand.setVerificationPhoneNumber(request.phoneNumber());
         Brand saved = brandRepository.save(brand);
+        logBrandVerificationEvent(brand, null, authUser.userId(), "STATUS_UPDATED", "status=" + saved.getBusinessVerificationStatus());
         adminOperationsService.log(authUser.userId(), "BRAND_VERIFICATION_CHANGED", "brand", id.toString(), "status=" + saved.getBusinessVerificationStatus());
+        return ok(brandMapper.toResponse(saved));
+    }
+
+    @GetMapping("/brands/{brandId}/verification-evidence")
+    public ResponseEntity<Map<String, Object>> getBrandVerificationEvidence(
+            @AuthenticationPrincipal AuthenticatedUser authUser,
+            @PathVariable UUID brandId
+    ) {
+        requireAdmin(authUser);
+        Brand brand = findBrand(brandId);
+        List<Map<String, Object>> docs = brandVerificationDocumentRepository.findByBrandIdOrderByUploadedAtDesc(brandId)
+                .stream()
+                .map(this::toVerificationDocumentMap)
+                .toList();
+        List<Map<String, Object>> events = brandVerificationEventRepository.findByBrandIdOrderByCreatedAtDesc(brandId)
+                .stream()
+                .map(this::toVerificationEventMap)
+                .toList();
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("brand", brandMapper.toResponse(brand));
+        payload.put("documents", docs);
+        payload.put("events", events);
+        payload.put("requiredDocumentTypes", List.of("tax_id", "business_registration", "bank_details"));
+        payload.put("canApprove", hasAllRequiredApprovedDocuments(brandId));
+        return ok(payload);
+    }
+
+    @PatchMapping("/brands/{brandId}/verification-documents/{documentId}")
+    @Transactional
+    public ResponseEntity<Map<String, Object>> reviewBrandVerificationDocument(
+            @AuthenticationPrincipal AuthenticatedUser authUser,
+            @PathVariable UUID brandId,
+            @PathVariable UUID documentId,
+            @Valid @RequestBody BrandVerificationDocumentReviewRequest request
+    ) {
+        requireAdmin(authUser);
+        Brand brand = findBrand(brandId);
+        BrandVerificationDocument doc = brandVerificationDocumentRepository.findByIdAndBrandId(documentId, brandId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Verification document not found"));
+        String status = normalizeDocumentStatus(request.status());
+        if ("REJECTED".equals(status) && (request.reason() == null || request.reason().isBlank())) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "A rejection reason is required");
+        }
+        User reviewer = userRepository.findById(authUser.userId())
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Reviewer not found"));
+        doc.setStatus(status);
+        doc.setRejectionReason("REJECTED".equals(status) ? request.reason().trim() : null);
+        doc.setReviewedBy(reviewer);
+        doc.setReviewedAt(Instant.now());
+        BrandVerificationDocument saved = brandVerificationDocumentRepository.save(doc);
+        if ("REJECTED".equals(status)) {
+            brand.setBusinessVerificationStatus("rejected");
+            brandRepository.save(brand);
+        } else if (brand.getBusinessVerificationStatus() == null || brand.getBusinessVerificationStatus().isBlank()
+                || "pending".equalsIgnoreCase(brand.getBusinessVerificationStatus())) {
+            brand.setBusinessVerificationStatus("under review");
+            brandRepository.save(brand);
+        }
+        logBrandVerificationEvent(brand, saved, authUser.userId(), "DOCUMENT_" + status, request.reason());
+        adminOperationsService.log(authUser.userId(), "BRAND_VERIFICATION_DOCUMENT_" + status, "brand_verification_document",
+                documentId.toString(), "brand=" + brandId);
+        return ok(toVerificationDocumentMap(saved));
+    }
+
+    @PostMapping("/brands/{brandId}/verification-review")
+    @Transactional
+    public ResponseEntity<Map<String, Object>> decideBrandVerification(
+            @AuthenticationPrincipal AuthenticatedUser authUser,
+            @PathVariable UUID brandId,
+            @Valid @RequestBody BrandVerificationDecisionRequest request
+    ) {
+        requireAdmin(authUser);
+        Brand brand = findBrand(brandId);
+        String decision = request.decision().trim().toLowerCase();
+        if (!List.of("verified", "rejected", "under review").contains(decision)) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "decision must be verified, rejected, or under review");
+        }
+        if ("rejected".equals(decision) && (request.reason() == null || request.reason().isBlank())) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "A rejection reason is required");
+        }
+        if ("verified".equals(decision) && !hasAllRequiredApprovedDocuments(brandId)) {
+            throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY, "Approve tax, registration, and bank documents before verifying this brand");
+        }
+        if (request.contactEmail() != null) brand.setVerificationContactEmail(request.contactEmail());
+        if (request.phoneNumber() != null) brand.setVerificationPhoneNumber(request.phoneNumber());
+        brand.setBusinessVerificationStatus(decision);
+        Brand saved = brandRepository.save(brand);
+        logBrandVerificationEvent(brand, null, authUser.userId(), "FINAL_DECISION_" + decision.toUpperCase(), request.reason());
+        adminOperationsService.log(authUser.userId(), "BRAND_VERIFICATION_DECIDED", "brand", brandId.toString(),
+                "decision=" + decision + (request.reason() == null ? "" : ", reason=" + request.reason()));
         return ok(brandMapper.toResponse(saved));
     }
 
@@ -749,6 +862,72 @@ public class AdminController {
 
     private ResponseEntity<Map<String, Object>> ok(Object data) {
         return ResponseEntity.ok(Map.of("success", true, "data", data));
+    }
+
+    private Brand findBrand(UUID brandId) {
+        return brandRepository.findById(brandId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Brand not found"));
+    }
+
+    private String normalizeDocumentStatus(String rawStatus) {
+        String status = rawStatus == null ? "" : rawStatus.trim().toUpperCase();
+        if (!List.of("PENDING", "APPROVED", "REJECTED").contains(status)) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "status must be pending, approved, or rejected");
+        }
+        return status;
+    }
+
+    private boolean hasAllRequiredApprovedDocuments(UUID brandId) {
+        List<BrandVerificationDocument> docs = brandVerificationDocumentRepository.findByBrandIdOrderByUploadedAtDesc(brandId);
+        return List.of("tax_id", "business_registration", "bank_details").stream()
+                .allMatch(type -> docs.stream().anyMatch(doc ->
+                        type.equalsIgnoreCase(doc.getType()) && "APPROVED".equalsIgnoreCase(doc.getStatus())
+                ));
+    }
+
+    private void logBrandVerificationEvent(Brand brand, BrandVerificationDocument document, UUID actorId, String eventType, String details) {
+        User actor = userRepository.findById(actorId).orElse(null);
+        brandVerificationEventRepository.save(BrandVerificationEvent.builder()
+                .brand(brand)
+                .document(document)
+                .actor(actor)
+                .eventType(eventType)
+                .details(details)
+                .build());
+    }
+
+    private Map<String, Object> toVerificationDocumentMap(BrandVerificationDocument doc) {
+        Map<String, Object> row = new LinkedHashMap<>();
+        row.put("id", doc.getId());
+        row.put("type", doc.getType());
+        row.put("fileName", doc.getFileName());
+        row.put("fileUrl", doc.getFileUrl());
+        row.put("status", doc.getStatus() == null ? "pending" : doc.getStatus().toLowerCase());
+        row.put("rejectionReason", doc.getRejectionReason());
+        row.put("uploadedAt", doc.getUploadedAt());
+        row.put("reviewedAt", doc.getReviewedAt());
+        row.put("reviewedBy", toUserSummary(doc.getReviewedBy()));
+        return row;
+    }
+
+    private Map<String, Object> toVerificationEventMap(BrandVerificationEvent event) {
+        Map<String, Object> row = new LinkedHashMap<>();
+        row.put("id", event.getId());
+        row.put("eventType", event.getEventType());
+        row.put("details", event.getDetails());
+        row.put("createdAt", event.getCreatedAt());
+        row.put("documentId", event.getDocument() == null ? null : event.getDocument().getId());
+        row.put("actor", toUserSummary(event.getActor()));
+        return row;
+    }
+
+    private Map<String, Object> toUserSummary(User user) {
+        if (user == null) return null;
+        Map<String, Object> row = new LinkedHashMap<>();
+        row.put("id", user.getId());
+        row.put("name", user.getName());
+        row.put("email", user.getEmail());
+        return row;
     }
 
     private Map<String, Object> toApiLogMap(ApiLog log) {

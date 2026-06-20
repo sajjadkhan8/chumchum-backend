@@ -55,6 +55,13 @@ public class BrandVerificationDocument {
     @Column(name = "rejection_reason", length = 500)
     private String rejectionReason;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "reviewed_by")
+    private User reviewedBy;
+
+    @Column(name = "reviewed_at")
+    private Instant reviewedAt;
+
     @CreatedDate
     @Column(name = "uploaded_at", nullable = false, updatable = false)
     private Instant uploadedAt;
