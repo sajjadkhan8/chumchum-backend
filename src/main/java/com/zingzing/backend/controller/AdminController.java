@@ -9,6 +9,8 @@ import com.zingzing.backend.entity.Brand;
 import com.zingzing.backend.entity.BrandVerificationDocument;
 import com.zingzing.backend.entity.BrandVerificationEvent;
 import com.zingzing.backend.entity.Creator;
+import com.zingzing.backend.entity.CreatorVerificationDocument;
+import com.zingzing.backend.entity.CreatorVerificationEvent;
 import com.zingzing.backend.entity.Order;
 import com.zingzing.backend.entity.User;
 import com.zingzing.backend.entity.WithdrawalRequest;
@@ -27,6 +29,8 @@ import com.zingzing.backend.repository.BrandRepository;
 import com.zingzing.backend.repository.BrandVerificationDocumentRepository;
 import com.zingzing.backend.repository.BrandVerificationEventRepository;
 import com.zingzing.backend.repository.CreatorRepository;
+import com.zingzing.backend.repository.CreatorVerificationDocumentRepository;
+import com.zingzing.backend.repository.CreatorVerificationEventRepository;
 import com.zingzing.backend.repository.OrderRepository;
 import com.zingzing.backend.repository.AmbassadorScoreRepository;
 import com.zingzing.backend.repository.ApiLogRepository;
@@ -39,6 +43,7 @@ import com.zingzing.backend.service.AmbassadorService;
 import com.zingzing.backend.service.OrderService;
 import com.zingzing.backend.service.WithdrawalService;
 import com.zingzing.backend.util.BrandVerificationStatuses;
+import com.zingzing.backend.util.CreatorVerificationStatuses;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -91,6 +96,8 @@ public class AdminController {
     private final ApiLogRepository apiLogRepository;
     private final BrandVerificationDocumentRepository brandVerificationDocumentRepository;
     private final BrandVerificationEventRepository brandVerificationEventRepository;
+    private final CreatorVerificationDocumentRepository creatorVerificationDocumentRepository;
+    private final CreatorVerificationEventRepository creatorVerificationEventRepository;
 
     public AdminController(UserRepository userRepository,
                            CreatorRepository creatorRepository,
@@ -110,7 +117,9 @@ public class AdminController {
                            AmbassadorScoreRepository ambassadorScoreRepository,
                            ApiLogRepository apiLogRepository,
                            BrandVerificationDocumentRepository brandVerificationDocumentRepository,
-                           BrandVerificationEventRepository brandVerificationEventRepository) {
+                           BrandVerificationEventRepository brandVerificationEventRepository,
+                           CreatorVerificationDocumentRepository creatorVerificationDocumentRepository,
+                           CreatorVerificationEventRepository creatorVerificationEventRepository) {
         this.userRepository = userRepository;
         this.creatorRepository = creatorRepository;
         this.brandRepository = brandRepository;
@@ -130,6 +139,8 @@ public class AdminController {
         this.apiLogRepository = apiLogRepository;
         this.brandVerificationDocumentRepository = brandVerificationDocumentRepository;
         this.brandVerificationEventRepository = brandVerificationEventRepository;
+        this.creatorVerificationDocumentRepository = creatorVerificationDocumentRepository;
+        this.creatorVerificationEventRepository = creatorVerificationEventRepository;
     }
 
     public record UserStatusRequest(@NotNull Boolean active) {}
@@ -345,11 +356,106 @@ public class AdminController {
         requireAdmin(authUser);
         Creator creator = creatorRepository.findById(id)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Creator not found"));
+        if (Boolean.TRUE.equals(request.verified()) && !hasAllRequiredApprovedCreatorDocuments(id)) {
+            throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY, "Approve identity, social profile, and portfolio sample documents before verifying this creator");
+        }
         creator.setVerified(request.verified());
         creator.setBadgeLevel(request.verified() ? CreatorBadgeLevel.VERIFIED : CreatorBadgeLevel.NONE);
+        creator.setVerificationStatus(request.verified() ? CreatorVerificationStatuses.VERIFIED : CreatorVerificationStatuses.UNVERIFIED);
         Creator saved = creatorRepository.save(creator);
+        logCreatorVerificationEvent(saved, null, authUser.userId(), "STATUS_UPDATED",
+                "verified=" + request.verified() + ", badgeLevel=" + saved.getBadgeLevel().name().toLowerCase());
         adminOperationsService.log(authUser.userId(), "CREATOR_VERIFICATION_CHANGED", "creator", id.toString(),
                 "verified=" + request.verified() + ", badgeLevel=" + saved.getBadgeLevel().name().toLowerCase());
+        return ok(creatorMapper.toResponse(saved));
+    }
+
+    @GetMapping("/creators/{creatorId}/verification-evidence")
+    public ResponseEntity<Map<String, Object>> getCreatorVerificationEvidence(
+            @AuthenticationPrincipal AuthenticatedUser authUser,
+            @PathVariable UUID creatorId
+    ) {
+        requireAdmin(authUser);
+        Creator creator = findCreator(creatorId);
+        List<Map<String, Object>> docs = creatorVerificationDocumentRepository.findByCreatorIdOrderByUploadedAtDesc(creatorId)
+                .stream()
+                .map(this::toCreatorVerificationDocumentMap)
+                .toList();
+        List<Map<String, Object>> events = creatorVerificationEventRepository.findByCreatorIdOrderByCreatedAtDesc(creatorId)
+                .stream()
+                .map(this::toCreatorVerificationEventMap)
+                .toList();
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("creator", creatorMapper.toResponse(creator));
+        payload.put("documents", docs);
+        payload.put("events", events);
+        payload.put("requiredDocumentTypes", requiredCreatorDocumentTypes());
+        payload.put("canApprove", hasAllRequiredApprovedCreatorDocuments(creatorId));
+        return ok(payload);
+    }
+
+    @PatchMapping("/creators/{creatorId}/verification-documents/{documentId}")
+    @Transactional
+    public ResponseEntity<Map<String, Object>> reviewCreatorVerificationDocument(
+            @AuthenticationPrincipal AuthenticatedUser authUser,
+            @PathVariable UUID creatorId,
+            @PathVariable UUID documentId,
+            @Valid @RequestBody BrandVerificationDocumentReviewRequest request
+    ) {
+        requireAdmin(authUser);
+        Creator creator = findCreator(creatorId);
+        CreatorVerificationDocument doc = creatorVerificationDocumentRepository.findByIdAndCreatorId(documentId, creatorId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Verification document not found"));
+        String status = normalizeDocumentStatus(request.status());
+        if ("REJECTED".equals(status) && (request.reason() == null || request.reason().isBlank())) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "A rejection reason is required");
+        }
+        User reviewer = userRepository.findById(authUser.userId())
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Reviewer not found"));
+        doc.setStatus(status);
+        doc.setRejectionReason("REJECTED".equals(status) ? request.reason().trim() : null);
+        doc.setReviewedBy(reviewer);
+        doc.setReviewedAt(Instant.now());
+        CreatorVerificationDocument saved = creatorVerificationDocumentRepository.save(doc);
+        if ("REJECTED".equals(status)) {
+            creator.setVerificationStatus(CreatorVerificationStatuses.REJECTED);
+            creator.setVerified(false);
+            creator.setBadgeLevel(CreatorBadgeLevel.NONE);
+            creatorRepository.save(creator);
+        } else if (CreatorVerificationStatuses.UNVERIFIED.equals(CreatorVerificationStatuses.normalizeForResponse(creator.getVerificationStatus()))
+                || CreatorVerificationStatuses.PENDING.equals(CreatorVerificationStatuses.normalizeForResponse(creator.getVerificationStatus()))) {
+            creator.setVerificationStatus(CreatorVerificationStatuses.UNDER_REVIEW);
+            creatorRepository.save(creator);
+        }
+        logCreatorVerificationEvent(creator, saved, authUser.userId(), "DOCUMENT_" + status, request.reason());
+        adminOperationsService.log(authUser.userId(), "CREATOR_VERIFICATION_DOCUMENT_" + status, "creator_verification_document",
+                documentId.toString(), "creator=" + creatorId);
+        return ok(toCreatorVerificationDocumentMap(saved));
+    }
+
+    @PostMapping("/creators/{creatorId}/verification-review")
+    @Transactional
+    public ResponseEntity<Map<String, Object>> decideCreatorVerification(
+            @AuthenticationPrincipal AuthenticatedUser authUser,
+            @PathVariable UUID creatorId,
+            @Valid @RequestBody BrandVerificationDecisionRequest request
+    ) {
+        requireAdmin(authUser);
+        Creator creator = findCreator(creatorId);
+        String decision = CreatorVerificationStatuses.normalize(request.decision());
+        if (CreatorVerificationStatuses.REJECTED.equals(decision) && (request.reason() == null || request.reason().isBlank())) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "A rejection reason is required");
+        }
+        if (CreatorVerificationStatuses.VERIFIED.equals(decision) && !hasAllRequiredApprovedCreatorDocuments(creatorId)) {
+            throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY, "Approve identity, social profile, and portfolio sample documents before verifying this creator");
+        }
+        creator.setVerificationStatus(decision);
+        creator.setVerified(CreatorVerificationStatuses.VERIFIED.equals(decision));
+        creator.setBadgeLevel(CreatorVerificationStatuses.VERIFIED.equals(decision) ? CreatorBadgeLevel.VERIFIED : CreatorBadgeLevel.NONE);
+        Creator saved = creatorRepository.save(creator);
+        logCreatorVerificationEvent(creator, null, authUser.userId(), "FINAL_DECISION_" + decision.toUpperCase(), request.reason());
+        adminOperationsService.log(authUser.userId(), "CREATOR_VERIFICATION_DECIDED", "creator", creatorId.toString(),
+                "decision=" + decision + (request.reason() == null ? "" : ", reason=" + request.reason()));
         return ok(creatorMapper.toResponse(saved));
     }
 
@@ -862,6 +968,11 @@ public class AdminController {
         return ResponseEntity.ok(Map.of("success", true, "data", data));
     }
 
+    private Creator findCreator(UUID creatorId) {
+        return creatorRepository.findById(creatorId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Creator not found"));
+    }
+
     private Brand findBrand(UUID brandId) {
         return brandRepository.findById(brandId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Brand not found"));
@@ -883,10 +994,33 @@ public class AdminController {
                 ));
     }
 
+    private List<String> requiredCreatorDocumentTypes() {
+        return List.of("identity", "social_profile", "portfolio_sample");
+    }
+
+    private boolean hasAllRequiredApprovedCreatorDocuments(UUID creatorId) {
+        List<CreatorVerificationDocument> docs = creatorVerificationDocumentRepository.findByCreatorIdOrderByUploadedAtDesc(creatorId);
+        return requiredCreatorDocumentTypes().stream()
+                .allMatch(type -> docs.stream().anyMatch(doc ->
+                        type.equalsIgnoreCase(doc.getType()) && "APPROVED".equalsIgnoreCase(doc.getStatus())
+                ));
+    }
+
     private void logBrandVerificationEvent(Brand brand, BrandVerificationDocument document, UUID actorId, String eventType, String details) {
         User actor = userRepository.findById(actorId).orElse(null);
         brandVerificationEventRepository.save(BrandVerificationEvent.builder()
                 .brand(brand)
+                .document(document)
+                .actor(actor)
+                .eventType(eventType)
+                .details(details)
+                .build());
+    }
+
+    private void logCreatorVerificationEvent(Creator creator, CreatorVerificationDocument document, UUID actorId, String eventType, String details) {
+        User actor = userRepository.findById(actorId).orElse(null);
+        creatorVerificationEventRepository.save(CreatorVerificationEvent.builder()
+                .creator(creator)
                 .document(document)
                 .actor(actor)
                 .eventType(eventType)
@@ -909,6 +1043,31 @@ public class AdminController {
     }
 
     private Map<String, Object> toVerificationEventMap(BrandVerificationEvent event) {
+        Map<String, Object> row = new LinkedHashMap<>();
+        row.put("id", event.getId());
+        row.put("eventType", event.getEventType());
+        row.put("details", event.getDetails());
+        row.put("createdAt", event.getCreatedAt());
+        row.put("documentId", event.getDocument() == null ? null : event.getDocument().getId());
+        row.put("actor", toUserSummary(event.getActor()));
+        return row;
+    }
+
+    private Map<String, Object> toCreatorVerificationDocumentMap(CreatorVerificationDocument doc) {
+        Map<String, Object> row = new LinkedHashMap<>();
+        row.put("id", doc.getId());
+        row.put("type", doc.getType());
+        row.put("fileName", doc.getFileName());
+        row.put("fileUrl", doc.getFileUrl());
+        row.put("status", doc.getStatus() == null ? "pending" : doc.getStatus().toLowerCase());
+        row.put("rejectionReason", doc.getRejectionReason());
+        row.put("uploadedAt", doc.getUploadedAt());
+        row.put("reviewedAt", doc.getReviewedAt());
+        row.put("reviewedBy", toUserSummary(doc.getReviewedBy()));
+        return row;
+    }
+
+    private Map<String, Object> toCreatorVerificationEventMap(CreatorVerificationEvent event) {
         Map<String, Object> row = new LinkedHashMap<>();
         row.put("id", event.getId());
         row.put("eventType", event.getEventType());

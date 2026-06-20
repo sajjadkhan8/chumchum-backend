@@ -71,6 +71,8 @@ public class SafepayClient {
             @JsonProperty("is_success") Boolean isSuccess
     ) {}
 
+    public record RefundResult(String refundId, String providerPaymentId, String rawResponse) {}
+
     // ─── API operations ───────────────────────────────────────────────────────
 
     /**
@@ -179,6 +181,41 @@ public class SafepayClient {
         }
     }
 
+    public RefundResult createRefund(String trackerToken, String safepayPaymentRef, int amountPkr, String reason, Map<String, Object> metadata) {
+        if (props.getRefundEndpoint() == null || props.getRefundEndpoint().isBlank()) {
+            throw new SafepayApiException("Safepay refund endpoint is not configured. Set SAFEPAY_REFUND_ENDPOINT before enabling Safepay refunds.");
+        }
+        if (props.getSecretKey() == null || props.getSecretKey().isBlank()) {
+            throw new SafepayApiException("Safepay secret key is not configured");
+        }
+        Map<String, Object> body = Map.of(
+                "merchant_api_key", props.getApiKey(),
+                "tracker", trackerToken == null ? "" : trackerToken,
+                "payment_reference", safepayPaymentRef == null ? "" : safepayPaymentRef,
+                "amount", (long) amountPkr * 100L,
+                "currency", "PKR",
+                "reason", reason,
+                "metadata", metadata
+        );
+        try {
+            JsonNode response = restClient.post()
+                    .uri(props.getRefundEndpoint())
+                    .header("Authorization", "Bearer " + props.getSecretKey())
+                    .body(body)
+                    .retrieve()
+                    .body(JsonNode.class);
+            String refundId = firstText(response, "id", "refund_id", "token", "data.id", "data.refund_id", "data.token");
+            if (refundId == null || refundId.isBlank()) {
+                throw new SafepayApiException("Safepay refund response missing refund id");
+            }
+            return new RefundResult(refundId, safepayPaymentRef == null || safepayPaymentRef.isBlank() ? trackerToken : safepayPaymentRef,
+                    response == null ? "{}" : response.toString());
+        } catch (RestClientException ex) {
+            log.error("Safepay: failed to create refund tracker={} ref={}", trackerToken, safepayPaymentRef, ex);
+            throw new SafepayApiException("Could not submit refund to Safepay: " + ex.getMessage(), ex);
+        }
+    }
+
     /**
      * Builds the hosted checkout URL to which the brand should be redirected.
      *
@@ -231,6 +268,18 @@ public class SafepayClient {
     private JsonNode unwrapData(JsonNode response) {
         if (response == null) return null;
         return response.has("data") ? response.get("data") : response;
+    }
+
+    private String firstText(JsonNode response, String... paths) {
+        for (String path : paths) {
+            JsonNode cursor = response;
+            for (String part : path.split("\\.")) {
+                if (cursor == null || cursor.isNull()) break;
+                cursor = cursor.get(part);
+            }
+            if (cursor != null && cursor.isValueNode() && !cursor.asText().isBlank()) return cursor.asText();
+        }
+        return null;
     }
 
     private static String encode(String value) {

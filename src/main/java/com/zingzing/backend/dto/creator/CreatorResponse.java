@@ -28,6 +28,7 @@ public record CreatorResponse(
         Integer minPrice,
         Integer maxPrice,
         boolean isVerified,
+        String verificationStatus,
         CreatorBadgeLevel badgeLevel,
         boolean isTrending,
         boolean isFastResponder,

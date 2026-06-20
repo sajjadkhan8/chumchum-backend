@@ -7,6 +7,8 @@ import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -52,6 +54,13 @@ public class PaymentRefund {
 
     @Column(name = "provider_refund_id", nullable = false, unique = true, length = 100)
     private String providerRefundId;
+
+    @Column(name = "provider_payment_id", length = 160)
+    private String providerPaymentId;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "provider_response", columnDefinition = "jsonb")
+    private String providerResponse;
 
     @Column(name = "failure_reason", length = 500)
     private String failureReason;

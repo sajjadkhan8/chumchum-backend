@@ -96,6 +96,7 @@ create table creators (
     avg_views int not null default 0,
     engagement_rate numeric(5,2),
     is_verified boolean not null default false,
+    verification_status varchar(50) not null default 'unverified',
     is_trending boolean not null default false,
     is_fast_responder boolean not null default false,
     rating numeric(3,2) not null default 0,
@@ -368,6 +369,30 @@ create table brand_verification_events (
     id uuid primary key default gen_random_uuid(),
     brand_id uuid not null references brands(id) on delete cascade,
     document_id uuid references brand_verification_documents(id) on delete set null,
+    actor_id uuid references users(id) on delete set null,
+    event_type varchar(60) not null,
+    details text,
+    created_at timestamptz not null default now()
+);
+
+create table creator_verification_documents (
+    id uuid primary key default gen_random_uuid(),
+    creator_id uuid not null references creators(id) on delete cascade,
+    type varchar(40) not null,
+    file_name varchar(255) not null,
+    file_url varchar(600) not null,
+    status varchar(30) not null default 'PENDING',
+    rejection_reason varchar(500),
+    reviewed_by uuid references users(id) on delete set null,
+    reviewed_at timestamptz,
+    uploaded_at timestamptz not null default now(),
+    updated_at timestamptz not null default now()
+);
+
+create table creator_verification_events (
+    id uuid primary key default gen_random_uuid(),
+    creator_id uuid not null references creators(id) on delete cascade,
+    document_id uuid references creator_verification_documents(id) on delete set null,
     actor_id uuid references users(id) on delete set null,
     event_type varchar(60) not null,
     details text,
@@ -754,6 +779,8 @@ create table payment_refunds (
     creator_clawback_amount integer not null default 0,
     provider varchar(40) not null,
     provider_refund_id varchar(100) not null,
+    provider_payment_id varchar(160),
+    provider_response jsonb,
     failure_reason varchar(500),
     confirmed_at timestamptz,
     created_at timestamptz not null default now(),
@@ -876,6 +903,10 @@ create index idx_admin_audit_logs_created on admin_audit_logs(created_at desc);
 create index idx_admin_audit_logs_action on admin_audit_logs(action);
 create index idx_payment_refunds_order on payment_refunds(order_id);
 create index idx_payment_refunds_created on payment_refunds(created_at desc);
+create index idx_creator_verification_documents_creator on creator_verification_documents(creator_id, uploaded_at desc);
+create index idx_creator_verification_documents_status on creator_verification_documents(status);
+create index idx_creator_verification_events_creator on creator_verification_events(creator_id, created_at desc);
+create index idx_creators_verification_status on creators(verification_status);
 create index idx_api_logs_created on api_logs(created_at desc);
 create index idx_api_logs_service_created on api_logs(service, created_at desc);
 create index idx_api_logs_status_created on api_logs(status_code, created_at desc);

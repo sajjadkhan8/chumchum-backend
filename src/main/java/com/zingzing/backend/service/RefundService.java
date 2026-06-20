@@ -50,7 +50,7 @@ public class RefundService {
         Order order = dispute.getOrder();
         int refundAmount = requestedAmount == null ? order.getAmount() : requestedAmount;
         RefundProvider.RefundSubmission submission = refundProvider.submit(
-                new RefundProvider.RefundRequest(null, order.getId(), refundAmount, reason.trim())
+                new RefundProvider.RefundRequest(null, order.getId(), refundAmount, reason.trim(), null, null)
         );
         PaymentRefund refund = refundRepository.save(PaymentRefund.builder()
                 .dispute(dispute)
@@ -61,6 +61,8 @@ public class RefundService {
                 .status(TransactionStatus.PENDING)
                 .provider(refundProvider.providerName())
                 .providerRefundId(submission.providerRefundId())
+                .providerPaymentId(submission.providerPaymentId())
+                .providerResponse(submission.providerResponse())
                 .build());
         dispute.setRefund(refund);
         log.info("Refund requested: disputeId={}, provider={}, providerRefundId={}, amount={}, adminId={}",

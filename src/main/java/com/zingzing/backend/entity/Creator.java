@@ -49,6 +49,9 @@ public class Creator extends User {
     @Column(name = "is_verified", nullable = false)
     private boolean isVerified = false;
 
+    @Column(name = "verification_status", nullable = false, length = 50)
+    private String verificationStatus = "unverified";
+
     @Enumerated(EnumType.STRING)
     @Column(name = "badge_level", nullable = false, length = 30)
     private CreatorBadgeLevel badgeLevel = CreatorBadgeLevel.NONE;

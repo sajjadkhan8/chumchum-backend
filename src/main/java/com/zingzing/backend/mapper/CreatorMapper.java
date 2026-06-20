@@ -10,6 +10,7 @@ import com.zingzing.backend.entity.enums.OrderStatus;
 import com.zingzing.backend.repository.ContentPreviewRepository;
 import com.zingzing.backend.repository.OrderRepository;
 import com.zingzing.backend.repository.SocialAccountRepository;
+import com.zingzing.backend.util.CreatorVerificationStatuses;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -75,6 +76,7 @@ public class CreatorMapper {
                 creator.getMinPrice(),
                 creator.getMaxPrice(),
                 creator.isVerified(),
+                CreatorVerificationStatuses.normalizeForResponse(creator.getVerificationStatus()),
                 creator.getBadgeLevel(),
                 creator.isTrending(),
                 creator.isFastResponder(),

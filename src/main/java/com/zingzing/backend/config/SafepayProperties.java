@@ -48,6 +48,7 @@ public class SafepayProperties {
 
     private String sandboxBaseUrl = "https://sandbox.api.getsafepay.com";
     private String productionBaseUrl = "https://api.getsafepay.com";
+    private String refundEndpoint = "";
 
     /** How many seconds of clock skew are tolerated when validating webhook timestamps. */
     private int webhookToleranceSeconds = 300;
@@ -95,6 +96,9 @@ public class SafepayProperties {
 
     public String getProductionBaseUrl() { return productionBaseUrl; }
     public void setProductionBaseUrl(String productionBaseUrl) { this.productionBaseUrl = productionBaseUrl; }
+
+    public String getRefundEndpoint() { return refundEndpoint; }
+    public void setRefundEndpoint(String refundEndpoint) { this.refundEndpoint = refundEndpoint; }
 
     public int getWebhookToleranceSeconds() { return webhookToleranceSeconds; }
     public void setWebhookToleranceSeconds(int webhookToleranceSeconds) { this.webhookToleranceSeconds = webhookToleranceSeconds; }

@@ -7,6 +7,6 @@ public interface RefundProvider {
     boolean verifyWebhookSignature(String signature);
     RefundSubmission submit(RefundRequest request);
 
-    record RefundRequest(UUID refundId, UUID orderId, int amount, String reason) {}
-    record RefundSubmission(String providerRefundId) {}
+    record RefundRequest(UUID refundId, UUID orderId, int amount, String reason, String providerPaymentId, String trackerToken) {}
+    record RefundSubmission(String providerRefundId, String providerPaymentId, String providerResponse) {}
 }

@@ -7,21 +7,29 @@ import com.zingzing.backend.dto.review.ReviewResponse;
 import com.zingzing.backend.dto.servicepackage.ServicePackageResponse;
 import com.zingzing.backend.entity.ContentPreview;
 import com.zingzing.backend.entity.Creator;
+import com.zingzing.backend.entity.CreatorVerificationDocument;
+import com.zingzing.backend.entity.CreatorVerificationEvent;
 import com.zingzing.backend.entity.SocialAccount;
 import com.zingzing.backend.entity.enums.AvailabilityStatus;
 import com.zingzing.backend.entity.enums.CreatorBadgeLevel;
+import com.zingzing.backend.entity.enums.UserRole;
 import com.zingzing.backend.exception.ApiException;
 import com.zingzing.backend.repository.ContentPreviewRepository;
 import com.zingzing.backend.repository.CreatorRepository;
+import com.zingzing.backend.repository.CreatorVerificationDocumentRepository;
+import com.zingzing.backend.repository.CreatorVerificationEventRepository;
 import com.zingzing.backend.service.CreatorService;
 import com.zingzing.backend.service.ReviewService;
 import com.zingzing.backend.service.ServicePackageService;
+import com.zingzing.backend.util.CreatorVerificationStatuses;
 import com.zingzing.backend.util.PageResponse;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -48,17 +56,29 @@ public class CreatorController {
     private final ServicePackageService packageService;
     private final CreatorRepository creatorRepository;
     private final ContentPreviewRepository contentPreviewRepository;
+    private final CreatorVerificationDocumentRepository verificationDocumentRepository;
+    private final CreatorVerificationEventRepository verificationEventRepository;
 
     public CreatorController(CreatorService creatorService, ReviewService reviewService,
                              ServicePackageService packageService,
                              CreatorRepository creatorRepository,
-                             ContentPreviewRepository contentPreviewRepository) {
+                             ContentPreviewRepository contentPreviewRepository,
+                             CreatorVerificationDocumentRepository verificationDocumentRepository,
+                             CreatorVerificationEventRepository verificationEventRepository) {
         this.creatorService = creatorService;
         this.reviewService = reviewService;
         this.packageService = packageService;
         this.creatorRepository = creatorRepository;
         this.contentPreviewRepository = contentPreviewRepository;
+        this.verificationDocumentRepository = verificationDocumentRepository;
+        this.verificationEventRepository = verificationEventRepository;
     }
+
+    public record VerificationDocumentRequest(
+            @NotBlank @Size(max = 40) String type,
+            @NotBlank @Size(max = 600) String fileUrl,
+            @NotBlank @Size(max = 255) String fileName
+    ) {}
 
     @GetMapping
     public ResponseEntity<Map<String, Object>> search(
@@ -176,6 +196,85 @@ public class CreatorController {
     @GetMapping("/me/profile")
     public ResponseEntity<CreatorResponse> meProfile(@AuthenticationPrincipal AuthenticatedUser authUser) {
         return ResponseEntity.ok(creatorService.getByUserId(authUser.userId(), authUser.role(), authUser.userId()));
+    }
+
+    @GetMapping("/me/verification-documents")
+    public ResponseEntity<Map<String, Object>> verificationDocuments(
+            @AuthenticationPrincipal AuthenticatedUser authUser
+    ) {
+        requireCreator(authUser);
+        List<Map<String, Object>> docs = verificationDocumentRepository
+                .findByCreatorIdOrderByUploadedAtDesc(authUser.userId())
+                .stream()
+                .map(this::toVerificationDocumentMap)
+                .toList();
+        return ResponseEntity.ok(Map.of("success", true, "data", docs));
+    }
+
+    @GetMapping("/me/verification-events")
+    public ResponseEntity<Map<String, Object>> verificationEvents(
+            @AuthenticationPrincipal AuthenticatedUser authUser
+    ) {
+        requireCreator(authUser);
+        List<Map<String, Object>> events = verificationEventRepository
+                .findByCreatorIdOrderByCreatedAtDesc(authUser.userId())
+                .stream()
+                .map(this::toVerificationEventMap)
+                .toList();
+        return ResponseEntity.ok(Map.of("success", true, "data", events));
+    }
+
+    @PostMapping("/me/verification-documents")
+    @Transactional
+    public ResponseEntity<Map<String, Object>> submitVerificationDocument(
+            @AuthenticationPrincipal AuthenticatedUser authUser,
+            @Valid @RequestBody VerificationDocumentRequest request
+    ) {
+        requireCreator(authUser);
+        Creator creator = creatorRepository.findById(authUser.userId())
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Creator profile not found"));
+        CreatorVerificationDocument saved = verificationDocumentRepository.save(CreatorVerificationDocument.builder()
+                .creator(creator)
+                .type(request.type().trim())
+                .fileUrl(request.fileUrl().trim())
+                .fileName(request.fileName().trim())
+                .status("PENDING")
+                .build());
+        String currentStatus = CreatorVerificationStatuses.normalizeForResponse(creator.getVerificationStatus());
+        if (CreatorVerificationStatuses.UNVERIFIED.equals(currentStatus)) {
+            creator.setVerificationStatus(CreatorVerificationStatuses.PENDING);
+            creatorRepository.save(creator);
+        }
+        verificationEventRepository.save(CreatorVerificationEvent.builder()
+                .creator(creator)
+                .document(saved)
+                .actor(creator)
+                .eventType("DOCUMENT_UPLOADED")
+                .details(request.type().trim() + ": " + request.fileName().trim())
+                .build());
+        return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("success", true, "data", toVerificationDocumentMap(saved)));
+    }
+
+    @PostMapping("/me/verification/submit")
+    @Transactional
+    public ResponseEntity<Map<String, Object>> submitVerificationForReview(
+            @AuthenticationPrincipal AuthenticatedUser authUser
+    ) {
+        requireCreator(authUser);
+        Creator creator = creatorRepository.findById(authUser.userId())
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Creator profile not found"));
+        if (verificationDocumentRepository.findByCreatorIdOrderByUploadedAtDesc(creator.getId()).isEmpty()) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Upload at least one verification document before submitting");
+        }
+        creator.setVerificationStatus(CreatorVerificationStatuses.UNDER_REVIEW);
+        creatorRepository.save(creator);
+        verificationEventRepository.save(CreatorVerificationEvent.builder()
+                .creator(creator)
+                .actor(creator)
+                .eventType("SUBMITTED_FOR_REVIEW")
+                .details("Creator submitted verification documents for review")
+                .build());
+        return ResponseEntity.ok(Map.of("success", true, "data", Map.of("success", true)));
     }
 
     @PutMapping("/{creatorId}")
@@ -336,5 +435,34 @@ public class CreatorController {
         }
         contentPreviewRepository.delete(preview);
         return ResponseEntity.ok(Map.of("success", true, "message", "Portfolio item removed"));
+    }
+
+    private void requireCreator(AuthenticatedUser authUser) {
+        if (authUser == null || authUser.role() != UserRole.CREATOR) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "Only creators can use this endpoint");
+        }
+    }
+
+    private Map<String, Object> toVerificationDocumentMap(CreatorVerificationDocument doc) {
+        Map<String, Object> row = new LinkedHashMap<>();
+        row.put("id", doc.getId());
+        row.put("type", doc.getType());
+        row.put("fileName", doc.getFileName());
+        row.put("fileUrl", doc.getFileUrl());
+        row.put("status", doc.getStatus() == null ? "pending" : doc.getStatus().toLowerCase());
+        row.put("rejectionReason", doc.getRejectionReason());
+        row.put("uploadedAt", doc.getUploadedAt());
+        row.put("reviewedAt", doc.getReviewedAt());
+        return row;
+    }
+
+    private Map<String, Object> toVerificationEventMap(CreatorVerificationEvent event) {
+        Map<String, Object> row = new LinkedHashMap<>();
+        row.put("id", event.getId());
+        row.put("eventType", event.getEventType());
+        row.put("details", event.getDetails());
+        row.put("documentId", event.getDocument() == null ? null : event.getDocument().getId());
+        row.put("createdAt", event.getCreatedAt());
+        return row;
     }
 }

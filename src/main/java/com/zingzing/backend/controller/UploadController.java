@@ -110,6 +110,16 @@ public class UploadController {
         return ok(fileStorageService.validateAndStore(file, IMAGE_TYPES, 5, "brands"));
     }
 
+    @PostMapping(value = "/verification-document", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<Map<String, Object>> verificationDocument(
+            @RequestParam("file") MultipartFile file,
+            @AuthenticationPrincipal AuthenticatedUser authUser) {
+        if (!authUser.role().isCreator() && !authUser.role().isBrand() && !authUser.role().isAdmin()) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "Only account owners can upload verification documents");
+        }
+        return ok(fileStorageService.validateAndStoreProtected(file, PRIVATE_FILE_TYPES, 25, "verification/" + authUser.userId()));
+    }
+
     private void requireCreator(AuthenticatedUser authUser) {
         if (!authUser.role().isCreator() && !authUser.role().isAdmin()) {
             throw new ApiException(HttpStatus.FORBIDDEN, "Only creators can upload this media");

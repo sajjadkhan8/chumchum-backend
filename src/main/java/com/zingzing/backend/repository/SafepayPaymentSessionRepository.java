@@ -1,6 +1,7 @@
 package com.zingzing.backend.repository;
 
 import com.zingzing.backend.entity.SafepayPaymentSession;
+import com.zingzing.backend.entity.enums.SafepayPaymentStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -18,6 +19,8 @@ public interface SafepayPaymentSessionRepository extends JpaRepository<SafepayPa
     Optional<SafepayPaymentSession> findByIdAndBrandId(UUID id, UUID brandId);
 
     List<SafepayPaymentSession> findByBrandIdOrderByCreatedAtDesc(UUID brandId);
+
+    Optional<SafepayPaymentSession> findFirstByOrderIdAndStatusOrderByCreatedAtDesc(UUID orderId, SafepayPaymentStatus status);
 
     /** Mark stale INITIATED sessions as EXPIRED. Called by a scheduled job. */
     @Modifying
