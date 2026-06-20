@@ -11,6 +11,7 @@ import com.zingzing.backend.exception.ApiException;
 import com.zingzing.backend.repository.BrandRepository;
 import com.zingzing.backend.repository.BrandVerificationDocumentRepository;
 import com.zingzing.backend.repository.BrandVerificationEventRepository;
+import com.zingzing.backend.util.BrandVerificationStatuses;
 import com.zingzing.backend.service.BrandService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -165,7 +166,7 @@ public class BrandController {
                 .status("PENDING")
                 .build());
         if (brand.getBusinessVerificationStatus() == null || brand.getBusinessVerificationStatus().isBlank()) {
-            brand.setBusinessVerificationStatus("pending");
+            brand.setBusinessVerificationStatus(BrandVerificationStatuses.PENDING);
             brandRepository.save(brand);
         }
         verificationEventRepository.save(BrandVerificationEvent.builder()
@@ -189,7 +190,7 @@ public class BrandController {
         if (verificationDocumentRepository.findByBrandIdOrderByUploadedAtDesc(brand.getId()).isEmpty()) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Upload at least one verification document before submitting");
         }
-        brand.setBusinessVerificationStatus("under review");
+        brand.setBusinessVerificationStatus(BrandVerificationStatuses.UNDER_REVIEW);
         brandRepository.save(brand);
         verificationEventRepository.save(BrandVerificationEvent.builder()
                 .brand(brand)

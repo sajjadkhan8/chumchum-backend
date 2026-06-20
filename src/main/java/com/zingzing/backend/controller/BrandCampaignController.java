@@ -36,10 +36,15 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 @RestController
 public class BrandCampaignController {
+
+    private static final Set<String> SUPPORTED_ALERT_TYPES = Set.of(
+            "reaction_threshold", "no_reactions", "low_acceptance_rate", "spend_exceeded"
+    );
 
     private final BrandCampaignService brandCampaignService;
     private final BrandCampaignRepository brandCampaignRepository;
@@ -148,12 +153,14 @@ public class BrandCampaignController {
             @Valid @RequestBody CampaignAlertRuleRequest request
     ) {
         BrandCampaign campaign = getOwnedCampaign(campaignId, authUser);
+        String alertType = normalizeAlertType(request.type());
         CampaignAlertRule saved = campaignAlertRuleRepository.save(CampaignAlertRule.builder()
                 .campaign(campaign)
-                .type(request.type().trim())
+                .type(alertType)
                 .threshold(request.threshold())
                 .active(true)
                 .build());
+        brandCampaignService.evaluateAlertRules(campaign.getId());
         return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("success", true, "data", toAlertMap(saved)));
     }
 
@@ -169,7 +176,9 @@ public class BrandCampaignController {
         CampaignAlertRule rule = campaignAlertRuleRepository.findByIdAndCampaignId(ruleId, campaignId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Campaign alert rule not found"));
         if (request.isActive() != null) rule.setActive(request.isActive());
-        return ResponseEntity.ok(Map.of("success", true, "data", toAlertMap(campaignAlertRuleRepository.save(rule))));
+        CampaignAlertRule saved = campaignAlertRuleRepository.save(rule);
+        if (saved.isActive()) brandCampaignService.evaluateAlertRules(campaignId);
+        return ResponseEntity.ok(Map.of("success", true, "data", toAlertMap(saved)));
     }
 
     @DeleteMapping("/api/v1/brand/campaigns/{campaignId}/alerts/{ruleId}")
@@ -265,5 +274,14 @@ public class BrandCampaignController {
         row.put("createdAt", rule.getCreatedAt());
         row.put("lastTriggeredAt", rule.getLastTriggeredAt());
         return row;
+    }
+
+    private String normalizeAlertType(String rawType) {
+        String type = rawType == null ? "" : rawType.trim().toLowerCase();
+        if (!SUPPORTED_ALERT_TYPES.contains(type)) {
+            throw new ApiException(HttpStatus.BAD_REQUEST,
+                    "alert type must be reaction_threshold, no_reactions, low_acceptance_rate, or spend_exceeded");
+        }
+        return type;
     }
 }

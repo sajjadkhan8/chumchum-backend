@@ -38,6 +38,7 @@ import com.zingzing.backend.service.AdminStepUpService;
 import com.zingzing.backend.service.AmbassadorService;
 import com.zingzing.backend.service.OrderService;
 import com.zingzing.backend.service.WithdrawalService;
+import com.zingzing.backend.util.BrandVerificationStatuses;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -412,7 +413,7 @@ public class AdminController {
     ) {
         requireAdmin(authUser);
         Brand brand = findBrand(id);
-        if (request.status() != null) brand.setBusinessVerificationStatus(request.status());
+        if (request.status() != null) brand.setBusinessVerificationStatus(BrandVerificationStatuses.normalize(request.status()));
         if (request.contactEmail() != null) brand.setVerificationContactEmail(request.contactEmail());
         if (request.phoneNumber() != null) brand.setVerificationPhoneNumber(request.phoneNumber());
         Brand saved = brandRepository.save(brand);
@@ -469,11 +470,11 @@ public class AdminController {
         doc.setReviewedAt(Instant.now());
         BrandVerificationDocument saved = brandVerificationDocumentRepository.save(doc);
         if ("REJECTED".equals(status)) {
-            brand.setBusinessVerificationStatus("rejected");
+            brand.setBusinessVerificationStatus(BrandVerificationStatuses.REJECTED);
             brandRepository.save(brand);
         } else if (brand.getBusinessVerificationStatus() == null || brand.getBusinessVerificationStatus().isBlank()
-                || "pending".equalsIgnoreCase(brand.getBusinessVerificationStatus())) {
-            brand.setBusinessVerificationStatus("under review");
+                || BrandVerificationStatuses.PENDING.equals(BrandVerificationStatuses.normalizeForResponse(brand.getBusinessVerificationStatus()))) {
+            brand.setBusinessVerificationStatus(BrandVerificationStatuses.UNDER_REVIEW);
             brandRepository.save(brand);
         }
         logBrandVerificationEvent(brand, saved, authUser.userId(), "DOCUMENT_" + status, request.reason());
@@ -491,10 +492,7 @@ public class AdminController {
     ) {
         requireAdmin(authUser);
         Brand brand = findBrand(brandId);
-        String decision = request.decision().trim().toLowerCase();
-        if (!List.of("verified", "rejected", "under review").contains(decision)) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "decision must be verified, rejected, or under review");
-        }
+        String decision = BrandVerificationStatuses.normalize(request.decision());
         if ("rejected".equals(decision) && (request.reason() == null || request.reason().isBlank())) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "A rejection reason is required");
         }
@@ -524,7 +522,7 @@ public class AdminController {
                 blankToNull(search),
                 verificationStatus == null || verificationStatus.isBlank() || verificationStatus.equalsIgnoreCase("all")
                         ? null
-                        : verificationStatus.trim().toLowerCase(),
+                        : BrandVerificationStatuses.normalize(verificationStatus),
                 PageRequest.of(safePage(page), safeLimit(limit))
         );
         return ok(Map.of(

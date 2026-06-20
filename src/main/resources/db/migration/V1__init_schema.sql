@@ -913,7 +913,7 @@ create index idx_creators_rate_card_post on core.creators(rate_card_post)
 create index idx_creators_rate_card_video on core.creators(rate_card_video)
     where rate_card_video is not null;
 create index idx_users_role_active_created on core.users(role, is_active, created_at desc);
-create index idx_brands_verification_status on core.brands(lower(business_verification_status), created_at desc);
+create index idx_brands_verification_status on core.brands(lower(replace(coalesce(business_verification_status, ''), ' ', '_')), created_at desc);
 create index idx_brands_plan_tier on core.brands(plan_tier, created_at desc);
 create index idx_ambassador_applications_status_created on core.ambassador_applications(status, created_at desc);
 create index idx_transactions_status_created on core.transactions(status, created_at desc);

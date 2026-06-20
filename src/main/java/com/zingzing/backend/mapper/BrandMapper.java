@@ -5,6 +5,7 @@ import com.zingzing.backend.entity.Brand;
 import com.zingzing.backend.entity.enums.OrderStatus;
 import com.zingzing.backend.repository.BrandCampaignRepository;
 import com.zingzing.backend.repository.OrderRepository;
+import com.zingzing.backend.util.BrandVerificationStatuses;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -52,7 +53,7 @@ public class BrandMapper {
                 brand.getTargetCities(),
                 brand.getTargetPlatforms(),
                 brand.getCampaignBudgetRange(),
-                brand.getBusinessVerificationStatus(),
+                BrandVerificationStatuses.normalizeForResponse(brand.getBusinessVerificationStatus()),
                 publicView ? null : brand.getVerificationContactEmail(),
                 publicView ? null : brand.getVerificationPhoneNumber(),
                 brand.getPlanTier(),

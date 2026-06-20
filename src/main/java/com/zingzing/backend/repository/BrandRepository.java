@@ -20,8 +20,10 @@ public interface BrandRepository extends JpaRepository<Brand, UUID> {
                    or lower(b.username) like concat('%', lower(cast(:search as string)), '%'))
               and (
                 :verificationStatus is null
-                or (:verificationStatus = 'pending' and (b.businessVerificationStatus is null or lower(b.businessVerificationStatus) = 'pending'))
-                or lower(b.businessVerificationStatus) = :verificationStatus
+                or (:verificationStatus = 'unverified' and (b.businessVerificationStatus is null or b.businessVerificationStatus = ''))
+                or (:verificationStatus = 'pending' and lower(coalesce(b.businessVerificationStatus, '')) = 'pending')
+                or (:verificationStatus = 'under_review' and lower(replace(coalesce(b.businessVerificationStatus, ''), ' ', '_')) = 'under_review')
+                or lower(replace(coalesce(b.businessVerificationStatus, ''), ' ', '_')) = :verificationStatus
               )
             order by b.createdAt desc
             """)
@@ -68,6 +70,6 @@ public interface BrandRepository extends JpaRepository<Brand, UUID> {
             @Param("contactPhone") String contactPhone
     );
 
-    @Query("select count(b) from Brand b where lower(b.businessVerificationStatus) = 'pending'")
+    @Query("select count(b) from Brand b where lower(replace(coalesce(b.businessVerificationStatus, ''), ' ', '_')) in ('pending', 'under_review')")
     long countPendingVerifications();
 }

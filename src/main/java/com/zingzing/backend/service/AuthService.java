@@ -374,7 +374,7 @@ public class AuthService {
                     .expiresAt(Instant.now().plus(30, ChronoUnit.MINUTES))
                     .build());
             emailNotificationService.send(user.getEmail(), user.getName(), "Reset your ZingZing password",
-                    frontendBaseUrl + "/forgot-password?token=" + rawToken);
+                    frontendBaseUrl + "/reset-password?token=" + rawToken);
         });
     }
 

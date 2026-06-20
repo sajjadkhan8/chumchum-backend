@@ -43,6 +43,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.ZoneOffset;
+import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
@@ -514,6 +515,13 @@ public class BrandCampaignService {
         );
     }
 
+    @Transactional
+    public void evaluateAlertRules(UUID campaignId) {
+        BrandCampaign campaign = brandCampaignRepository.findById(campaignId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Campaign not found"));
+        evaluateAlertRules(campaign);
+    }
+
     // ── private helpers ───────────────────────────────────────────────────────
 
     private BrandCampaign getOwnedCampaign(UUID campaignId, UUID brandId) {
@@ -542,6 +550,7 @@ public class BrandCampaignService {
             String type = rule.getType() == null ? "" : rule.getType().trim().toLowerCase(Locale.ROOT);
             boolean triggered = switch (type) {
                 case "reaction_threshold" -> reactionCount >= rule.getThreshold();
+                case "no_reactions" -> reactionCount == 0 && noReactionWindowElapsed(campaign, rule.getThreshold());
                 case "low_acceptance_rate" -> reactionCount > 0 && acceptanceRate <= rule.getThreshold();
                 case "spend_exceeded" -> budgetMax > 0 && projectedSpend >= budgetMax + Math.round(budgetMax * (rule.getThreshold() / 100.0));
                 default -> false;
@@ -563,6 +572,12 @@ public class BrandCampaignService {
 
     private boolean shouldTrigger(CampaignAlertRule rule) {
         return rule.getLastTriggeredAt() == null || rule.getLastTriggeredAt().isBefore(Instant.now().minusSeconds(3600));
+    }
+
+    private boolean noReactionWindowElapsed(BrandCampaign campaign, int days) {
+        Instant start = campaign.getPublishedAt() != null ? campaign.getPublishedAt() : campaign.getCreatedAt();
+        if (start == null) return false;
+        return !Instant.now().isBefore(start.plus(Math.max(1, days), ChronoUnit.DAYS));
     }
 
     private String alertBody(BrandCampaign campaign, CampaignAlertRule rule, long reactions, double acceptanceRate, long spend) {
