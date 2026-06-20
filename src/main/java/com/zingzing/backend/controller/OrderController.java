@@ -4,11 +4,15 @@ import com.zingzing.backend.config.security.AuthenticatedUser;
 import com.zingzing.backend.dto.order.CreateOrderRequest;
 import com.zingzing.backend.dto.order.DeliverableResponse;
 import com.zingzing.backend.dto.order.OrderResponse;
+import com.zingzing.backend.dto.order.PaymentConfirmRequest;
 import com.zingzing.backend.dto.order.UpdateOrderStatusRequest;
 import com.zingzing.backend.entity.enums.OrderStatus;
 import com.zingzing.backend.exception.ApiException;
 import com.zingzing.backend.service.OrderService;
+import com.zingzing.backend.service.SafepayService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotNull;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -22,6 +26,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
 
@@ -30,17 +35,55 @@ import java.util.UUID;
 public class OrderController {
 
     private final OrderService orderService;
+    private final SafepayService safepayService;
 
-    public OrderController(OrderService orderService) {
+    public OrderController(OrderService orderService, SafepayService safepayService) {
         this.orderService = orderService;
+        this.safepayService = safepayService;
     }
 
     @GetMapping
     public ResponseEntity<Map<String, Object>> getOrders(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int limit,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String search,
             @AuthenticationPrincipal AuthenticatedUser authUser) {
-        return ResponseEntity.ok(orderService.getOrders(authUser.userId(), authUser.role(), page, limit));
+        return ResponseEntity.ok(orderService.getOrders(
+                authUser.userId(), authUser.role(), page, limit, status, search));
+    }
+
+    /** Pre-order payment check: returns wallet-sufficient flag or Safepay checkout URL. */
+    public record PreOrderPaymentRequest(@NotNull @Min(1) Integer amount) {}
+
+    @PostMapping("/payment/initiate")
+    public ResponseEntity<Map<String, Object>> initiatePayment(
+            @Valid @RequestBody PreOrderPaymentRequest request,
+            @AuthenticationPrincipal AuthenticatedUser authUser) {
+        if (!authUser.role().isBrand()) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "Only brands can initiate payments");
+        }
+        return ResponseEntity.ok(
+                orderService.checkAndInitiatePayment(authUser.userId(), request.amount(), safepayService));
+    }
+
+    /** Verify a Safepay session after redirect; returns payment status. */
+    @PostMapping("/payment/verify")
+    public ResponseEntity<Map<String, Object>> verifyPayment(
+            @Valid @RequestBody PaymentConfirmRequest request,
+            @AuthenticationPrincipal AuthenticatedUser authUser) {
+        if (!authUser.role().isBrand()) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "Only brands can verify payments");
+        }
+        SafepayService.SessionStatusResponse status = safepayService.getSessionStatus(
+                UUID.fromString(request.paymentIntent()), authUser.userId());
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("sessionId", request.paymentIntent());
+        result.put("status", status.status());
+        result.put("amountPkr", status.amountPkr());
+        result.put("paid", "completed".equalsIgnoreCase(status.status()));
+        result.put("completedAt", status.completedAt());
+        return ResponseEntity.ok(result);
     }
 
     @PostMapping

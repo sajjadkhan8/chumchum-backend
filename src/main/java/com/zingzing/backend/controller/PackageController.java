@@ -103,9 +103,14 @@ public class PackageController {
             @AuthenticationPrincipal AuthenticatedUser authUser,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "50") int size,
-            @RequestParam(defaultValue = "createdAt") String sort
+            @RequestParam(defaultValue = "createdAt") String sort,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String dealType,
+            @RequestParam(required = false) String platform
     ) {
-        return ResponseEntity.ok(servicePackageService.getMyPackages(authUser.userId(), authUser.role(), page, size, sort));
+        return ResponseEntity.ok(servicePackageService.getMyPackages(
+                authUser.userId(), authUser.role(), page, size, sort, search, status, dealType, platform));
     }
 
     @GetMapping("/{id}")

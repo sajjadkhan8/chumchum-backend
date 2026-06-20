@@ -322,6 +322,35 @@ public class ServicePackageService {
         return PageResponse.from(servicePackageRepository.findByCreator(creator, pageable).map(servicePackageMapper::toResponse));
     }
 
+    public PageResponse<ServicePackageResponse> getMyPackages(UUID userId, UserRole role,
+            int page, int size, String sort,
+            String search, String status, String dealType, String platform) {
+        if (!role.isCreator() && !role.isAdmin()) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "Only creators can view their packages");
+        }
+        String safeSort = ALLOWED_SORT_FIELDS.contains(sort) ? sort : "createdAt";
+        Pageable pageable = PageRequest.of(Math.max(page, 0), Math.min(Math.max(size, 1), 100),
+                Sort.by(Sort.Direction.DESC, safeSort));
+
+        PackageStatus parsedStatus = null;
+        if (status != null && !status.isBlank()) {
+            try { parsedStatus = PackageStatus.valueOf(status.trim().toUpperCase()); }
+            catch (IllegalArgumentException ignored) {}
+        }
+        DealType parsedDealType = null;
+        if (dealType != null && !dealType.isBlank()) {
+            try { parsedDealType = DealType.valueOf(dealType.trim().toUpperCase()); }
+            catch (IllegalArgumentException ignored) {}
+        }
+        String searchParam = (search != null && !search.isBlank()) ? search.trim() : null;
+        String platformParam = (platform != null && !platform.isBlank()) ? platform.trim() : null;
+
+        Page<ServicePackage> pkgPage = servicePackageRepository.findByCreatorIdFiltered(
+                userId, parsedStatus, parsedDealType, platformParam, searchParam, pageable);
+
+        return PageResponse.from(pkgPage.map(servicePackageMapper::toResponse));
+    }
+
     @Transactional(readOnly = true)
     public PageResponse<ServicePackageResponse> getFeaturedPackages(int page, int size) {
         int safeSize = Math.min(Math.max(size, 1), 50);

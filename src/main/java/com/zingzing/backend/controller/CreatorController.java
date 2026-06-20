@@ -316,6 +316,26 @@ public class CreatorController {
                 }).toList()));
     }
 
+    @PatchMapping("/me/social-accounts/{platform}")
+    public ResponseEntity<Map<String, Object>> patchSocialAccount(
+            @AuthenticationPrincipal AuthenticatedUser authUser,
+            @PathVariable String platform,
+            @RequestBody CreatorService.SocialAccountPatchRequest req
+    ) {
+        requireCreator(authUser);
+        SocialAccount account = creatorService.patchSocialAccount(authUser.userId(), platform, req);
+        Map<String, Object> row = new LinkedHashMap<>();
+        row.put("id", account.getId());
+        row.put("platform", account.getPlatform());
+        row.put("username", account.getUsername());
+        row.put("profileUrl", account.getProfileUrl());
+        row.put("followers", account.getFollowers());
+        row.put("avgViews", account.getAvgViews());
+        row.put("engagementRate", account.getEngagementRate());
+        row.put("isVerified", account.isVerified());
+        return ResponseEntity.ok(Map.of("success", true, "data", row));
+    }
+
     @PatchMapping("/me/preferences")
     public ResponseEntity<Map<String, Object>> updatePreferences(
             @AuthenticationPrincipal AuthenticatedUser authUser,

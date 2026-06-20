@@ -44,6 +44,8 @@ public record CreatorUpdateRequest(
         @Min(0) Integer rateCardReel,
         @Min(0) Integer rateCardStory,
         @Min(0) Integer rateCardPost,
-        @Min(0) Integer rateCardVideo
+        @Min(0) Integer rateCardVideo,
+        List<String> dealTypes,
+        List<String> barterTypes
 ) {
 }

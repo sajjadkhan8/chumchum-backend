@@ -24,9 +24,11 @@ public record OrderResponse(
         OffsetDateTime deadlineDate,
         LocalDate deliveryDate,
         Instant createdAt,
+        Instant updatedAt,
         List<DeliverableResponse> deliverables,
         boolean barterProductReceived,
         UUID conversationId,
-        boolean hasReviewedByBrand
+        boolean hasReviewedByBrand,
+        boolean hasReviewedByCreator
 ) {
 }

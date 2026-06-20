@@ -94,6 +94,14 @@ public class Creator extends User {
     @Column(name = "categories", columnDefinition = "jsonb")
     private List<String> categories = new ArrayList<>();
 
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "deal_types", columnDefinition = "jsonb")
+    private List<String> dealTypes = new ArrayList<>();
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "barter_types", columnDefinition = "jsonb")
+    private List<String> barterTypes = new ArrayList<>();
+
     @Column(nullable = false)
     private int followers = 0;
 

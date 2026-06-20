@@ -116,6 +116,54 @@ public class OrderService {
     }
 
     @Transactional(readOnly = true)
+    public Map<String, Object> getOrders(UUID userId, UserRole role, int page, int limit,
+                                         String status, String search) {
+        PageRequest pageable = PageRequest.of(Math.max(page, 0), Math.min(Math.max(limit, 1), 100));
+        OrderStatus parsedStatus = null;
+        if (status != null && !status.isBlank()) {
+            try { parsedStatus = OrderStatus.valueOf(status.trim().toUpperCase()); }
+            catch (IllegalArgumentException ignored) {}
+        }
+        String searchParam = (search != null && !search.isBlank()) ? search.trim() : null;
+        Page<Order> orderPage = role.isCreator()
+                ? orderRepository.findByCreatorIdFiltered(userId, parsedStatus, searchParam, pageable)
+                : orderRepository.findByBrandIdFiltered(userId, parsedStatus, searchParam, pageable);
+        Map<String, Object> result = new HashMap<>();
+        result.put("orders", orderPage.getContent().stream().map(orderMapper::toResponse).toList());
+        result.put("total", orderPage.getTotalElements());
+        result.put("page", page);
+        result.put("limit", limit);
+        return result;
+    }
+
+    public Map<String, Object> checkAndInitiatePayment(UUID brandId, int amountPkr,
+                                                        SafepayService safepayService) {
+        com.zingzing.backend.entity.BrandWallet wallet = brandWalletRepository.findById(brandId)
+                .orElse(null);
+        long balance = wallet != null ? wallet.getWalletBalance() : 0L;
+        Map<String, Object> result = new java.util.LinkedHashMap<>();
+        if (balance >= amountPkr) {
+            result.put("walletSufficient", true);
+            result.put("balance", balance);
+            result.put("required", amountPkr);
+            result.put("checkoutRequired", false);
+            return result;
+        }
+        int topUpAmount = (int) Math.max(amountPkr - balance, 1000L);
+        SafepayService.CheckoutSessionResponse session =
+                safepayService.initiateWalletTopUp(brandId, topUpAmount);
+        result.put("walletSufficient", false);
+        result.put("balance", balance);
+        result.put("required", amountPkr);
+        result.put("checkoutRequired", true);
+        result.put("topUpAmount", topUpAmount);
+        result.put("sessionId", session.sessionId());
+        result.put("checkoutUrl", session.checkoutUrl());
+        result.put("expiresAt", session.expiresAt());
+        return result;
+    }
+
+    @Transactional(readOnly = true)
     public OrderResponse getOrder(UUID orderId, UUID userId, UserRole role) {
         Order order = findOrder(orderId);
         if (!role.isAdmin()

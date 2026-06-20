@@ -287,6 +287,8 @@ public class CreatorService {
         if (request.rateCardStory() != null) creator.setRateCardStory(request.rateCardStory());
         if (request.rateCardPost() != null) creator.setRateCardPost(request.rateCardPost());
         if (request.rateCardVideo() != null) creator.setRateCardVideo(request.rateCardVideo());
+        if (request.dealTypes() != null) creator.setDealTypes(request.dealTypes());
+        if (request.barterTypes() != null) creator.setBarterTypes(request.barterTypes());
 
         return creatorMapper.toResponse(creatorRepository.save(creator));
     }
@@ -346,6 +348,30 @@ public class CreatorService {
                         .build()
         )).toList();
         return saved;
+    }
+
+    public record SocialAccountPatchRequest(
+            String username, String profileUrl,
+            Integer followers, Integer avgViews, BigDecimal engagementRate) {}
+
+    @Transactional
+    public SocialAccount patchSocialAccount(UUID userId, String platform, SocialAccountPatchRequest req) {
+        Creator creator = findCreator(userId);
+        SocialAccount account = socialAccountRepository
+                .findByCreatorIdAndPlatformIgnoreCase(userId, platform)
+                .orElseGet(() -> SocialAccount.builder()
+                        .creator(creator)
+                        .platform(platform.toLowerCase())
+                        .username("")
+                        .followers(0)
+                        .engagementRate(BigDecimal.ZERO)
+                        .build());
+        if (req.username() != null) account.setUsername(req.username());
+        if (req.profileUrl() != null) account.setProfileUrl(req.profileUrl());
+        if (req.followers() != null) account.setFollowers(req.followers());
+        if (req.avgViews() != null) account.setAvgViews(req.avgViews());
+        if (req.engagementRate() != null) account.setEngagementRate(req.engagementRate());
+        return socialAccountRepository.save(account);
     }
 
     // ---- Preferences ----

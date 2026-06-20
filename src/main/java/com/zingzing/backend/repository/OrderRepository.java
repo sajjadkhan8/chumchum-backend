@@ -189,4 +189,52 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
             where o.status = 'COMPLETED'
             """, nativeQuery = true)
     Double avgResolutionHours();
+
+    @Query(value = """
+            select o from Order o
+            join fetch o.servicePackage sp
+            join fetch o.creator
+            join fetch o.brand
+            where o.creator.id = :creatorId
+              and (:status is null or o.status = :status)
+              and (:search is null
+                   or lower(sp.title) like concat('%', lower(cast(:search as string)), '%')
+                   or lower(o.brand.name) like concat('%', lower(cast(:search as string)), '%')
+                   or lower(o.orderNumber) like concat('%', lower(cast(:search as string)), '%'))
+            order by o.createdAt desc
+            """,
+            countQuery = """
+            select count(o) from Order o
+            where o.creator.id = :creatorId
+              and (:status is null or o.status = :status)
+            """)
+    Page<Order> findByCreatorIdFiltered(
+            @Param("creatorId") UUID creatorId,
+            @Param("status") OrderStatus status,
+            @Param("search") String search,
+            Pageable pageable);
+
+    @Query(value = """
+            select o from Order o
+            join fetch o.servicePackage sp
+            join fetch o.creator
+            join fetch o.brand
+            where o.brand.id = :brandId
+              and (:status is null or o.status = :status)
+              and (:search is null
+                   or lower(sp.title) like concat('%', lower(cast(:search as string)), '%')
+                   or lower(o.creator.name) like concat('%', lower(cast(:search as string)), '%')
+                   or lower(o.orderNumber) like concat('%', lower(cast(:search as string)), '%'))
+            order by o.createdAt desc
+            """,
+            countQuery = """
+            select count(o) from Order o
+            where o.brand.id = :brandId
+              and (:status is null or o.status = :status)
+            """)
+    Page<Order> findByBrandIdFiltered(
+            @Param("brandId") UUID brandId,
+            @Param("status") OrderStatus status,
+            @Param("search") String search,
+            Pageable pageable);
 }

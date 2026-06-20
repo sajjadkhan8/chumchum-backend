@@ -39,4 +39,15 @@ public interface DisputeCaseRepository extends JpaRepository<DisputeCase, UUID> 
     boolean existsByOrderId(UUID orderId);
 
     Optional<DisputeCase> findByOrderId(UUID orderId);
+
+    @Query("""
+            select d from DisputeCase d
+            join fetch d.order o
+            join fetch o.creator
+            join fetch o.brand
+            join fetch o.servicePackage
+            where o.creator.id = :userId or o.brand.id = :userId
+            order by d.createdAt desc
+            """)
+    Page<DisputeCase> findByParticipantId(@Param("userId") UUID userId, Pageable pageable);
 }

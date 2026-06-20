@@ -2,6 +2,7 @@ package com.zingzing.backend.repository;
 
 import com.zingzing.backend.entity.Creator;
 import com.zingzing.backend.entity.ServicePackage;
+import com.zingzing.backend.entity.enums.DealType;
 import com.zingzing.backend.entity.enums.PackageCategory;
 import com.zingzing.backend.entity.enums.PackageStatus;
 import org.springframework.data.domain.Page;
@@ -51,4 +52,30 @@ public interface ServicePackageRepository extends JpaRepository<ServicePackage, 
               and p.featured = true
             """)
     Page<ServicePackage> findFeaturedForFeed(Pageable pageable);
+
+    @EntityGraph(attributePaths = {"creator", "tiers"})
+    @Query(value = """
+            select p from ServicePackage p
+            where p.creator.id = :creatorId
+              and (:status is null or p.status = :status)
+              and (:dealType is null or p.dealType = :dealType)
+              and (:platform is null or lower(cast(p.platform as string)) = lower(cast(:platform as string)))
+              and (:search is null
+                   or lower(p.title) like concat('%', lower(cast(:search as string)), '%')
+                   or lower(p.name) like concat('%', lower(cast(:search as string)), '%'))
+            order by p.createdAt desc
+            """,
+            countQuery = """
+            select count(p) from ServicePackage p
+            where p.creator.id = :creatorId
+              and (:status is null or p.status = :status)
+              and (:dealType is null or p.dealType = :dealType)
+            """)
+    Page<ServicePackage> findByCreatorIdFiltered(
+            @Param("creatorId") UUID creatorId,
+            @Param("status") PackageStatus status,
+            @Param("dealType") DealType dealType,
+            @Param("platform") String platform,
+            @Param("search") String search,
+            Pageable pageable);
 }

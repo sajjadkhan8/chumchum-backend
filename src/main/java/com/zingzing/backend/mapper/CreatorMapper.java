@@ -103,7 +103,9 @@ public class CreatorMapper {
                 creator.getRateCardVideo(),
                 (int) activeOrders,
                 creator.getCreatedAt(),
-                creator.getUpdatedAt()
+                creator.getUpdatedAt(),
+                creator.getDealTypes(),
+                creator.getBarterTypes()
         );
     }
 

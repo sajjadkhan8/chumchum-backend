@@ -52,6 +52,10 @@ public class OrderMapper {
                 .findByOrderIdAndReviewerType(order.getId(), Review.ReviewerType.BRAND)
                 .isPresent();
 
+        boolean hasReviewedByCreator = reviewRepository
+                .findByOrderIdAndReviewerType(order.getId(), Review.ReviewerType.CREATOR)
+                .isPresent();
+
         return new OrderResponse(
                 order.getId(),
                 order.getOrderNumber(),
@@ -70,10 +74,12 @@ public class OrderMapper {
                 order.getDeadlineDate(),
                 order.getDeliveryDate(),
                 order.getCreatedAt(),
+                order.getUpdatedAt(),
                 deliverables,
                 order.isBarterProductReceived(),
                 conversationId,
-                hasReviewedByBrand
+                hasReviewedByBrand,
+                hasReviewedByCreator
         );
     }
 

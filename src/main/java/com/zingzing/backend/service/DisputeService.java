@@ -7,6 +7,8 @@ import com.zingzing.backend.exception.ApiException;
 import com.zingzing.backend.repository.DisputeCaseRepository;
 import com.zingzing.backend.repository.OrderRepository;
 import jakarta.transaction.Transactional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
@@ -66,6 +68,28 @@ public class DisputeService {
         dispute.getOrder().getBrand().getName();
         dispute.getOrder().getServicePackage().getTitle();
 
+        return dispute;
+    }
+
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
+    public Page<DisputeCase> getMyDisputes(UUID userId, UserRole role, int page, int limit) {
+        PageRequest pageable = PageRequest.of(
+                Math.max(page, 0), Math.min(Math.max(limit, 1), 50));
+        if (role.isAdmin()) {
+            return disputeCaseRepository.findAll(pageable);
+        }
+        return disputeCaseRepository.findByParticipantId(userId, pageable);
+    }
+
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
+    public DisputeCase getDispute(UUID disputeId, UUID userId, UserRole role) {
+        DisputeCase dispute = disputeCaseRepository.findById(disputeId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Dispute not found"));
+        if (!role.isAdmin()) {
+            boolean isParticipant = dispute.getOrder().getCreator().getId().equals(userId)
+                    || dispute.getOrder().getBrand().getId().equals(userId);
+            if (!isParticipant) throw new ApiException(HttpStatus.FORBIDDEN, "Access denied");
+        }
         return dispute;
     }
 }

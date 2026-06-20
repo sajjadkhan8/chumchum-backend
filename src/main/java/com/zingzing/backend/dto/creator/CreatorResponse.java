@@ -55,6 +55,8 @@ public record CreatorResponse(
         Integer rateCardVideo,
         int activeOrderCount,
         Instant createdAt,
-        Instant updatedAt
+        Instant updatedAt,
+        List<String> dealTypes,
+        List<String> barterTypes
 ) {
 }

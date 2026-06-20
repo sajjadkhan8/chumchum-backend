@@ -192,10 +192,12 @@ public class AmbassadorController {
         m.put("creatorId", app.getCreator().getId());
         m.put("status", app.getStatus().name().toLowerCase());
         m.put("submittedAt", app.getSubmittedAt());
-        m.put("identityVerified", app.isIdentityVerified());
-        m.put("engagementVerified", app.isEngagementVerified());
-        m.put("contentReviewPassed", app.isContentReviewPassed());
-        m.put("backgroundCheckPassed", app.isBackgroundCheckPassed());
+        Map<String, Object> verificationSteps = new LinkedHashMap<>();
+        verificationSteps.put("identityVerified", app.isIdentityVerified());
+        verificationSteps.put("engagementVerified", app.isEngagementVerified());
+        verificationSteps.put("contentReviewPassed", app.isContentReviewPassed());
+        verificationSteps.put("backgroundCheckPassed", app.isBackgroundCheckPassed());
+        m.put("verificationSteps", verificationSteps);
         m.put("notes", app.getNotes());
         m.put("rejectionReason", app.getRejectionReason());
         m.put("approvedAt", app.getApprovedAt());
