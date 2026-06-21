@@ -59,9 +59,9 @@ public interface CreatorRepository extends JpaRepository<Creator, UUID> {
             select u.*,
                    c.bio, c.cover_image_url, c.website, c.availability_status,
                    c.is_filer, c.response_time, c.min_price, c.max_price,
-                   c.is_verified, c.badge_level, c.is_trending, c.is_fast_responder,
+                   c.is_verified, c.verification_status, c.badge_level, c.is_trending, c.is_fast_responder,
                    c.completed_deals, c.accepts_barter, c.accepts_hybrid_deals,
-                   c.minimum_budget, c.languages, c.categories,
+                   c.minimum_budget, c.languages, c.categories, c.deal_types, c.barter_types,
                    c.followers, c.avg_views, c.engagement_rate, c.rating, c.total_reviews,
                    c.rate_card_reel, c.rate_card_story, c.rate_card_post, c.rate_card_video
             from core.creators c

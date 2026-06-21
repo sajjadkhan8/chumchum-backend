@@ -34,6 +34,10 @@ import java.util.*;
 @Service
 public class CreatorService {
 
+    private static final Set<String> SUPPORTED_SOCIAL_PLATFORMS = Set.of(
+            "instagram", "youtube", "tiktok", "facebook", "snapchat"
+    );
+
     private final CreatorRepository creatorRepository;
     private final UserRepository userRepository;
     private final CreatorMapper creatorMapper;
@@ -299,13 +303,13 @@ public class CreatorService {
                                              String instagramUrl, String tiktokUrl,
                                              String youtubeUrl, String facebookUrl) {
         Set<String> existing = socialAccountRepository.findByCreatorId(creator.getId()).stream()
-                .map(sa -> sa.getPlatform().toUpperCase())
+                .map(sa -> sa.getPlatform().toLowerCase(Locale.ROOT))
                 .collect(java.util.stream.Collectors.toSet());
         List<SocialAccount> toSave = new ArrayList<>();
-        addFromUrl(toSave, existing, creator, "INSTAGRAM", instagramUrl);
-        addFromUrl(toSave, existing, creator, "TIKTOK",    tiktokUrl);
-        addFromUrl(toSave, existing, creator, "YOUTUBE",   youtubeUrl);
-        addFromUrl(toSave, existing, creator, "FACEBOOK",  facebookUrl);
+        addFromUrl(toSave, existing, creator, "instagram", instagramUrl);
+        addFromUrl(toSave, existing, creator, "tiktok",    tiktokUrl);
+        addFromUrl(toSave, existing, creator, "youtube",   youtubeUrl);
+        addFromUrl(toSave, existing, creator, "facebook",  facebookUrl);
         if (!toSave.isEmpty()) socialAccountRepository.saveAll(toSave);
     }
 
@@ -334,9 +338,25 @@ public class CreatorService {
     public List<SocialAccount> updateSocialAccounts(UUID userId, UserRole role, List<SocialAccountRequest> accounts) {
         if (!role.isCreator()) throw new ApiException(HttpStatus.FORBIDDEN, "Only creators can update social accounts");
         Creator creator = findCreator(userId);
+        Set<String> platforms = new LinkedHashSet<>();
+        List<SocialAccountRequest> normalizedAccounts = accounts.stream()
+                .map(a -> new SocialAccountRequest(
+                        normalizeSocialPlatform(a.platform()),
+                        a.username(),
+                        a.profileUrl(),
+                        a.followers(),
+                        a.avgViews(),
+                        a.engagementRate()))
+                .toList();
+        for (SocialAccountRequest account : normalizedAccounts) {
+            if (!platforms.add(account.platform())) {
+                throw new ApiException(HttpStatus.BAD_REQUEST, "Each social platform can only be added once");
+            }
+        }
+
         // delete existing and re-insert (simpler than upsert per-platform)
         socialAccountRepository.deleteAll(socialAccountRepository.findByCreatorId(userId));
-        List<SocialAccount> saved = accounts.stream().map(a -> socialAccountRepository.save(
+        List<SocialAccount> saved = normalizedAccounts.stream().map(a -> socialAccountRepository.save(
                 SocialAccount.builder()
                         .creator(creator)
                         .platform(a.platform())
@@ -357,11 +377,12 @@ public class CreatorService {
     @Transactional
     public SocialAccount patchSocialAccount(UUID userId, String platform, SocialAccountPatchRequest req) {
         Creator creator = findCreator(userId);
+        String normalizedPlatform = normalizeSocialPlatform(platform);
         SocialAccount account = socialAccountRepository
-                .findByCreatorIdAndPlatformIgnoreCase(userId, platform)
+                .findByCreatorIdAndPlatformIgnoreCase(userId, normalizedPlatform)
                 .orElseGet(() -> SocialAccount.builder()
                         .creator(creator)
-                        .platform(platform.toLowerCase())
+                        .platform(normalizedPlatform)
                         .username("")
                         .followers(0)
                         .engagementRate(BigDecimal.ZERO)
@@ -372,6 +393,14 @@ public class CreatorService {
         if (req.avgViews() != null) account.setAvgViews(req.avgViews());
         if (req.engagementRate() != null) account.setEngagementRate(req.engagementRate());
         return socialAccountRepository.save(account);
+    }
+
+    private String normalizeSocialPlatform(String platform) {
+        String normalized = platform == null ? "" : platform.trim().toLowerCase(Locale.ROOT);
+        if (!SUPPORTED_SOCIAL_PLATFORMS.contains(normalized)) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Unsupported social platform");
+        }
+        return normalized;
     }
 
     // ---- Preferences ----

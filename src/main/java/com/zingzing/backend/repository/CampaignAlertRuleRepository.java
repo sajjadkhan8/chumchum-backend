@@ -9,6 +9,6 @@ import java.util.UUID;
 
 public interface CampaignAlertRuleRepository extends JpaRepository<CampaignAlertRule, UUID> {
     List<CampaignAlertRule> findByCampaignIdOrderByCreatedAtDesc(UUID campaignId);
-    List<CampaignAlertRule> findByCampaignIdAndIsActiveTrue(UUID campaignId);
+    List<CampaignAlertRule> findByCampaignIdAndActiveTrue(UUID campaignId);
     Optional<CampaignAlertRule> findByIdAndCampaignId(UUID id, UUID campaignId);
 }

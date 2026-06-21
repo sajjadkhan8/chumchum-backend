@@ -534,7 +534,7 @@ public class BrandCampaignService {
     }
 
     private void evaluateAlertRules(BrandCampaign campaign) {
-        List<CampaignAlertRule> rules = campaignAlertRuleRepository.findByCampaignIdAndIsActiveTrue(campaign.getId());
+        List<CampaignAlertRule> rules = campaignAlertRuleRepository.findByCampaignIdAndActiveTrue(campaign.getId());
         if (rules.isEmpty()) return;
 
         long reactionCount = brandCampaignReactionRepository.countByCampaignId(campaign.getId());

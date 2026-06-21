@@ -81,6 +81,7 @@ public class AmbassadorService {
         });
     }
 
+    @Transactional
     public AmbassadorScore getScore(UUID userId, UserRole role) {
         requireCreator(role);
         return scoreRepo.findByCreatorId(userId)
