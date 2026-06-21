@@ -14,6 +14,8 @@ public record ConversationResponse(
         String creatorName,
         String creatorAvatarUrl,
         String brandName,
-        String brandLogoUrl
+        String brandLogoUrl,
+        boolean blockedByMe,
+        boolean blockedByThem
 ) {
 }

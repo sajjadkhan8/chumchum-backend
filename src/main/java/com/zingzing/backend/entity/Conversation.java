@@ -3,6 +3,7 @@ package com.zingzing.backend.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.Instant;
 import java.util.UUID;
 
 @Getter
@@ -40,4 +41,19 @@ public class Conversation extends BaseEntity {
     /** Snapshot of last message content for conversation list display. */
     @Column(name = "last_message", length = 2000)
     private String lastMessage;
+
+    @Column(name = "last_message_at")
+    private Instant lastMessageAt;
+
+    @Column(name = "cleared_at_creator")
+    private Instant clearedAtCreator;
+
+    @Column(name = "cleared_at_brand")
+    private Instant clearedAtBrand;
+
+    @Column(name = "blocked_at_creator")
+    private Instant blockedAtCreator;
+
+    @Column(name = "blocked_at_brand")
+    private Instant blockedAtBrand;
 }

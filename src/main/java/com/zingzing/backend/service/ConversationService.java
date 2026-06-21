@@ -72,7 +72,7 @@ public class ConversationService {
             throw new ApiException(HttpStatus.FORBIDDEN, "Cannot create or access this conversation");
         }
 
-        return conversationMapper.toResponse(conversationRepository.save(conversation));
+        return conversationMapper.toResponse(conversationRepository.save(conversation), role);
     }
 
     @Transactional(readOnly = true)
@@ -90,7 +90,7 @@ public class ConversationService {
                 : conversationRepository.findByBrandIdOrderByUpdatedAtDesc(userId, pageable);
 
         List<ConversationResponse> responseList = conversationPage.getContent()
-                .stream().map(conversationMapper::toResponse).toList();
+                .stream().map(conversation -> conversationMapper.toResponse(conversation, role)).toList();
 
         return Map.of(
                 "items", responseList,
@@ -107,6 +107,6 @@ public class ConversationService {
         }
         Conversation conversation = conversationRepository.findByCreatorIdAndBrandId(creatorId, brandId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "No such conversation found!"));
-        return conversationMapper.toResponse(conversation);
+        return conversationMapper.toResponse(conversation, role);
     }
 }

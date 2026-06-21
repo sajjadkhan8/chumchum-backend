@@ -22,6 +22,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import static com.zingzing.backend.service.FileStorageService.PRIVATE_FILE_TYPES;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -70,6 +71,7 @@ public class MessageService {
         }
         Conversation conversation = findConversationForUpdate(conversationId);
         validateParticipant(userId, conversation);
+        validateNotBlocked(conversation);
         User sender = findUser(userId);
 
         Message message = Message.builder()
@@ -96,6 +98,7 @@ public class MessageService {
         }
         Conversation conversation = findConversationForUpdate(conversationId);
         validateParticipant(userId, conversation);
+        validateNotBlocked(conversation);
         User sender = findUser(userId);
 
         Message message = Message.builder()
@@ -129,14 +132,18 @@ public class MessageService {
                 .build());
 
         savedMessage.setQuickDealOffer(quickDealOffer);
-        updateConversationAfterSend(conversation, role, "[Offer]", savedMessage.getId());
+        updateConversationAfterSend(conversation, role, "[Offer]", savedMessage.getId(), savedMessage.getCreatedAt());
         return messageMapper.toResponse(savedMessage);
     }
 
     public List<MessageResponse> getMessages(UUID conversationId, UUID userId) {
         Conversation conversation = findConversation(conversationId);
         validateParticipant(userId, conversation);
-        return messageRepository.findByConversationIdOrderByCreatedAtAsc(conversationId)
+        Instant clearedAt = clearedAtFor(userId, conversation);
+        List<Message> messages = clearedAt == null
+                ? messageRepository.findByConversationIdOrderByCreatedAtAsc(conversationId)
+                : messageRepository.findByConversationIdAndCreatedAtAfterOrderByCreatedAtAsc(conversationId, clearedAt);
+        return messages
                 .stream().map(messageMapper::toResponse).toList();
     }
 
@@ -149,6 +156,7 @@ public class MessageService {
         }
         Conversation conversation = findConversationForUpdate(conversationId);
         validateParticipant(userId, conversation);
+        validateNotBlocked(conversation);
         User sender = findUser(userId);
 
         String attachmentUrl = fileStorageService.validateAndStoreProtected(
@@ -160,6 +168,7 @@ public class MessageService {
                 .senderType(role.name().toLowerCase())
                 .type(Message.MessageType.ATTACHMENT)
                 .attachmentUrl(attachmentUrl)
+                .attachmentOriginalName(sanitizeOriginalFilename(file.getOriginalFilename()))
                 .isRead(false)
                 .build();
 
@@ -178,15 +187,51 @@ public class MessageService {
         messageRepository.markIncomingRead(conversationId, userId);
     }
 
+    @Transactional
+    public void clearChat(UUID conversationId, UUID userId, UserRole role) {
+        if (role.isAdmin()) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "Admin cannot clear marketplace conversations");
+        }
+        Conversation conversation = findConversationForUpdate(conversationId);
+        validateParticipant(userId, conversation);
+        if (role.isCreator()) {
+            conversation.setClearedAtCreator(Instant.now());
+            conversation.setUnreadCountCreator(0);
+        } else {
+            conversation.setClearedAtBrand(Instant.now());
+            conversation.setUnreadCountBrand(0);
+        }
+        conversationRepository.save(conversation);
+        messageRepository.markIncomingRead(conversationId, userId);
+    }
+
+    @Transactional
+    public void blockConversation(UUID conversationId, UUID userId, UserRole role) {
+        if (role.isAdmin()) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "Admin cannot block marketplace conversations");
+        }
+        Conversation conversation = findConversationForUpdate(conversationId);
+        validateParticipant(userId, conversation);
+        if (role.isCreator()) {
+            conversation.setBlockedAtCreator(Instant.now());
+            conversation.setUnreadCountCreator(0);
+        } else {
+            conversation.setBlockedAtBrand(Instant.now());
+            conversation.setUnreadCountBrand(0);
+        }
+        conversationRepository.save(conversation);
+        messageRepository.markIncomingRead(conversationId, userId);
+    }
+
     // ---- helpers ----
 
     private MessageResponse save(Message message, Conversation conversation, UserRole senderRole, String preview) {
         Message saved = messageRepository.save(message);
-        updateConversationAfterSend(conversation, senderRole, preview, saved.getId());
+        updateConversationAfterSend(conversation, senderRole, preview, saved.getId(), saved.getCreatedAt());
         return messageMapper.toResponse(saved);
     }
 
-    private void updateConversationAfterSend(Conversation conversation, UserRole senderRole, String preview, UUID messageId) {
+    private void updateConversationAfterSend(Conversation conversation, UserRole senderRole, String preview, UUID messageId, Instant messageCreatedAt) {
         // increment unread for the OTHER party
         if (senderRole.isCreator()) {
             conversation.setUnreadCountBrand(conversation.getUnreadCountBrand() + 1);
@@ -196,6 +241,7 @@ public class MessageService {
         conversation.setLastMessage(preview != null && preview.length() > 200
                 ? preview.substring(0, 200) : preview);
         conversation.setLastMessageId(messageId);
+        conversation.setLastMessageAt(messageCreatedAt == null ? Instant.now() : messageCreatedAt);
         conversationRepository.save(conversation);
         UUID recipientId = senderRole.isCreator()
                 ? conversation.getBrand().getId()
@@ -224,6 +270,19 @@ public class MessageService {
         }
     }
 
+    private void validateNotBlocked(Conversation conversation) {
+        if (conversation.getBlockedAtCreator() != null || conversation.getBlockedAtBrand() != null) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "This conversation is blocked");
+        }
+    }
+
+    private Instant clearedAtFor(UUID userId, Conversation conversation) {
+        if (conversation.getCreator().getId().equals(userId)) {
+            return conversation.getClearedAtCreator();
+        }
+        return conversation.getClearedAtBrand();
+    }
+
     private Conversation findConversation(UUID id) {
         return conversationRepository.findById(id)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Conversation not found"));
@@ -237,5 +296,17 @@ public class MessageService {
     private User findUser(UUID id) {
         return userRepository.findById(id)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "User not found"));
+    }
+
+    private String sanitizeOriginalFilename(String originalFilename) {
+        if (originalFilename == null || originalFilename.isBlank()) {
+            return null;
+        }
+        String normalized = originalFilename.replace("\\", "/");
+        String baseName = normalized.substring(normalized.lastIndexOf('/') + 1).trim();
+        if (baseName.isEmpty()) {
+            return null;
+        }
+        return baseName.length() > 255 ? baseName.substring(baseName.length() - 255) : baseName;
     }
 }

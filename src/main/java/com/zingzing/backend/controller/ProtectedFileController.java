@@ -73,10 +73,14 @@ public class ProtectedFileController {
                 && !authUser.role().isAdmin())) {
             throw new ApiException(HttpStatus.FORBIDDEN, "Access denied");
         }
-        return download("attachments/" + conversationId + "/" + filename);
+        return download("attachments/" + conversationId + "/" + filename, message.getAttachmentOriginalName());
     }
 
     private ResponseEntity<Resource> download(String relativePath) {
+        return download(relativePath, null);
+    }
+
+    private ResponseEntity<Resource> download(String relativePath, String downloadName) {
         Path path = fileStorageService.load(relativePath);
         String contentType;
         try {
@@ -85,7 +89,9 @@ public class ProtectedFileController {
             contentType = null;
         }
         HttpHeaders headers = new HttpHeaders();
-        headers.setContentDisposition(ContentDisposition.attachment().filename(path.getFileName().toString()).build());
+        headers.setContentDisposition(ContentDisposition.attachment()
+                .filename(downloadName == null || downloadName.isBlank() ? path.getFileName().toString() : downloadName)
+                .build());
         return ResponseEntity.ok()
                 .headers(headers)
                 .contentType(contentType == null ? MediaType.APPLICATION_OCTET_STREAM : MediaType.parseMediaType(contentType))

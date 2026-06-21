@@ -27,6 +27,7 @@ import jakarta.transaction.Transactional;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
 import java.util.UUID;
 
 @Service
@@ -88,6 +89,10 @@ public class QuickDealService {
                         .brand(brand)
                         .build()));
 
+        if (conversation.getBlockedAtCreator() != null || conversation.getBlockedAtBrand() != null) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "This conversation is blocked");
+        }
+
         Message message = messageRepository.save(Message.builder()
                 .conversation(conversation)
                 .sender(brand)
@@ -126,6 +131,7 @@ public class QuickDealService {
         conversation.setUnreadCountCreator(conversation.getUnreadCountCreator() + 1);
         conversation.setLastMessage("[Offer]");
         conversation.setLastMessageId(message.getId());
+        conversation.setLastMessageAt(message.getCreatedAt() == null ? Instant.now() : message.getCreatedAt());
         conversationRepository.save(conversation);
         notificationService.sendMessageNotification(creator.getId(), "New deal offer from " + brand.getDisplayName(),
                 request.message() == null || request.message().isBlank() ? "New deal offer" : request.message(),

@@ -12,6 +12,7 @@ public record MessageResponse(
         String content,
         boolean isRead,
         String attachmentUrl,
+        String attachmentOriginalName,
         String offerDealType,
         Integer offerAmount,
         String offerBarterDetails,

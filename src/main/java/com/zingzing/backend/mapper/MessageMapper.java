@@ -58,6 +58,7 @@ public class MessageMapper {
                 content,
                 message.isRead(),
                 message.getAttachmentUrl(),
+                message.getAttachmentOriginalName(),
                 offerDealType,
                 offerAmount,
                 offerBarterDetails,

@@ -45,6 +45,9 @@ public class Message extends BaseEntity {
     @Column(name = "attachment_url", length = 500)
     private String attachmentUrl;
 
+    @Column(name = "attachment_original_name", length = 255)
+    private String attachmentOriginalName;
+
     // ---- Embedded offer snapshot (quick deal data stored inline) ----
     @Column(name = "offer_deal_type", length = 30)
     private String offerDealType;

@@ -78,5 +78,22 @@ public class MessageController {
         messageService.markRead(conversationId, authUser.userId(), authUser.role());
         return ResponseEntity.noContent().build();
     }
-}
 
+    @PostMapping("/clear")
+    public ResponseEntity<Void> clearChat(
+            @PathVariable UUID conversationId,
+            @AuthenticationPrincipal AuthenticatedUser authUser
+    ) {
+        messageService.clearChat(conversationId, authUser.userId(), authUser.role());
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/block")
+    public ResponseEntity<Void> blockUser(
+            @PathVariable UUID conversationId,
+            @AuthenticationPrincipal AuthenticatedUser authUser
+    ) {
+        messageService.blockConversation(conversationId, authUser.userId(), authUser.role());
+        return ResponseEntity.noContent().build();
+    }
+}
