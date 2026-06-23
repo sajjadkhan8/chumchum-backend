@@ -39,7 +39,7 @@ public class PayoutMethodService {
 
     @Transactional
     public PayoutMethod create(UUID userId, UserRole role, PayoutMethodType type, String name,
-                               String accountDetails, boolean isDefault) {
+                               String accountDetails, boolean isDefault, String bankName) {
         requireCreator(role);
         paymentValidationService.validateCreatorPayoutDetails(type, accountDetails);
         Creator creator = findCreator(userId);
@@ -48,6 +48,7 @@ public class PayoutMethodService {
                 .creator(creator)
                 .type(type)
                 .name(name)
+                .bankName(bankName)
                 .accountDetails(accountDetails)
                 .isDefault(isDefault)
                 .build();
@@ -58,9 +59,10 @@ public class PayoutMethodService {
     }
 
     @Transactional
-    public PayoutMethod update(UUID pmId, UUID userId, String name, String accountDetails, Boolean isDefault) {
+    public PayoutMethod update(UUID pmId, UUID userId, String name, String accountDetails, Boolean isDefault, String bankName) {
         PayoutMethod pm = findOwnedByCreator(pmId, userId);
         if (name != null) pm.setName(name);
+        if (bankName != null) pm.setBankName(bankName);
         if (accountDetails != null) {
             paymentValidationService.validateCreatorPayoutDetails(pm.getType(), accountDetails);
             pm.setAccountDetails(accountDetails);

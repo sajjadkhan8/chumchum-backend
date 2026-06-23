@@ -14,7 +14,6 @@ import com.zingzing.backend.entity.enums.OfferStatus;
 import com.zingzing.backend.entity.enums.PackageCategory;
 import com.zingzing.backend.entity.enums.PackagePlatform;
 import com.zingzing.backend.entity.enums.PackageStatus;
-import com.zingzing.backend.entity.enums.PackageType;
 import com.zingzing.backend.entity.enums.UserRole;
 import com.zingzing.backend.exception.ApiException;
 import com.zingzing.backend.repository.BrandRepository;
@@ -200,7 +199,6 @@ public class QuickDealService {
                 .fullDescription(description)
                 .platform(offer.getPlatform() != null ? offer.getPlatform() : PackagePlatform.INSTAGRAM)
                 .category(PackageCategory.QUICK_DEAL)
-                .type(PackageType.ONE_TIME)
                 .dealType(offer.getDealType())
                 .status(PackageStatus.ACTIVE)
                 .visibility("private")

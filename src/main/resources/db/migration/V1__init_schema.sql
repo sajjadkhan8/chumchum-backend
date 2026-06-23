@@ -111,7 +111,9 @@ create table creators (
     rate_card_reel integer,
     rate_card_story integer,
     rate_card_post integer,
-    rate_card_video integer
+    rate_card_video integer,
+    deal_types  jsonb,
+    barter_types jsonb
 );
 
 create table brands (
@@ -865,6 +867,7 @@ create index idx_auth_security_events_user_created on auth_security_events(user_
 create index idx_auth_security_events_type_created on auth_security_events(event_type, created_at desc);
 create index idx_deliverables_order_id on deliverables(order_id);
 create index idx_social_accounts_creator_id on social_accounts(creator_id);
+create unique index uk_social_accounts_creator_platform on social_accounts(creator_id, lower(platform));
 create index idx_social_accounts_oauth_status on social_accounts(oauth_status, last_synced_at desc);
 create index idx_social_oauth_states_creator on social_oauth_states(creator_id, expires_at desc);
 create index idx_content_previews_creator_id on content_previews(creator_id);

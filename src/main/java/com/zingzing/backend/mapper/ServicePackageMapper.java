@@ -1,7 +1,6 @@
 package com.zingzing.backend.mapper;
 
 import com.zingzing.backend.dto.servicepackage.ServicePackageResponse;
-import com.zingzing.backend.dto.servicepackage.ServicePackageTierResponse;
 import com.zingzing.backend.entity.ServicePackage;
 import org.springframework.stereotype.Component;
 
@@ -22,7 +21,6 @@ public class ServicePackageMapper {
                 servicePackage.getFullDescription(),
                 servicePackage.getPlatform(),
                 servicePackage.getCategory(),
-                servicePackage.getType(),
                 servicePackage.getDealType(),
                 servicePackage.getBarterDetails(),
                 servicePackage.getBarterDescription(),
@@ -46,23 +44,6 @@ public class ServicePackageMapper {
                 servicePackage.getCoverImage(),
                 arrayToList(servicePackage.getMediaUrls()),
                 servicePackage.getTags() == null ? List.of() : servicePackage.getTags(),
-                servicePackage.getTiers().stream()
-                        .map(tier -> new ServicePackageTierResponse(
-                                tier.getId(),
-                                tier.getName(),
-                                tier.getPrice(),
-                                tier.getDescription(),
-                                tier.getDeliverables(),
-                                tier.getDeliveryDays(),
-                                tier.getRevisions(),
-                                tier.getPosition(),
-                                tier.isPrimary(),
-                                tier.getCreatedAt(),
-                                tier.getUpdatedAt()
-                        ))
-                        .toList(),
-                servicePackage.getSubscriptionInterval(),
-                servicePackage.getSubscriptionDuration(),
                 servicePackage.getCreatedAt(),
                 servicePackage.getUpdatedAt()
         );
@@ -72,6 +53,3 @@ public class ServicePackageMapper {
         return values == null ? List.of() : Arrays.asList(values);
     }
 }
-
-
-

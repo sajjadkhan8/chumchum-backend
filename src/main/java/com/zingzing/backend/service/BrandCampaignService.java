@@ -22,7 +22,6 @@ import com.zingzing.backend.entity.enums.DealType;
 import com.zingzing.backend.entity.enums.PackageCategory;
 import com.zingzing.backend.entity.enums.PackagePlatform;
 import com.zingzing.backend.entity.enums.PackageStatus;
-import com.zingzing.backend.entity.enums.PackageType;
 import com.zingzing.backend.entity.enums.UserRole;
 import com.zingzing.backend.exception.ApiException;
 import com.zingzing.backend.repository.BrandCampaignReactionRepository;
@@ -384,6 +383,7 @@ public class BrandCampaignService {
             ).id();
         }
         notifyCreatorOfReactionAction(saved, campaign, targetStatus, request.brandNote());
+        evaluateAlertRules(campaign);
         return toReactionResponse(saved, orderId);
     }
 
@@ -771,7 +771,6 @@ public class BrandCampaignService {
                 .fullDescription(campaign.getBrief())
                 .platform(resolvePlatform(campaign.getTargetPlatforms()))
                 .category(PackageCategory.GENERAL)
-                .type(PackageType.ONE_TIME)
                 .dealType(effectiveDealType(campaign))
                 .status(PackageStatus.ACTIVE)
                 .visibility("private")

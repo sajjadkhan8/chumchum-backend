@@ -4,11 +4,8 @@ import com.zingzing.backend.entity.enums.PackageCategory;
 import com.zingzing.backend.entity.enums.PackagePlatform;
 import com.zingzing.backend.entity.enums.DealType;
 import com.zingzing.backend.entity.enums.PackageStatus;
-import com.zingzing.backend.entity.enums.PackageType;
-import com.zingzing.backend.entity.enums.SubscriptionInterval;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
-import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -26,7 +23,6 @@ public record ServicePackageCreateRequest(
         @Size(max = 2000) String fullDescription,
         @NotNull PackagePlatform platform,
         PackageCategory category,
-        @NotNull PackageType type,
         DealType dealType,
         @Size(max = 1000) String barterDetails,
         @Size(max = 1000) String barterDescription,
@@ -39,7 +35,7 @@ public record ServicePackageCreateRequest(
         @Size(max = 10) String currency,
         @NotNull @Size(min = 1, max = 30) List<@NotBlank @Size(max = 200) String> deliverables,
         @NotNull @Positive Integer deliveryDays,
-        @Positive Integer revisions,
+        @Min(0) Integer revisions,
         Boolean isFeatured,
         PackageStatus status,
         String visibility,
@@ -47,11 +43,6 @@ public record ServicePackageCreateRequest(
         String coverImage,
         List<String> mediaUrls,
         List<String> tags,
-        Boolean isActive,
-        @Valid List<ServicePackageTierRequest> tiers,
-        SubscriptionInterval subscriptionInterval,
-        @Min(1) Integer subscriptionDuration
+        Boolean isActive
 ) {
 }
-
-

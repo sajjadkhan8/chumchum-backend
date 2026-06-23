@@ -389,7 +389,9 @@ public class CreatorController {
             @NotBlank String type,
             @NotBlank String thumbnailUrl,
             @NotBlank String mediaUrl,
-            @NotBlank String platform
+            @NotBlank String platform,
+            Integer views,
+            Integer likes
     ) {}
 
     public record PortfolioReorderRequest(List<UUID> ids) {}
@@ -407,6 +409,8 @@ public class CreatorController {
                 .thumbnailUrl(req.thumbnailUrl())
                 .mediaUrl(req.mediaUrl())
                 .platform(req.platform())
+                .views(req.views() != null ? req.views() : 0)
+                .likes(req.likes() != null ? req.likes() : 0)
                 .build();
         ContentPreview saved = contentPreviewRepository.save(preview);
         Map<String, Object> row = new LinkedHashMap<>();
@@ -415,6 +419,8 @@ public class CreatorController {
         row.put("thumbnailUrl", saved.getThumbnailUrl());
         row.put("mediaUrl", saved.getMediaUrl());
         row.put("platform", saved.getPlatform());
+        row.put("views", saved.getViews());
+        row.put("likes", saved.getLikes());
         return ResponseEntity.ok(Map.of("success", true, "data", row));
     }
 

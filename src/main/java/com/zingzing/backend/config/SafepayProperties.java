@@ -15,6 +15,7 @@ import org.springframework.stereotype.Component;
  *   SAFEPAY_ENVIRONMENT   - "sandbox" (default) or "production"
  *   SAFEPAY_ENABLED       - true (default) or false (disables all Safepay endpoints)
  *   SAFEPAY_INTENT        - Payment intent: "CYBERSOURCE" (default) or "MPGS"
+ *   SAFEPAY_ENTRY_MODE    - Payment entry mode for tracker creation: "flex" (default)
  *
  * Switch to production by setting SAFEPAY_ENVIRONMENT=production and using live dashboard keys.
  */
@@ -45,6 +46,9 @@ public class SafepayProperties {
 
     /** Payment intent type. CYBERSOURCE is the standard for card payments in Pakistan. */
     private String intent = "CYBERSOURCE";
+
+    /** Safepay entry mode for payment tracker creation. */
+    private String entryMode = "flex";
 
     private String sandboxBaseUrl = "https://sandbox.api.getsafepay.com";
     private String productionBaseUrl = "https://api.getsafepay.com";
@@ -90,6 +94,9 @@ public class SafepayProperties {
 
     public String getIntent() { return intent; }
     public void setIntent(String intent) { this.intent = intent; }
+
+    public String getEntryMode() { return entryMode; }
+    public void setEntryMode(String entryMode) { this.entryMode = entryMode; }
 
     public String getSandboxBaseUrl() { return sandboxBaseUrl; }
     public void setSandboxBaseUrl(String sandboxBaseUrl) { this.sandboxBaseUrl = sandboxBaseUrl; }

@@ -43,7 +43,7 @@ public class CreatorMapper {
         List<SocialAccountResponse> socialAccounts = socialAccountRepository.findByCreatorId(creator.getId()).stream()
                 .map(this::toSocialAccountResponse)
                 .toList();
-        List<ContentPreviewResponse> contentPreviews = contentPreviewRepository.findByCreatorIdOrderByCreatedAtDesc(creator.getId()).stream()
+        List<ContentPreviewResponse> contentPreviews = contentPreviewRepository.findByCreatorIdOrderByPositionAscCreatedAtDesc(creator.getId()).stream()
                 .map(this::toContentPreviewResponse)
                 .toList();
 

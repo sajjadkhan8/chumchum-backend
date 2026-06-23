@@ -117,8 +117,6 @@ public class BrandPaymentsService {
 
     public record UpdateBrandPaymentMethodRequest(Boolean isDefault) {}
 
-    public record TopUpRequest(int amount) {}
-
     public record UpdateControlsRequest(
             Boolean requireTwoApprovals,
             Integer autoReleaseAfterDays,
@@ -165,11 +163,27 @@ public class BrandPaymentsService {
     public BrandPaymentSummaryResponse getSummary(BrandScope scope) {
         Brand brand = managedBrand(scope);
         BrandWallet wallet = ensureWallet(brand);
+
+        Instant thirtyDaysAgo = Instant.now().minus(30, ChronoUnit.DAYS);
+        List<BrandDisbursement> disbursements = brandDisbursementRepository.findByBrandIdOrderByReleaseDateDesc(brand.getId());
+
+        int monthlySpend = disbursements.stream()
+                .filter(d -> d.getStatus() == BrandDisbursementStatus.COMPLETED
+                        && d.getReleaseDate() != null && d.getReleaseDate().isAfter(thirtyDaysAgo))
+                .mapToInt(BrandDisbursement::getAmount)
+                .sum();
+
+        int processingPayouts = disbursements.stream()
+                .filter(d -> d.getStatus() == BrandDisbursementStatus.PROCESSING
+                        || d.getStatus() == BrandDisbursementStatus.SCHEDULED)
+                .mapToInt(BrandDisbursement::getAmount)
+                .sum();
+
         return new BrandPaymentSummaryResponse(
                 wallet.getWalletBalance(),
-                wallet.getMonthlySpend(),
+                monthlySpend,
                 wallet.getPendingEscrow(),
-                wallet.getProcessingPayouts(),
+                processingPayouts,
                 wallet.getNextInvoiceDate()
         );
     }
@@ -320,36 +334,6 @@ public class BrandPaymentsService {
                 scope.brandId().toString(), "requireTwoApprovals=" + saved.isRequireTwoApprovals());
 
         return toControlsResponse(saved);
-    }
-
-    @Transactional
-    public BrandPaymentSummaryResponse topUp(UUID actorId, BrandScope scope, TopUpRequest request) {
-        requireManageFunds(scope.role(), "top up wallet");
-        Brand brand = managedBrand(scope);
-
-        if (request.amount() < 1000) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Top-up amount must be at least 1000 PKR");
-        }
-
-        if (brandPaymentMethodRepository.findByBrandIdOrderByCreatedAtDesc(scope.brandId()).isEmpty()) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Add a payment method before wallet top-up");
-        }
-
-        BrandWallet wallet = ensureWallet(brand);
-        wallet.setWalletBalance(wallet.getWalletBalance() + request.amount());
-        wallet.setNextInvoiceDate(Instant.now().plus(10, ChronoUnit.DAYS));
-        BrandWallet saved = brandWalletRepository.save(wallet);
-
-        paymentAuditService.log(actorId, brand, "BRAND_WALLET_TOPUP", "brand_wallet",
-                scope.brandId().toString(), "amount=" + request.amount());
-
-        return new BrandPaymentSummaryResponse(
-                saved.getWalletBalance(),
-                saved.getMonthlySpend(),
-                saved.getPendingEscrow(),
-                saved.getProcessingPayouts(),
-                saved.getNextInvoiceDate()
-        );
     }
 
     private Brand findBrand(UUID brandId) {

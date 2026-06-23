@@ -4,8 +4,6 @@ import com.zingzing.backend.entity.enums.DealType;
 import com.zingzing.backend.entity.enums.PackageCategory;
 import com.zingzing.backend.entity.enums.PackagePlatform;
 import com.zingzing.backend.entity.enums.PackageStatus;
-import com.zingzing.backend.entity.enums.PackageType;
-import com.zingzing.backend.entity.enums.SubscriptionInterval;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 
@@ -24,7 +22,6 @@ public record ServicePackageResponse(
         String fullDescription,
         PackagePlatform platform,
         PackageCategory category,
-        PackageType type,
         DealType dealType,
         String barterDetails,
         String barterDescription,
@@ -48,13 +45,7 @@ public record ServicePackageResponse(
         String coverImage,
         List<String> mediaUrls,
         List<String> tags,
-        List<ServicePackageTierResponse> tiers,
-        SubscriptionInterval subscriptionInterval,
-        Integer subscriptionDuration,
         Instant createdAt,
         Instant updatedAt
 ) {
 }
-
-
-

@@ -3,12 +3,9 @@ package com.zingzing.backend.dto.creator;
 import com.zingzing.backend.entity.enums.AvailabilityStatus;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
-import jakarta.validation.constraints.DecimalMax;
-import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Size;
 
-import java.math.BigDecimal;
 import java.util.List;
 
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
@@ -35,11 +32,6 @@ public record CreatorUpdateRequest(
         @Size(max = 255) String instagramUrl,
         @Size(max = 255) String youtubeUrl,
         @Size(max = 255) String facebookUrl,
-        @Min(0) Integer followers,
-        @Min(0) Integer avgViews,
-        @DecimalMin("0.00") @DecimalMax("100.00") BigDecimal engagementRate,
-        @DecimalMin("0.00") @DecimalMax("5.00") BigDecimal rating,
-        @Min(0) Integer totalReviews,
         Boolean isFiler,
         @Min(0) Integer rateCardReel,
         @Min(0) Integer rateCardStory,

@@ -139,7 +139,43 @@ public class AmbassadorService {
         score.setCancellationScore(cancellationScore);
         score.setProfileCompletenessScore(completenessScore);
         score.setConsistencyScore(consistencyScore);
-        return scoreRepo.save(score);
+
+        score.setStrengths(buildStrengths(deliveryScore, ratingScore, accountAgeScore,
+                completenessScore, consistencyScore));
+        score.setImprovements(buildImprovements(deliveryScore, ratingScore,
+                completenessScore, consistencyScore, cancellationScore));
+
+        // Persist first so this creator's row is part of the population, then derive the
+        // percentile from the real distribution (percent of creators scoring strictly lower).
+        AmbassadorScore saved = scoreRepo.save(score);
+        long population = scoreRepo.count();
+        long countBelow = scoreRepo.countByTotalLessThan(total);
+        int percentileRank = (int) Math.round(countBelow / (double) Math.max(1, population) * 100);
+        saved.setPercentileRank(Math.max(0, Math.min(100, percentileRank)));
+        return scoreRepo.save(saved);
+    }
+
+    private List<String> buildStrengths(int deliveryScore, int ratingScore, int accountAgeScore,
+                                        int completenessScore, int consistencyScore) {
+        List<String> strengths = new java.util.ArrayList<>();
+        if (deliveryScore >= 20) strengths.add("Excellent delivery track record");
+        if (ratingScore >= 20) strengths.add("Consistently high-quality work");
+        if (accountAgeScore >= 10) strengths.add("Long-term platform member");
+        if (completenessScore >= 8) strengths.add("Complete, polished profile");
+        if (consistencyScore >= 4) strengths.add("Strong multi-platform presence");
+        return strengths;
+    }
+
+    private List<String> buildImprovements(int deliveryScore, int ratingScore,
+                                           int completenessScore, int consistencyScore,
+                                           int cancellationScore) {
+        List<String> improvements = new java.util.ArrayList<>();
+        if (deliveryScore < 15) improvements.add("Complete more orders to boost your delivery score");
+        if (ratingScore < 20) improvements.add("Aim for a higher rating to improve quality score");
+        if (completenessScore < 8) improvements.add("Complete your profile (bio, city, avatar, website, social links)");
+        if (consistencyScore < 4) improvements.add("Link more social accounts");
+        if (cancellationScore < 8) improvements.add("Reduce cancellations to strengthen reliability");
+        return improvements;
     }
 
     public List<Creator> getAmbassadors(int limit) {

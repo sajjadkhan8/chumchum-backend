@@ -37,8 +37,6 @@ public class BrandPaymentsController {
 
     public record UpdateMethodRequest(Boolean isDefault) {}
 
-    public record TopUpRequest(@NotNull @Min(1000) Integer amount) {}
-
     public record UpdateControlsRequest(
             Boolean requireTwoApprovals,
             @Min(1) Integer autoReleaseAfterDays,
@@ -145,15 +143,6 @@ public class BrandPaymentsController {
                         request.autoReleaseAfterDays(),
                         request.lowBalanceAlertThreshold()
                 )));
-    }
-
-    @PostMapping("/top-up")
-    public ResponseEntity<Map<String, Object>> topUp(
-            @AuthenticationPrincipal AuthenticatedUser authUser,
-            @Valid @RequestBody TopUpRequest request
-    ) {
-        var scope = resolveScope(authUser);
-        return ok(brandPaymentsService.topUp(authUser.userId(), scope, new BrandPaymentsService.TopUpRequest(request.amount())));
     }
 
     private BrandPaymentsService.BrandScope resolveScope(AuthenticatedUser authUser) {

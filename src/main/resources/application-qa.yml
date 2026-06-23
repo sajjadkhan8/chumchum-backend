@@ -143,6 +143,7 @@ safepay:
   secret-key: ${SAFEPAY_SECRET_KEY:7a86e128d6beb3bf32fde35aae82b3b0112a168d90d6478b7e2b3d440743ecdc}
   hmac-key: ${SAFEPAY_HMAC_KEY:8aece5a35b38c03d0adb49e609ee9818c92d2d473410087393abb583828210e9}
   intent: ${SAFEPAY_INTENT:CYBERSOURCE}
+  entry-mode: ${SAFEPAY_ENTRY_MODE:flex}
   sandbox-base-url: ${SAFEPAY_SANDBOX_BASE_URL:https://sandbox.api.getsafepay.com}
   production-base-url: ${SAFEPAY_PRODUCTION_BASE_URL:https://api.getsafepay.com}
   webhook-tolerance-seconds: ${SAFEPAY_WEBHOOK_TOLERANCE_SECONDS:300}

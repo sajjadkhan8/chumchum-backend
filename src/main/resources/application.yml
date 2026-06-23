@@ -173,6 +173,7 @@ safepay:
   secret-key: ${SAFEPAY_SECRET_KEY:}
   hmac-key: ${SAFEPAY_HMAC_KEY:}
   intent: ${SAFEPAY_INTENT:CYBERSOURCE}
+  entry-mode: ${SAFEPAY_ENTRY_MODE:flex}
   sandbox-base-url: ${SAFEPAY_SANDBOX_BASE_URL:https://sandbox.api.getsafepay.com}
   production-base-url: ${SAFEPAY_PRODUCTION_BASE_URL:https://api.getsafepay.com}
   refund-endpoint: ${SAFEPAY_REFUND_ENDPOINT:}

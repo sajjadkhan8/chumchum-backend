@@ -102,20 +102,6 @@ public class OrderService {
     }
 
     @Transactional(readOnly = true)
-    public Map<String, Object> getOrders(UUID userId, UserRole role, int page, int limit) {
-        PageRequest pageable = PageRequest.of(Math.max(page, 0), Math.min(Math.max(limit, 1), 100));
-        Page<Order> orderPage = role.isCreator()
-                ? orderRepository.findByCreatorIdOrderByCreatedAtDesc(userId, pageable)
-                : orderRepository.findByBrandIdOrderByCreatedAtDesc(userId, pageable);
-        Map<String, Object> result = new HashMap<>();
-        result.put("orders", orderPage.getContent().stream().map(orderMapper::toResponse).toList());
-        result.put("total", orderPage.getTotalElements());
-        result.put("page", page);
-        result.put("limit", limit);
-        return result;
-    }
-
-    @Transactional(readOnly = true)
     public Map<String, Object> getOrders(UUID userId, UserRole role, int page, int limit,
                                          String status, String search) {
         PageRequest pageable = PageRequest.of(Math.max(page, 0), Math.min(Math.max(limit, 1), 100));

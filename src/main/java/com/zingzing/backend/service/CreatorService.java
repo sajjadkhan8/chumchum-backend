@@ -198,7 +198,6 @@ public class CreatorService {
     public CreatorResponse update(UUID actorUserId, UserRole actorRole, UUID creatorId, CreatorUpdateRequest request) {
         Creator creator = findCreator(creatorId);
         validateOwnerOrAdmin(actorUserId, actorRole, creator.getId());
-        validateMetricsAccess(actorRole, request);
 
         if (request.name() != null) {
             creator.setName(request.name());
@@ -272,21 +271,6 @@ public class CreatorService {
         saveSocialAccountsFromUrls(creator,
                 request.instagramUrl(), request.tiktokUrl(),
                 request.youtubeUrl(), request.facebookUrl());
-        if (request.followers() != null) {
-            creator.setFollowers(request.followers());
-        }
-        if (request.avgViews() != null) {
-            creator.setAvgViews(request.avgViews());
-        }
-        if (request.engagementRate() != null) {
-            creator.setEngagementRate(request.engagementRate());
-        }
-        if (request.rating() != null) {
-            creator.setRating(request.rating());
-        }
-        if (request.totalReviews() != null) {
-            creator.setTotalReviews(request.totalReviews());
-        }
         if (request.rateCardReel() != null) creator.setRateCardReel(request.rateCardReel());
         if (request.rateCardStory() != null) creator.setRateCardStory(request.rateCardStory());
         if (request.rateCardPost() != null) creator.setRateCardPost(request.rateCardPost());
@@ -560,18 +544,6 @@ public class CreatorService {
     private void validateOwnerOrAdmin(UUID actorUserId, UserRole actorRole, UUID resourceUserId) {
         if (!actorRole.isAdmin() && !actorUserId.equals(resourceUserId)) {
             throw new ApiException(HttpStatus.FORBIDDEN, "You can only manage your own creator profile");
-        }
-    }
-
-    private void validateMetricsAccess(UserRole actorRole, CreatorUpdateRequest request) {
-        boolean metricsProvided = request.followers() != null
-                || request.avgViews() != null
-                || request.engagementRate() != null
-                || request.rating() != null
-                || request.totalReviews() != null;
-
-        if (metricsProvided && !actorRole.isAdmin()) {
-            throw new ApiException(HttpStatus.FORBIDDEN, "Only admin can update creator metrics");
         }
     }
 

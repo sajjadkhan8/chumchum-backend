@@ -78,23 +78,37 @@ public class NotificationService {
                 return;
             }
 
-            Notification notification = Notification.builder()
-                    .user(user)
-                    .type(type)
-                    .title(title)
-                    .body(body)
-                    .entityType(entityType)
-                    .entityId(entityId)
-                    .build();
+            var preference = notificationPreferenceRepository.findByUserId(userId).orElse(null);
 
-            notificationRepository.save(notification);
+            if (isInAppAllowed(preference, type)) {
+                notificationRepository.save(Notification.builder()
+                        .user(user)
+                        .type(type)
+                        .title(title)
+                        .body(body)
+                        .entityType(entityType)
+                        .entityId(entityId)
+                        .build());
+            }
 
-            // Fire email in background (respects user preferences if configured)
-            emailNotificationService.send(user.getEmail(), user.getName(), title, body);
+            if (preference == null || preference.isEmailNotifications()) {
+                emailNotificationService.send(user.getEmail(), user.getName(), title, body);
+            }
 
         } catch (Exception ex) {
             log.error("Failed to persist notification for user {}: {}", userId, ex.getMessage(), ex);
         }
+    }
+
+    private boolean isInAppAllowed(com.zingzing.backend.entity.NotificationPreference pref, String type) {
+        if (pref == null) return true;
+        String t = type.toLowerCase();
+        if (t.contains("order") || t.contains("deliverable") || t.contains("barter") || t.contains("campaign")) {
+            return pref.isNewOrders();
+        }
+        if (t.contains("review")) return pref.isReviews();
+        if (t.equals("marketing")) return pref.isMarketing();
+        return true;
     }
 
     @Transactional(readOnly = true)

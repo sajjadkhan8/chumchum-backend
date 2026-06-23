@@ -42,16 +42,6 @@ public class MessageController {
                 .body(messageService.sendTextMessage(authUser.userId(), authUser.role(), conversationId, request));
     }
 
-    @PostMapping("/messages/offer")
-    public ResponseEntity<MessageResponse> sendOffer(
-            @PathVariable UUID conversationId,
-            @AuthenticationPrincipal AuthenticatedUser authUser,
-            @Valid @RequestBody MessageCreateRequest request
-    ) {
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(messageService.sendOfferMessage(authUser.userId(), authUser.role(), conversationId, request));
-    }
-
     @PostMapping(value = "/messages/attachment", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<MessageResponse> sendAttachment(
             @PathVariable UUID conversationId,
@@ -94,6 +84,15 @@ public class MessageController {
             @AuthenticationPrincipal AuthenticatedUser authUser
     ) {
         messageService.blockConversation(conversationId, authUser.userId(), authUser.role());
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/unblock")
+    public ResponseEntity<Void> unblockUser(
+            @PathVariable UUID conversationId,
+            @AuthenticationPrincipal AuthenticatedUser authUser
+    ) {
+        messageService.unblockConversation(conversationId, authUser.userId(), authUser.role());
         return ResponseEntity.noContent().build();
     }
 }

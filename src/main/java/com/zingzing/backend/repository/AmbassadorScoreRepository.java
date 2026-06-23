@@ -13,5 +13,7 @@ public interface AmbassadorScoreRepository extends JpaRepository<AmbassadorScore
 
     @Query("select s.creatorId from AmbassadorScore s")
     List<UUID> findAllCreatorIds();
+
+    long countByTotalLessThan(int total);
 }
 

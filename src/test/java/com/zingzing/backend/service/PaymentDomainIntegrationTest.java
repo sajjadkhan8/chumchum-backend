@@ -1,14 +1,11 @@
 package com.zingzing.backend.service;
 
-import com.chamcham.backend.entity.*;
-import com.chamcham.backend.entity.enums.*;
 import com.zingzing.backend.entity.*;
 import com.zingzing.backend.entity.enums.BrandPaymentAccessRole;
 import com.zingzing.backend.entity.enums.CreatorPayoutSchedule;
 import com.zingzing.backend.entity.enums.PayoutMethodType;
 import com.zingzing.backend.entity.enums.UserRole;
 import com.zingzing.backend.exception.ApiException;
-import com.chamcham.backend.repository.*;
 import com.zingzing.backend.repository.*;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -66,7 +63,8 @@ class PaymentDomainIntegrationTest {
                 PayoutMethodType.BANK_TRANSFER,
                 "Meezan Main",
                 "PK36MEZN0001200001234567",
-                true
+                true,
+                "Meezan Bank"
         );
 
         ApiException belowMinimum = assertThrows(ApiException.class, () ->
@@ -97,7 +95,8 @@ class PaymentDomainIntegrationTest {
                         PayoutMethodType.BANK_TRANSFER,
                         "Bad IBAN",
                         "INVALID-IBAN",
-                        true
+                        true,
+                        "Meezan Bank"
                 ));
         assertEquals(400, invalidIban.getStatus().value());
 
@@ -108,7 +107,8 @@ class PaymentDomainIntegrationTest {
                         PayoutMethodType.STCPAY,
                         "Wallet",
                         "abc",
-                        true
+                        true,
+                        null
                 ));
         assertEquals(400, invalidWallet.getStatus().value());
 
@@ -118,7 +118,8 @@ class PaymentDomainIntegrationTest {
                 PayoutMethodType.STCPAY,
                 "JazzCash",
                 "+923001234567",
-                true
+                true,
+                null
         );
         assertNotNull(validWallet.getId());
     }

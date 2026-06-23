@@ -223,6 +223,21 @@ public class MessageService {
         messageRepository.markIncomingRead(conversationId, userId);
     }
 
+    @Transactional
+    public void unblockConversation(UUID conversationId, UUID userId, UserRole role) {
+        if (role.isAdmin()) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "Admin cannot unblock marketplace conversations");
+        }
+        Conversation conversation = findConversationForUpdate(conversationId);
+        validateParticipant(userId, conversation);
+        if (role.isCreator()) {
+            conversation.setBlockedAtCreator(null);
+        } else {
+            conversation.setBlockedAtBrand(null);
+        }
+        conversationRepository.save(conversation);
+    }
+
     // ---- helpers ----
 
     private MessageResponse save(Message message, Conversation conversation, UserRole senderRole, String preview) {

@@ -154,14 +154,60 @@ public class AnalyticsService {
 
         double avgConversionRate = packageCount > 0 ? totalConversionRate / packageCount : 0;
 
+        // Orders are the only timestamped creator inquiry signal (package analytics are cumulative
+        // with no time-series), so we derive the trend and period-over-period deltas from them.
+        int windowMonths = monthsForPeriod(period);
+        List<Order> creatorOrders = orderRepository.findByCreatorIdOrderByCreatedAtDesc(userId);
+
+        java.time.ZoneId zone = java.time.ZoneId.of("Asia/Karachi");
+        java.time.YearMonth currentMonth = java.time.YearMonth.now(zone);
+
+        // Bucket order counts and distinct brands by month.
+        Map<java.time.YearMonth, Long> ordersByMonth = new HashMap<>();
+        Map<java.time.YearMonth, java.util.Set<UUID>> brandsByMonth = new HashMap<>();
+        for (Order order : creatorOrders) {
+            if (order.getCreatedAt() == null) continue;
+            java.time.YearMonth ym = java.time.YearMonth.from(order.getCreatedAt().atZone(zone));
+            ordersByMonth.merge(ym, 1L, Long::sum);
+            brandsByMonth.computeIfAbsent(ym, ignored -> new java.util.HashSet<>()).add(order.getBrand().getId());
+        }
+
+        List<Map<String, Object>> monthlyInquiryTrend = new ArrayList<>();
+        long currentWindowInquiries = 0;
+        java.util.Set<UUID> currentWindowBrands = new java.util.HashSet<>();
+        for (int i = windowMonths - 1; i >= 0; i--) {
+            java.time.YearMonth ym = currentMonth.minusMonths(i);
+            long value = ordersByMonth.getOrDefault(ym, 0L);
+            currentWindowInquiries += value;
+            currentWindowBrands.addAll(brandsByMonth.getOrDefault(ym, java.util.Set.of()));
+            Map<String, Object> point = new LinkedHashMap<>();
+            point.put("month", ym.getMonth().getDisplayName(java.time.format.TextStyle.SHORT, java.util.Locale.ENGLISH));
+            point.put("value", value);
+            monthlyInquiryTrend.add(point);
+        }
+
+        // Immediately-preceding equal-length window for period-over-period deltas.
+        long previousWindowInquiries = 0;
+        java.util.Set<UUID> previousWindowBrands = new java.util.HashSet<>();
+        for (int i = windowMonths; i < windowMonths * 2; i++) {
+            java.time.YearMonth ym = currentMonth.minusMonths(i);
+            previousWindowInquiries += ordersByMonth.getOrDefault(ym, 0L);
+            previousWindowBrands.addAll(brandsByMonth.getOrDefault(ym, java.util.Set.of()));
+        }
+
+        double inquiriesChange = percentChange(previousWindowInquiries, currentWindowInquiries);
+        double repeatBrandsChange = percentChange(previousWindowBrands.size(), currentWindowBrands.size());
+
         Map<String, Object> totals = new LinkedHashMap<>();
         totals.put("packageViews", totalViews);
+        // No time-series backing for package views (cumulative analytics only) — left at 0.0.
         totals.put("packageViewsChange", 0.0);
         totals.put("inquiries", totalInquiries);
-        totals.put("inquiriesChange", 0.0);
+        totals.put("inquiriesChange", inquiriesChange);
         totals.put("repeatBrands", totalRepeatBrands);
-        totals.put("repeatBrandsChange", 0.0);
+        totals.put("repeatBrandsChange", repeatBrandsChange);
         totals.put("avgConversionRate", Math.round(avgConversionRate * 10.0) / 10.0);
+        // No time-series backing for avg conversion (cumulative analytics only) — left at 0.0.
         totals.put("avgConversionChange", 0.0);
 
         long finalTotalViews = totalViews;
@@ -189,10 +235,27 @@ public class AnalyticsService {
 
         return Map.of(
                 "totals", totals,
-                "monthlyInquiryTrend", List.of(),
+                "monthlyInquiryTrend", monthlyInquiryTrend,
                 "platformContribution", platformContribution,
                 "topPackages", sortedTopPackages
         );
+    }
+
+    /** Maps the period string to the number of trailing monthly buckets to emit. */
+    private int monthsForPeriod(String period) {
+        if (period == null) return 6;
+        return switch (period) {
+            case "30d" -> 1;
+            case "90d" -> 3;
+            case "1y" -> 12;
+            default -> 6; // "6m" and anything unrecognized
+        };
+    }
+
+    /** Percent change from previous to current, rounded 1 decimal; 0.0 when previous is 0. */
+    private double percentChange(long previous, long current) {
+        if (previous == 0) return 0.0;
+        return Math.round(((current - previous) * 1000.0 / previous)) / 10.0;
     }
 
     // ---- Creator Performance ----
@@ -283,9 +346,23 @@ public class AnalyticsService {
                 })
                 .toList();
 
+        List<com.zingzing.backend.entity.Creator> completedCreators = orders.stream()
+                .filter(order -> order.getStatus() == com.zingzing.backend.entity.enums.OrderStatus.COMPLETED)
+                .map(com.zingzing.backend.entity.Order::getCreator)
+                .distinct()
+                .toList();
+        long totalReach = completedCreators.stream()
+                .mapToLong(c -> c.getFollowers())
+                .sum();
+        double avgEngagementRate = completedCreators.stream()
+                .filter(c -> c.getEngagementRate() != null)
+                .mapToDouble(c -> c.getEngagementRate().doubleValue())
+                .average()
+                .orElse(0.0);
+
         Map<String, Object> data = new LinkedHashMap<>();
-        data.put("totalReach", 0L);
-        data.put("avgEngagementRate", 0.0);
+        data.put("totalReach", totalReach);
+        data.put("avgEngagementRate", Math.round(avgEngagementRate * 10.0) / 10.0);
         data.put("creatorsActive", activeCreators);
         data.put("monthlySpend", monthlySpend);
         data.put("totalOrders", totalOrders);
@@ -294,6 +371,157 @@ public class AnalyticsService {
         data.put("dealMix", dealMix);
 
         return data;
+    }
+
+    // ---- Brand Extended ----
+
+    @Transactional(readOnly = true)
+    public Map<String, Object> brandExtended(UUID userId, UserRole role, String period) {
+        if (!role.isBrand()) throw new ApiException(HttpStatus.FORBIDDEN, "Access denied");
+
+        List<Order> orders = orderRepository.findByBrandIdOrderByCreatedAtDesc(userId);
+
+        // topCreatorsBySpend: group orders by creator
+        Map<UUID, CreatorSpendAccumulator> creatorSpend = new LinkedHashMap<>();
+        orders.forEach(order -> {
+            Creator creator = order.getCreator();
+            creatorSpend.computeIfAbsent(creator.getId(), ignored -> new CreatorSpendAccumulator(creator))
+                    .add(order.getAmount(), order.getStatus() == OrderStatus.COMPLETED);
+        });
+
+        List<Map<String, Object>> topCreatorsBySpend = creatorSpend.values().stream()
+                .sorted(Comparator.comparingLong((CreatorSpendAccumulator acc) -> acc.totalSpend).reversed())
+                .limit(10)
+                .map(acc -> {
+                    Map<String, Object> row = new LinkedHashMap<>();
+                    row.put("creatorId", acc.creator.getId());
+                    row.put("creatorName", acc.creator.getName());
+                    row.put("creatorAvatar", acc.creator.getAvatarUrl());
+                    row.put("totalSpend", acc.totalSpend);
+                    row.put("orderCount", acc.orderCount);
+                    row.put("completedOrders", acc.completedOrders);
+                    row.put("avgRating", acc.creator.getRating() != null ? acc.creator.getRating().doubleValue() : null);
+                    return row;
+                })
+                .toList();
+
+        // campaignCompletionRates: group by servicePackage (orders accepted from campaigns
+        // create a ServicePackage, so grouping by package is the correct proxy for campaigns)
+        Map<UUID, CampaignAccumulator> campaigns = new LinkedHashMap<>();
+        orders.forEach(order -> {
+            ServicePackage pkg = order.getServicePackage();
+            campaigns.computeIfAbsent(pkg.getId(), ignored -> new CampaignAccumulator(pkg))
+                    .add(order.getStatus() == OrderStatus.COMPLETED);
+        });
+
+        List<Map<String, Object>> campaignCompletionRates = campaigns.values().stream()
+                .sorted(Comparator.comparingLong((CampaignAccumulator acc) -> acc.totalOrders).reversed())
+                .limit(10)
+                .map(acc -> {
+                    Map<String, Object> row = new LinkedHashMap<>();
+                    row.put("campaignId", acc.servicePackage.getId());
+                    row.put("campaignTitle", acc.servicePackage.getTitle());
+                    row.put("totalOrders", acc.totalOrders);
+                    row.put("completedOrders", acc.completedOrders);
+                    row.put("completionRate", acc.totalOrders > 0
+                            ? Math.round((acc.completedOrders * 1000.0 / acc.totalOrders)) / 10.0
+                            : 0.0);
+                    return row;
+                })
+                .toList();
+
+        // dealTypeROI: per deal type — count, total spend, avg engagement of those orders' creators
+        Map<String, Object> dealTypeROI = new LinkedHashMap<>();
+        dealTypeROI.put("paid", dealTypeRoiBucket(orders, com.zingzing.backend.entity.enums.DealType.PAID));
+        dealTypeROI.put("barter", dealTypeRoiBucket(orders, com.zingzing.backend.entity.enums.DealType.BARTER));
+        dealTypeROI.put("hybrid", dealTypeRoiBucket(orders, com.zingzing.backend.entity.enums.DealType.HYBRID));
+
+        // repeatCreatorRate: percent of distinct creators ordered from more than once
+        long distinctCreators = creatorSpend.size();
+        long repeatCreators = creatorSpend.values().stream()
+                .filter(acc -> acc.orderCount > 1)
+                .count();
+        double repeatCreatorRate = distinctCreators > 0
+                ? Math.round((repeatCreators * 1000.0 / distinctCreators)) / 10.0
+                : 0.0;
+
+        // onTimeDeliveryPct: among completed orders, percent delivered on time.
+        // updatedAt is used as the completion timestamp proxy (Order extends BaseEntity).
+        List<Order> completed = orders.stream()
+                .filter(order -> order.getStatus() == OrderStatus.COMPLETED)
+                .toList();
+        long onTime = completed.stream()
+                .filter(order -> order.getDeadlineDate() == null
+                        || (order.getUpdatedAt() != null
+                            && !order.getUpdatedAt().isAfter(order.getDeadlineDate().toInstant())))
+                .count();
+        double onTimeDeliveryPct = !completed.isEmpty()
+                ? Math.round((onTime * 1000.0 / completed.size())) / 10.0
+                : 0.0;
+
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("onTimeDeliveryPct", onTimeDeliveryPct);
+        data.put("repeatCreatorRate", repeatCreatorRate);
+        data.put("topCreatorsBySpend", topCreatorsBySpend);
+        data.put("campaignCompletionRates", campaignCompletionRates);
+        data.put("dealTypeROI", dealTypeROI);
+
+        return data;
+    }
+
+    private Map<String, Object> dealTypeRoiBucket(List<Order> orders, com.zingzing.backend.entity.enums.DealType dealType) {
+        List<Order> bucket = orders.stream()
+                .filter(order -> order.getDealType() == dealType)
+                .toList();
+        long count = bucket.size();
+        long totalSpend = bucket.stream()
+                .filter(order -> order.getAmount() != null)
+                .mapToLong(Order::getAmount)
+                .sum();
+        double avgEngagement = bucket.stream()
+                .map(order -> order.getCreator().getEngagementRate())
+                .filter(rate -> rate != null)
+                .mapToDouble(java.math.BigDecimal::doubleValue)
+                .average()
+                .orElse(0.0);
+
+        Map<String, Object> roi = new LinkedHashMap<>();
+        roi.put("count", count);
+        roi.put("totalSpend", totalSpend);
+        roi.put("avgEngagement", Math.round(avgEngagement * 10.0) / 10.0);
+        return roi;
+    }
+
+    private static class CreatorSpendAccumulator {
+        private final Creator creator;
+        private long totalSpend = 0;
+        private long orderCount = 0;
+        private long completedOrders = 0;
+
+        private CreatorSpendAccumulator(Creator creator) {
+            this.creator = creator;
+        }
+
+        private void add(Integer amount, boolean completed) {
+            totalSpend += amount != null ? amount : 0;
+            orderCount++;
+            if (completed) completedOrders++;
+        }
+    }
+
+    private static class CampaignAccumulator {
+        private final ServicePackage servicePackage;
+        private long totalOrders = 0;
+        private long completedOrders = 0;
+
+        private CampaignAccumulator(ServicePackage servicePackage) {
+            this.servicePackage = servicePackage;
+        }
+
+        private void add(boolean completed) {
+            totalOrders++;
+            if (completed) completedOrders++;
+        }
     }
 
     private static class PlatformAccumulator {

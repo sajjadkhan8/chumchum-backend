@@ -4,8 +4,6 @@ import com.zingzing.backend.entity.enums.DealType;
 import com.zingzing.backend.entity.enums.PackageCategory;
 import com.zingzing.backend.entity.enums.PackagePlatform;
 import com.zingzing.backend.entity.enums.PackageStatus;
-import com.zingzing.backend.entity.enums.PackageType;
-import com.zingzing.backend.entity.enums.SubscriptionInterval;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.JdbcTypeCode;
@@ -55,11 +53,6 @@ public class ServicePackage extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @Column(length = 50)
     private PackageCategory category;
-
-    // legacy type (ONE_TIME/SUBSCRIPTION) – kept for backward compat
-    @Enumerated(EnumType.STRING)
-    @Column(length = 30)
-    private PackageType type;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "deal_type", length = 30)
@@ -116,10 +109,6 @@ public class ServicePackage extends BaseEntity {
     @Builder.Default
     private List<String> tags = new ArrayList<>();
 
-    @Column(name = "thumbnail_url", length = 500)
-    private String thumbnailUrl;
-
-    // legacy cover_image column retained to avoid schema conflict until removed
     @Column(name = "cover_image", length = 500)
     private String coverImage;
 
@@ -148,17 +137,6 @@ public class ServicePackage extends BaseEntity {
     @Column(length = 10)
     @Builder.Default
     private String currency = "PKR";  // V1: PKR only (mono-currency)
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "subscription_interval", length = 20)
-    private SubscriptionInterval subscriptionInterval;
-
-    @Column(name = "subscription_duration")
-    private Integer subscriptionDuration;
-
-    @OneToMany(mappedBy = "servicePackage", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
-    @Builder.Default
-    private List<PackageTier> tiers = new ArrayList<>();
 
     @OneToOne(mappedBy = "servicePackage", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     private PackageAnalytics analytics;

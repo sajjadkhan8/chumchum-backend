@@ -46,13 +46,4 @@ public class ConversationController {
                 .body(conversationService.createConversation(authUser.userId(), authUser.role(), request));
     }
 
-    @GetMapping("/single/{creatorId}/{brandId}")
-    public ResponseEntity<ConversationResponse> getSingle(
-            @PathVariable UUID creatorId,
-            @PathVariable UUID brandId,
-            @AuthenticationPrincipal AuthenticatedUser authUser
-    ) {
-        return ResponseEntity.ok(conversationService.getSingleConversation(
-                creatorId, brandId, authUser.userId(), authUser.role()));
-    }
 }

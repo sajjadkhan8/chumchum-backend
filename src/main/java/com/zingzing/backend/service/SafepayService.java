@@ -324,17 +324,11 @@ public class SafepayService {
 
     // ─── Business effects ─────────────────────────────────────────────────────
 
-    /**
-     * Applies the downstream business effect of a confirmed payment.
-     * Currently handles WALLET_TOPUP. ORDER_PAYMENT support is wired but
-     * deferred to the order creation integration.
-     */
     private void applyBusinessEffect(SafepayPaymentSession session) {
         switch (session.getPaymentType()) {
             case WALLET_TOPUP -> creditBrandWallet(session);
-            case ORDER_PAYMENT -> log.info(
-                    "Safepay: ORDER_PAYMENT confirmed for session={} — order fulfilment handled by OrderService",
-                    session.getId());
+            case ORDER_PAYMENT -> throw new ApiException(HttpStatus.NOT_IMPLEMENTED,
+                    "ORDER_PAYMENT sessions cannot be confirmed via this path — order-level payment is not yet active");
         }
     }
 

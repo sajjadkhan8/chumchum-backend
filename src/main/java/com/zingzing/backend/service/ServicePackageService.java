@@ -2,7 +2,6 @@ package com.zingzing.backend.service;
 
 import com.zingzing.backend.dto.servicepackage.ServicePackageCreateRequest;
 import com.zingzing.backend.entity.PackageAnalytics;
-import com.zingzing.backend.entity.PackageTier;
 import com.zingzing.backend.dto.servicepackage.ServicePackageResponse;
 import com.zingzing.backend.entity.ServicePackage;
 import com.zingzing.backend.entity.Creator;
@@ -88,7 +87,6 @@ public class ServicePackageService {
                 .description(request.description())
                 .platform(request.platform())
                 .category(request.category())
-                .type(request.type())
                 .shortDescription(request.shortDescription())
                 .fullDescription(request.fullDescription())
                 .dealType(request.dealType() == null ? DealType.PAID : request.dealType())
@@ -112,30 +110,9 @@ public class ServicePackageService {
                 .tags(request.tags())
                 .active(request.isActive() == null || request.isActive())
                 .coverImage(request.coverImage())
-                .subscriptionInterval(request.subscriptionInterval())
-                .subscriptionDuration(request.subscriptionDuration())
                 .build();
 
         clearIncompatiblePricingFields(servicePackage);
-
-        if (request.tiers() != null && !request.tiers().isEmpty()) {
-            List<PackageTier> tiers = new java.util.ArrayList<>();
-            for (int i = 0; i < request.tiers().size(); i++) {
-                var tier = request.tiers().get(i);
-                tiers.add(PackageTier.builder()
-                        .servicePackage(servicePackage)
-                        .name(tier.name())
-                        .price(tier.price())  // PKR amount
-                        .deliverables(tier.deliverables())  // List of deliverables
-                        .description(tier.description())
-                        .deliveryDays(tier.deliveryDays())
-                        .revisions(tier.revisions() == null ? 1 : tier.revisions())
-                        .position(tier.position() != null ? tier.position() : i)
-                        .isPrimary(tier.isPrimary() != null && tier.isPrimary())
-                        .build());
-            }
-            servicePackage.setTiers(tiers);
-        }
 
         return servicePackageMapper.toResponse(servicePackageRepository.save(servicePackage));
     }
@@ -171,7 +148,6 @@ public class ServicePackageService {
         if (request.fullDescription() != null) pkg.setFullDescription(request.fullDescription());
         if (request.platform() != null) pkg.setPlatform(request.platform());
         if (request.category() != null) pkg.setCategory(request.category());
-        if (request.type() != null) pkg.setType(request.type());
         if (request.dealType() != null) pkg.setDealType(request.dealType());
         if (request.price() != null) pkg.setPrice(request.price());
         if (request.barterDetails() != null) pkg.setBarterDetails(request.barterDetails());
@@ -242,7 +218,6 @@ public class ServicePackageService {
                 .fullDescription(src.getFullDescription())
                 .platform(src.getPlatform())
                 .category(src.getCategory())
-                .type(src.getType())
                 .dealType(src.getDealType())
                 .status(PackageStatus.DRAFT)
                 .visibility("public")
@@ -303,23 +278,6 @@ public class ServicePackageService {
         ServicePackage servicePackage = servicePackageRepository.findById(packageId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Package not found!"));
         packageAnalyticsTrackingService.track(servicePackage, eventType, null, null, source, "{}");
-    }
-
-    @Transactional(readOnly = true)
-    public PageResponse<ServicePackageResponse> getMyPackages(UUID userId, UserRole role, int page, int size, String sortBy) {
-        if (!role.isCreator() && !role.isAdmin()) {
-            throw new ApiException(HttpStatus.FORBIDDEN, "Only creators can view their package inventory");
-        }
-
-        Creator creator = creatorRepository.findById(userId)
-                .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST, "Creator profile not found for this user"));
-
-        String safeSortBy = ALLOWED_SORT_FIELDS.contains(sortBy) ? sortBy : "createdAt";
-        int safeSize = Math.min(Math.max(size, 1), 100);
-        int safePage = Math.max(page, 0);
-
-        Pageable pageable = PageRequest.of(safePage, safeSize, Sort.by(Sort.Direction.DESC, safeSortBy));
-        return PageResponse.from(servicePackageRepository.findByCreator(creator, pageable).map(servicePackageMapper::toResponse));
     }
 
     public PageResponse<ServicePackageResponse> getMyPackages(UUID userId, UserRole role,

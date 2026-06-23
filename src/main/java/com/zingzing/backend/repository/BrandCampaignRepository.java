@@ -58,4 +58,6 @@ public interface BrandCampaignRepository extends JpaRepository<BrandCampaign, UU
     long countByBrandIdAndStatus(UUID brandId, BrandCampaignStatus status);
 
     long countByBrandIdAndCreatedAtAfter(UUID brandId, Instant since);
+
+    List<BrandCampaign> findByStatus(BrandCampaignStatus status);
 }

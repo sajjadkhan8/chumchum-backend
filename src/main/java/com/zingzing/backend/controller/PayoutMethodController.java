@@ -38,13 +38,15 @@ public class PayoutMethodController {
             @NotNull PayoutMethodType type,
             @NotBlank @Size(max = 100) String name,
             @NotBlank @Size(max = 300) String accountDetails,
-            boolean isDefault
+            boolean isDefault,
+            @Size(max = 100) String bankName
     ) {}
 
     public record UpdatePayoutMethodRequest(
             @Size(max = 100) String name,
             @Size(max = 300) String accountDetails,
-            Boolean isDefault
+            Boolean isDefault,
+            @Size(max = 100) String bankName
     ) {}
 
     @GetMapping
@@ -61,7 +63,7 @@ public class PayoutMethodController {
     ) {
         PayoutMethod pm = payoutMethodService.create(
                 authUser.userId(), authUser.role(),
-                req.type(), req.name(), req.accountDetails(), req.isDefault());
+                req.type(), req.name(), req.accountDetails(), req.isDefault(), req.bankName());
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(Map.of("success", true, "data", toMap(pm)));
     }
@@ -72,7 +74,7 @@ public class PayoutMethodController {
             @AuthenticationPrincipal AuthenticatedUser authUser,
             @Valid @RequestBody UpdatePayoutMethodRequest req
     ) {
-        PayoutMethod pm = payoutMethodService.update(id, authUser.userId(), req.name(), req.accountDetails(), req.isDefault());
+        PayoutMethod pm = payoutMethodService.update(id, authUser.userId(), req.name(), req.accountDetails(), req.isDefault(), req.bankName());
         return ResponseEntity.ok(Map.of("success", true, "data", toMap(pm)));
     }
 
@@ -90,6 +92,7 @@ public class PayoutMethodController {
         m.put("id", pm.getId());
         m.put("type", pm.getType().name().toLowerCase());
         m.put("name", pm.getName());
+        m.put("bankName", pm.getBankName());
         m.put("accountDetails", maskAccount(pm.getAccountDetails()));
         m.put("isDefault", pm.isDefault());
         m.put("createdAt", pm.getCreatedAt());

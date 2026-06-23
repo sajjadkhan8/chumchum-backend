@@ -79,4 +79,13 @@ public class AnalyticsController {
         return ResponseEntity.ok(Map.of("success", true, "data",
                 analyticsService.brandCampaigns(authUser.userId(), authUser.role(), period)));
     }
+
+    @GetMapping("/brand/extended")
+    public ResponseEntity<Map<String, Object>> brandExtended(
+            @RequestParam(required = false) String period,
+            @AuthenticationPrincipal AuthenticatedUser authUser
+    ) {
+        return ResponseEntity.ok(Map.of("success", true, "data",
+                analyticsService.brandExtended(authUser.userId(), authUser.role(), period)));
+    }
 }

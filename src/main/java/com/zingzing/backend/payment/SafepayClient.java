@@ -1,6 +1,7 @@
 package com.zingzing.backend.payment;
 
 import com.zingzing.backend.config.SafepayProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -11,6 +12,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 
+import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -18,8 +20,8 @@ import java.util.Map;
  *
  * API reference: https://apidocs.getsafepay.com/
  *
- * Authentication: Bearer {secretKey} on every request.
- * The merchant_api_key (public) is sent in the request body where required.
+ * Authentication is endpoint-specific.
+ * Most merchant APIs use Bearer {secretKey}; passport token uses x-sfpy-merchant-secret.
  *
  * Amount convention: Safepay expects amounts in lowest denomination (paisa for PKR).
  * Conversion is handled by the caller: amountPkr * 100 = amountPaisa.
@@ -44,6 +46,7 @@ public class SafepayClient {
     // ─── Request / Response records ───────────────────────────────────────────
 
     /** Request body for POST /order/payments/v3/ */
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public record CreateSessionRequest(
             @JsonProperty("merchant_api_key") String merchantApiKey,
             String intent,
@@ -53,7 +56,7 @@ public class SafepayClient {
             long amount,
             @JsonProperty("entry_mode") String entryMode,
             @JsonProperty("include_fees") boolean includeFees,
-            Map<String, Object> metadata
+            Map<String, String> metadata
     ) {}
 
     /** Minimal tracker info extracted from the Safepay session response. */
@@ -94,9 +97,9 @@ public class SafepayClient {
                 "payment",
                 "PKR",
                 amountPaisa,
-                "hosted",
+                resolveEntryMode(props.getEntryMode()),
                 false,
-                metadata
+                sanitizeMetadata(metadata)
         );
 
         try {
@@ -120,7 +123,7 @@ public class SafepayClient {
     /**
      * Obtains a short-lived (1-hour) authentication token for the hosted checkout URL.
      *
-     * POST /client/passport/v1/token
+     * POST /client/passport/v1/token (authenticated with x-sfpy-merchant-secret)
      *
      * @return authentication token string (tbt parameter in checkout URL)
      * @throws SafepayApiException on any API or HTTP error
@@ -131,7 +134,7 @@ public class SafepayClient {
         try {
             JsonNode response = restClient.post()
                     .uri("/client/passport/v1/token")
-                    .header("Authorization", "Bearer " + props.getSecretKey())
+                    .header("x-sfpy-merchant-secret", props.getSecretKey())
                     .retrieve()
                     .body(JsonNode.class);
 
@@ -288,5 +291,25 @@ public class SafepayClient {
         } catch (Exception e) {
             return value;
         }
+    }
+
+    private String resolveEntryMode(String configuredEntryMode) {
+        if (configuredEntryMode == null || configuredEntryMode.isBlank()) {
+            return "flex";
+        }
+        String normalized = configuredEntryMode.trim().toLowerCase(Locale.ROOT);
+        if ("flex".equals(normalized)) {
+            return normalized;
+        }
+        log.warn("Safepay: unsupported configured entry mode '{}', falling back to 'flex'", configuredEntryMode);
+        return "flex";
+    }
+
+    private Map<String, String> sanitizeMetadata(Map<String, Object> metadata) {
+        // Safepay sandbox currently rejects custom metadata keys; omit metadata to keep tracker creation reliable.
+        if (metadata != null && !metadata.isEmpty()) {
+            log.debug("Safepay: omitting {} custom metadata fields from payment session request", metadata.size());
+        }
+        return null;
     }
 }

@@ -34,6 +34,10 @@ public class PayoutMethod {
     @Column(nullable = false, length = 100)
     private String name;
 
+    /** Bank institution name (e.g. "Meezan Bank"); nullable for non-bank methods. */
+    @Column(name = "bank_name", length = 100)
+    private String bankName;
+
     /** Raw account number – masked on read in the mapper/service. */
     @Column(name = "account_details", nullable = false, length = 300)
     private String accountDetails;
