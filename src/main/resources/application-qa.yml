@@ -87,7 +87,7 @@ security:
     expiration-seconds: ${REFRESH_EXPIRATION_SECONDS:2592000}
     admin-expiration-seconds: ${ADMIN_REFRESH_EXPIRATION_SECONDS:86400}
   cookie:
-    secure: ${COOKIE_SECURE:true}
+    secure: ${COOKIE_SECURE:false}
     same-site: ${COOKIE_SAME_SITE:Strict}
     max-age-seconds: ${COOKIE_MAX_AGE:2592000}
   cors:
