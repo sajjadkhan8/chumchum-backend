@@ -19,14 +19,14 @@ public interface ServicePackageRepository extends JpaRepository<ServicePackage, 
 
     boolean existsByCreatorAndNameIgnoreCase(Creator creator, String name);
 
-    @EntityGraph(attributePaths = {"creator", "tiers"})
+    @EntityGraph(attributePaths = {"creator"})
     Page<ServicePackage> findByCreator(Creator creator, Pageable pageable);
 
     List<ServicePackage> findByCreatorIdAndStatus(UUID creatorId, PackageStatus status);
 
     List<ServicePackage> findByCreatorId(UUID creatorId);
 
-    @EntityGraph(attributePaths = {"creator", "tiers"})
+    @EntityGraph(attributePaths = {"creator"})
     @Query("""
             select p from ServicePackage p
             where p.status = 'ACTIVE'
@@ -43,7 +43,7 @@ public interface ServicePackageRepository extends JpaRepository<ServicePackage, 
             Pageable pageable
     );
 
-    @EntityGraph(attributePaths = {"creator", "tiers"})
+    @EntityGraph(attributePaths = {"creator"})
     @Query("""
             select p from ServicePackage p
             where p.status = 'ACTIVE'
@@ -53,7 +53,7 @@ public interface ServicePackageRepository extends JpaRepository<ServicePackage, 
             """)
     Page<ServicePackage> findFeaturedForFeed(Pageable pageable);
 
-    @EntityGraph(attributePaths = {"creator", "tiers"})
+    @EntityGraph(attributePaths = {"creator"})
     @Query(value = """
             select p from ServicePackage p
             where p.creator.id = :creatorId
