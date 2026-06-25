@@ -195,7 +195,6 @@ create table packages (
     description varchar(2000),
     platform varchar(50) not null constraint ck_packages_platform check (platform in ('YOUTUBE', 'INSTAGRAM', 'TIKTOK', 'FACEBOOK')),
     category varchar(50) constraint ck_packages_category check (category in ('FASHION_BEAUTY', 'FOOD_BEVERAGE', 'TECHNOLOGY_GADGETS', 'FITNESS_HEALTH', 'TRAVEL_LIFESTYLE', 'ENTERTAINMENT_COMEDY', 'EDUCATION_CAREER', 'BUSINESS_FINANCE', 'HOME_DECOR', 'GAMING', 'PARENTING_FAMILY', 'SPORTS', 'AUTOMOTIVE', 'RELIGIOUS_SPIRITUAL', 'GENERAL', 'QUICK_DEAL')),
-    type varchar(30),
     pricing_type varchar(30) not null default 'PAID',
     deal_type varchar(30),
     barter_details varchar(1000),
@@ -224,38 +223,7 @@ create table packages (
     is_popular boolean not null default false,
     orders_completed integer not null default 0,
     response_time varchar(50),
-    subscription_interval varchar(20),
-    subscription_duration int,
     created_at timestamptz not null default now(),
-    updated_at timestamptz not null default now()
-);
-
-create table subscriptions (
-    id uuid primary key default gen_random_uuid(),
-    brand_id uuid not null references brands(id) on delete cascade,
-    package_id uuid not null references packages(id) on delete cascade,
-    status varchar(20) not null default 'ACTIVE',
-    interval varchar(20) not null,
-    duration int not null,
-    cycles_completed int not null default 0,
-    next_renewal_at timestamptz not null,
-    cancelled_at timestamptz,
-    created_at timestamptz not null default now(),
-    updated_at timestamptz not null default now()
-);
-
-create table package_tiers (
-    id uuid primary key default gen_random_uuid(),
-    package_id uuid not null references packages(id) on delete cascade,
-    name varchar(50) not null,
-    description text,
-    price integer,
-    deliverables jsonb not null default '[]'::jsonb,
-    delivery_days int,
-    revisions int default 1,
-    position integer not null default 0,
-    is_primary boolean not null default false,
-    created_at timestamptz default now(),
     updated_at timestamptz not null default now()
 );
 
@@ -459,6 +427,30 @@ create table messages (
     updated_at timestamptz not null
 );
 
+create table media_assets (
+    id uuid primary key default gen_random_uuid(),
+    owner_id uuid not null references users(id) on delete cascade,
+    scope varchar(40) not null,
+    entity_type varchar(40),
+    entity_id uuid,
+    public_id varchar(300) not null,
+    asset_id varchar(100),
+    resource_type varchar(20) not null,
+    format varchar(20),
+    secure_url varchar(800) not null,
+    app_path varchar(800),
+    thumbnail_url varchar(800),
+    original_filename varchar(255),
+    content_type varchar(120),
+    bytes bigint not null,
+    width integer,
+    height integer,
+    duration double precision,
+    deleted boolean not null default false,
+    created_at timestamptz not null default now(),
+    updated_at timestamptz not null default now()
+);
+
 create table deliverables (
     id uuid primary key default gen_random_uuid(),
     order_id uuid not null references orders(id) on delete cascade,
@@ -562,6 +554,7 @@ create table payout_methods (
     creator_id uuid not null references creators(id) on delete cascade,
     type varchar(30) not null,
     name varchar(100) not null,
+    bank_name varchar(100),
     account_details varchar(300) not null,
     is_default boolean not null default false,
     created_at timestamptz not null default now()
@@ -847,8 +840,6 @@ create index idx_packages_category_title on packages (category, title);
 create index idx_packages_status on packages (status);
 create index idx_packages_deal_type on packages (deal_type);
 create index idx_packages_creator_status on packages (creator_id, status);
-create index idx_package_tiers_package_id on package_tiers (package_id);
-create index idx_package_tiers_package_id_position on package_tiers(package_id, position);
 create index idx_orders_creator_status on orders (creator_id, status);
 create index idx_orders_brand_status on orders (brand_id, status);
 create unique index uk_orders_idempotency_key on orders (idempotency_key) where idempotency_key is not null;
@@ -916,6 +907,10 @@ create index idx_creator_verification_documents_creator on creator_verification_
 create index idx_creator_verification_documents_status on creator_verification_documents(status);
 create index idx_creator_verification_events_creator on creator_verification_events(creator_id, created_at desc);
 create index idx_creators_verification_status on creators(verification_status);
+create index idx_media_assets_owner on media_assets(owner_id, deleted, created_at desc);
+create index idx_media_assets_entity on media_assets(owner_id, entity_type, entity_id, deleted);
+create index idx_media_assets_app_path on media_assets(app_path) where app_path is not null and deleted = false;
+create unique index idx_media_assets_public_id on media_assets(public_id) where deleted = false;
 create index idx_api_logs_created on api_logs(created_at desc);
 create index idx_api_logs_service_created on api_logs(service, created_at desc);
 create index idx_api_logs_status_created on api_logs(status_code, created_at desc);
