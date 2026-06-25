@@ -38,6 +38,7 @@ dependencies {
     implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
     implementation 'dev.samstevens.totp:totp:1.7.1'
     implementation 'io.sentry:sentry-spring-boot-starter-jakarta:7.16.0'
+    implementation 'com.cloudinary:cloudinary-http5:2.4.0'
 
     runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.6'
     runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.6'
@@ -57,4 +58,3 @@ dependencies {
 tasks.named('test') {
     useJUnitPlatform()
 }
-

@@ -122,6 +122,54 @@ app:
   uploads:
     dir: ${UPLOAD_DIR:./uploads}
     base-url: ${UPLOAD_BASE_URL:http://localhost:8080/uploads}
+  media:
+    root-folder: ${MEDIA_ROOT_FOLDER:chumchum}
+    user-storage-limit-mb: ${MEDIA_USER_STORAGE_LIMIT_MB:2048}
+    package-storage-limit-mb: ${MEDIA_PACKAGE_STORAGE_LIMIT_MB:250}
+    campaign-storage-limit-mb: ${MEDIA_CAMPAIGN_STORAGE_LIMIT_MB:250}
+    user-upload-count-limit: ${MEDIA_USER_UPLOAD_COUNT_LIMIT:1000}
+    package-upload-count-limit: ${MEDIA_PACKAGE_UPLOAD_COUNT_LIMIT:50}
+    campaign-upload-count-limit: ${MEDIA_CAMPAIGN_UPLOAD_COUNT_LIMIT:50}
+    uploads:
+      avatar:
+        max-mb: ${MEDIA_AVATAR_MAX_MB:5}
+        resource-type: image
+        allowed-types: ${MEDIA_AVATAR_TYPES:image/jpeg,image/png,image/webp}
+      cover-image:
+        max-mb: ${MEDIA_COVER_IMAGE_MAX_MB:10}
+        resource-type: image
+        allowed-types: ${MEDIA_COVER_IMAGE_TYPES:image/jpeg,image/png,image/webp}
+      content-preview:
+        max-mb: ${MEDIA_CONTENT_PREVIEW_MAX_MB:100}
+        resource-type: auto
+        allowed-types: ${MEDIA_CONTENT_PREVIEW_TYPES:image/jpeg,image/png,image/webp,video/mp4,video/quicktime}
+      package-thumbnail:
+        max-mb: ${MEDIA_PACKAGE_THUMBNAIL_MAX_MB:5}
+        resource-type: image
+        allowed-types: ${MEDIA_PACKAGE_THUMBNAIL_TYPES:image/jpeg,image/png,image/webp}
+      campaign-cover:
+        max-mb: ${MEDIA_CAMPAIGN_COVER_MAX_MB:10}
+        resource-type: image
+        allowed-types: ${MEDIA_CAMPAIGN_COVER_TYPES:image/jpeg,image/png,image/webp}
+      brand-logo:
+        max-mb: ${MEDIA_BRAND_LOGO_MAX_MB:5}
+        resource-type: image
+        allowed-types: ${MEDIA_BRAND_LOGO_TYPES:image/jpeg,image/png,image/webp}
+      message-attachment:
+        max-mb: ${MEDIA_MESSAGE_ATTACHMENT_MAX_MB:100}
+        resource-type: auto
+        allowed-types: ${MEDIA_MESSAGE_ATTACHMENT_TYPES:image/jpeg,image/png,image/webp,video/mp4,video/quicktime,application/pdf,application/zip}
+      deliverable:
+        max-mb: ${MEDIA_DELIVERABLE_MAX_MB:500}
+        resource-type: auto
+        allowed-types: ${MEDIA_DELIVERABLE_TYPES:image/jpeg,image/png,image/webp,video/mp4,video/quicktime,application/pdf,application/zip}
+      verification-document:
+        max-mb: ${MEDIA_VERIFICATION_DOCUMENT_MAX_MB:25}
+        resource-type: auto
+        allowed-types: ${MEDIA_VERIFICATION_DOCUMENT_TYPES:image/jpeg,image/png,image/webp,application/pdf}
+
+cloudinary:
+  url: ${CLOUDINARY_URL:}
 
 social:
   oauth:

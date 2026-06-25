@@ -22,6 +22,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
+import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.UUID;
@@ -43,7 +44,7 @@ public class ProtectedFileController {
 
     @GetMapping("/deliverables/{orderId}/{deliverableId}/{filename}")
     @Transactional(readOnly = true)
-    public ResponseEntity<Resource> deliverable(@PathVariable UUID orderId, @PathVariable UUID deliverableId,
+    public ResponseEntity<?> deliverable(@PathVariable UUID orderId, @PathVariable UUID deliverableId,
                                                 @PathVariable String filename,
                                                 @AuthenticationPrincipal AuthenticatedUser authUser) {
         String url = "/api/v1/files/deliverables/" + orderId + "/" + deliverableId + "/" + filename;
@@ -62,7 +63,7 @@ public class ProtectedFileController {
 
     @GetMapping("/attachments/{conversationId}/{filename}")
     @Transactional(readOnly = true)
-    public ResponseEntity<Resource> attachment(@PathVariable UUID conversationId, @PathVariable String filename,
+    public ResponseEntity<?> attachment(@PathVariable UUID conversationId, @PathVariable String filename,
                                                @AuthenticationPrincipal AuthenticatedUser authUser) {
         String url = "/api/v1/files/attachments/" + conversationId + "/" + filename;
         Message message = messageRepository.findByAttachmentUrl(url)
@@ -76,11 +77,16 @@ public class ProtectedFileController {
         return download("attachments/" + conversationId + "/" + filename, message.getAttachmentOriginalName());
     }
 
-    private ResponseEntity<Resource> download(String relativePath) {
+    private ResponseEntity<?> download(String relativePath) {
         return download(relativePath, null);
     }
 
-    private ResponseEntity<Resource> download(String relativePath, String downloadName) {
+    private ResponseEntity<?> download(String relativePath, String downloadName) {
+        String appPath = "/api/v1/files/" + relativePath;
+        var remoteUrl = fileStorageService.remoteUrlForProtectedPath(appPath);
+        if (remoteUrl.isPresent()) {
+            return ResponseEntity.status(HttpStatus.FOUND).location(URI.create(remoteUrl.get())).build();
+        }
         Path path = fileStorageService.load(relativePath);
         String contentType;
         try {

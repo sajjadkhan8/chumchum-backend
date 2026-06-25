@@ -1,5 +1,6 @@
 package com.zingzing.backend.storage;
 
+import com.zingzing.backend.dto.media.StoredMedia;
 import org.springframework.web.multipart.MultipartFile;
 import java.nio.file.Path;
 
@@ -9,9 +10,9 @@ import java.nio.file.Path;
  */
 public interface StorageStrategy {
     /**
-     * Persist {@code file} under {@code subfolder} and return the PUBLIC URL for the stored object.
+     * Persist {@code file} under {@code subfolder} and return the stored object metadata.
      */
-    String store(MultipartFile file, String filename, String subfolder);
+    StoredMedia store(MultipartFile file, String filename, String subfolder, String resourceType);
 
     /**
      * Return a URL-path (e.g. /api/v1/files/subfolder/name) for protected (auth-required) access.

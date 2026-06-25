@@ -1,6 +1,7 @@
 package com.zingzing.backend.storage;
 
 import com.zingzing.backend.exception.ApiException;
+import com.zingzing.backend.dto.media.StoredMedia;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.HttpStatus;
@@ -33,7 +34,7 @@ public class LocalStorageStrategy implements StorageStrategy {
     }
 
     @Override
-    public String store(MultipartFile file, String filename, String subfolder) {
+    public StoredMedia store(MultipartFile file, String filename, String subfolder, String resourceType) {
         Path dir = safeResolve(subfolder);
         try {
             Files.createDirectories(dir);
@@ -43,7 +44,9 @@ public class LocalStorageStrategy implements StorageStrategy {
         } catch (IOException e) {
             throw new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to store file");
         }
-        return baseUrl + "/" + subfolder + "/" + filename;
+        String url = baseUrl + "/" + subfolder + "/" + filename;
+        return new StoredMedia(url, url, url, subfolder + "/" + filename, null,
+                resourceType, extension(filename), file.getSize(), null, null, null);
     }
 
     @Override
@@ -65,5 +68,10 @@ public class LocalStorageStrategy implements StorageStrategy {
         Path resolved = uploadRoot.resolve(relativePath).normalize();
         if (!resolved.startsWith(uploadRoot)) throw new ApiException(HttpStatus.BAD_REQUEST, "Invalid file path");
         return resolved;
+    }
+
+    private String extension(String filename) {
+        int dot = filename == null ? -1 : filename.lastIndexOf('.');
+        return dot >= 0 ? filename.substring(dot + 1) : null;
     }
 }

@@ -1,5 +1,6 @@
 package com.zingzing.backend.storage;
 
+import com.zingzing.backend.dto.media.StoredMedia;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
@@ -16,7 +17,7 @@ import java.nio.file.Path;
 public class S3StorageStrategy implements StorageStrategy {
 
     @Override
-    public String store(MultipartFile file, String filename, String subfolder) {
+    public StoredMedia store(MultipartFile file, String filename, String subfolder, String resourceType) {
         throw new UnsupportedOperationException("S3 storage not yet implemented. Set STORAGE_DRIVER=local.");
     }
 

@@ -20,8 +20,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import static com.zingzing.backend.service.FileStorageService.PRIVATE_FILE_TYPES;
-
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -159,8 +157,15 @@ public class MessageService {
         validateNotBlocked(conversation);
         User sender = findUser(userId);
 
-        String attachmentUrl = fileStorageService.validateAndStoreProtected(
-                file, PRIVATE_FILE_TYPES, 100, "attachments/" + conversationId);
+        String attachmentUrl = fileStorageService.validateStoreAndRecord(
+                file,
+                userId,
+                "message-attachment",
+                "attachments/" + conversationId,
+                conversationId,
+                "conversation",
+                true
+        ).url();
 
         Message message = Message.builder()
                 .conversation(conversation)
