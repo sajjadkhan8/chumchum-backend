@@ -212,7 +212,6 @@ public class QuickDealService {
                 .revisions(1)
                 .tags(java.util.List.of("quick-deal"))
                 .currency("PKR")
-                .responseTime("Within 24 hours")
                 .active(true)
                 .build());
     }

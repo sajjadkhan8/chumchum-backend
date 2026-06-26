@@ -38,7 +38,6 @@ public record ServicePackageResponse(
         String visibility,
         boolean isPopular,
         int ordersCompleted,
-        String responseTime,
         String coverImage,
         List<String> mediaUrls,
         List<String> tags,

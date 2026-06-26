@@ -783,7 +783,6 @@ public class BrandCampaignService {
                 .tags(List.of("brand-campaign"))
                 .currency(normalizeCurrency(reaction.getProposedCurrency() != null
                         ? reaction.getProposedCurrency() : campaign.getCurrency()))
-                .responseTime("Within 24 hours")
                 .active(true)
                 .build());
     }

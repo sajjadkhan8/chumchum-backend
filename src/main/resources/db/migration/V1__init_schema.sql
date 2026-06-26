@@ -219,7 +219,6 @@ create table packages (
     is_featured boolean default false,
     is_popular boolean not null default false,
     orders_completed integer not null default 0,
-    response_time varchar(50),
     created_at timestamptz not null default now(),
     updated_at timestamptz not null default now()
 );

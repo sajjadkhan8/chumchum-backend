@@ -43,8 +43,7 @@ public class ServicePackageService {
             PackageStatus.DRAFT,        EnumSet.of(PackageStatus.ACTIVE, PackageStatus.ARCHIVED),
             PackageStatus.ACTIVE,       EnumSet.of(PackageStatus.PAUSED, PackageStatus.ARCHIVED),
             PackageStatus.PAUSED,       EnumSet.of(PackageStatus.ACTIVE, PackageStatus.ARCHIVED),
-            PackageStatus.ARCHIVED,     EnumSet.noneOf(PackageStatus.class),
-            PackageStatus.UNDER_REVIEW, EnumSet.noneOf(PackageStatus.class)
+            PackageStatus.ARCHIVED,     EnumSet.noneOf(PackageStatus.class)
     );
 
     private static final Set<String> ALLOWED_SORT_FIELDS = Set.of(
@@ -104,7 +103,6 @@ public class ServicePackageService {
                 .revisions(request.revisions() == null ? 1 : request.revisions())
                 .status(targetStatus)
                 .visibility(request.visibility() == null || request.visibility().isBlank() ? "public" : request.visibility())
-                .responseTime(request.responseTime())
                 .featured(request.isFeatured() != null && request.isFeatured())
                 .mediaUrls(toArray(request.mediaUrls()))
                 .tags(request.tags())
@@ -159,7 +157,6 @@ public class ServicePackageService {
         if (request.deliveryDays() != null) pkg.setDeliveryDays(request.deliveryDays());
         if (request.revisions() != null) pkg.setRevisions(request.revisions());
         if (request.visibility() != null) pkg.setVisibility(request.visibility());
-        if (request.responseTime() != null) pkg.setResponseTime(request.responseTime());
         if (request.coverImage() != null) pkg.setCoverImage(request.coverImage());
         if (request.tags() != null) pkg.setTags(request.tags());
         if (request.mediaUrls() != null) pkg.setMediaUrls(toArray(request.mediaUrls()));
@@ -234,7 +231,6 @@ public class ServicePackageService {
                 .revisions(src.getRevisions())
                 .tags(src.getTags())
                 .coverImage(src.getCoverImage())
-                .responseTime(src.getResponseTime())
                 .mediaUrls(src.getMediaUrls())
                 .build();
 
@@ -392,7 +388,7 @@ public class ServicePackageService {
     }
 
     private boolean requiresPublishReadyCategory(PackageStatus status) {
-        return status == PackageStatus.ACTIVE || status == PackageStatus.UNDER_REVIEW;
+        return status == PackageStatus.ACTIVE;
     }
 
     private void syncCreatorCategoryForPublishedPackage(Creator creator, PackageStatus status, PackageCategory category) {

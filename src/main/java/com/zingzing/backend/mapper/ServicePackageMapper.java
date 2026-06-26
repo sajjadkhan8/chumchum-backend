@@ -37,7 +37,6 @@ public class ServicePackageMapper {
                 servicePackage.getVisibility(),
                 servicePackage.isPopular(),
                 servicePackage.getOrdersCompleted(),
-                servicePackage.getResponseTime(),
                 servicePackage.getCoverImage(),
                 arrayToList(servicePackage.getMediaUrls()),
                 servicePackage.getTags() == null ? List.of() : servicePackage.getTags(),

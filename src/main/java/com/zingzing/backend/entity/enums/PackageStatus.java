@@ -4,6 +4,5 @@ public enum PackageStatus {
     ACTIVE,
     DRAFT,
     PAUSED,
-    ARCHIVED,
-    UNDER_REVIEW
+    ARCHIVED
 }

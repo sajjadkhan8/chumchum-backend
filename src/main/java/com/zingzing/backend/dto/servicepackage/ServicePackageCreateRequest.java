@@ -36,7 +36,6 @@ public record ServicePackageCreateRequest(
         Boolean isFeatured,
         PackageStatus status,
         String visibility,
-        @Size(max = 50) String responseTime,
         String coverImage,
         List<String> mediaUrls,
         List<String> tags,

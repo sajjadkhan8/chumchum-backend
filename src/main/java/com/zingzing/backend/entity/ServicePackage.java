@@ -111,9 +111,6 @@ public class ServicePackage extends BaseEntity {
     @Column(name = "orders_completed", nullable = false)
     private int ordersCompleted = 0;
 
-    @Column(name = "response_time", length = 50)
-    private String responseTime;
-
     @Builder.Default
     @Column(name = "is_active", nullable = false)
     private boolean active = true;
