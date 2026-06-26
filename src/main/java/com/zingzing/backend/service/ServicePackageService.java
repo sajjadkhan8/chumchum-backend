@@ -95,10 +95,7 @@ public class ServicePackageService {
                 .dealType(request.dealType() == null ? DealType.PAID : request.dealType())
                 .barterDetails(request.barterDetails())
                 .barterDescription(request.barterDescription())
-                .barterCategory(request.barterCategory())
-                .estimatedBarterValue(request.estimatedBarterValue())
                 .hybridCashAmount(request.hybridCashAmount())
-                .hybridBarterValue(request.hybridBarterValue())
                 .creatorExpectations(request.creatorExpectations())
                 .price(request.price())
                 .currency("PKR")  // V1: PKR only (mono-currency)
@@ -156,10 +153,7 @@ public class ServicePackageService {
         if (request.price() != null) pkg.setPrice(request.price());
         if (request.barterDetails() != null) pkg.setBarterDetails(request.barterDetails());
         if (request.barterDescription() != null) pkg.setBarterDescription(request.barterDescription());
-        if (request.barterCategory() != null) pkg.setBarterCategory(request.barterCategory());
-        if (request.estimatedBarterValue() != null) pkg.setEstimatedBarterValue(request.estimatedBarterValue());
         if (request.hybridCashAmount() != null) pkg.setHybridCashAmount(request.hybridCashAmount());
-        if (request.hybridBarterValue() != null) pkg.setHybridBarterValue(request.hybridBarterValue());
         if (request.creatorExpectations() != null) pkg.setCreatorExpectations(request.creatorExpectations());
         if (request.deliverables() != null && !request.deliverables().isEmpty()) pkg.setDeliverables(request.deliverables());
         if (request.deliveryDays() != null) pkg.setDeliveryDays(request.deliveryDays());
@@ -233,10 +227,7 @@ public class ServicePackageService {
                 .currency(src.getCurrency())
                 .barterDetails(src.getBarterDetails())
                 .barterDescription(src.getBarterDescription())
-                .barterCategory(src.getBarterCategory())
-                .estimatedBarterValue(src.getEstimatedBarterValue())
                 .hybridCashAmount(src.getHybridCashAmount())
-                .hybridBarterValue(src.getHybridBarterValue())
                 .creatorExpectations(src.getCreatorExpectations())
                 .deliverables(src.getDeliverables())
                 .deliveryDays(src.getDeliveryDays())
@@ -389,12 +380,6 @@ public class ServicePackageService {
             throw new ApiException(HttpStatus.BAD_REQUEST, "price is required when dealType is PAID/HYBRID");
         }
 
-        // Barter/hybrid deals must declare a non-zero estimated product value so platform fees are calculable.
-        if ((dealType == DealType.BARTER || dealType == DealType.HYBRID)
-                && (request.estimatedBarterValue() == null || request.estimatedBarterValue() <= 0)) {
-            throw new ApiException(HttpStatus.BAD_REQUEST,
-                    "estimatedBarterValue is required and must be greater than 0 for barter and hybrid deals");
-        }
     }
 
     private void validatePublishable(PackageStatus status, PackageCategory category) {
@@ -434,17 +419,13 @@ public class ServicePackageService {
         if (dealType == DealType.PAID) {
             pkg.setBarterDetails(null);
             pkg.setBarterDescription(null);
-            pkg.setBarterCategory(null);
-            pkg.setEstimatedBarterValue(null);
             pkg.setHybridCashAmount(null);
-            pkg.setHybridBarterValue(null);
             pkg.setCreatorExpectations(null);
             return;
         }
 
         if (dealType == DealType.BARTER) {
             pkg.setHybridCashAmount(null);
-            pkg.setHybridBarterValue(null);
             pkg.setPrice(0);
         }
     }

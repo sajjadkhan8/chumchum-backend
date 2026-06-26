@@ -77,17 +77,8 @@ public class ServicePackage extends BaseEntity {
     @Column(name = "barter_description", columnDefinition = "text")
     private String barterDescription;
 
-    @Column(name = "barter_category", length = 100)
-    private String barterCategory;
-
-    @Column(name = "estimated_barter_value")
-    private Integer estimatedBarterValue;
-
     @Column(name = "hybrid_cash_amount")
     private Integer hybridCashAmount;
-
-    @Column(name = "hybrid_barter_value")
-    private Integer hybridBarterValue;
 
     @Column(name = "creator_expectations", columnDefinition = "text")
     private String creatorExpectations;
