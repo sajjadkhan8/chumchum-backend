@@ -126,7 +126,7 @@ public class BrandCampaignService {
                  .contentFormats(request.contentFormats())
                  .targetPlatforms(request.targetPlatforms())
                  .campaignGoal(trimToNull(request.campaignGoal()))
-                 .categories(request.categories())
+                 .categories(normalizeCategoryCsv(request.categories()))
                  .niches(request.niches())
                  .referenceUrls(request.referenceUrls())
                  .keyMessage(trimToNull(request.keyMessage()))
@@ -215,7 +215,7 @@ public class BrandCampaignService {
          if (request.contentFormats() != null) campaign.setContentFormats(request.contentFormats());
          if (request.targetPlatforms() != null) campaign.setTargetPlatforms(request.targetPlatforms());
          if (request.campaignGoal() != null) campaign.setCampaignGoal(trimToNull(request.campaignGoal()));
-         if (request.categories() != null) campaign.setCategories(request.categories());
+         if (request.categories() != null) campaign.setCategories(normalizeCategoryCsv(request.categories()));
          if (request.niches() != null) campaign.setNiches(request.niches());
          if (request.referenceUrls() != null) campaign.setReferenceUrls(request.referenceUrls());
          if (request.keyMessage() != null) campaign.setKeyMessage(trimToNull(request.keyMessage()));
@@ -907,6 +907,14 @@ public class BrandCampaignService {
                  brandCampaignReactionRepository.countByCampaignId(campaign.getId())
          );
      }
+
+    private String normalizeCategoryCsv(String rawCategories) {
+        if (rawCategories == null || rawCategories.isBlank()) {
+            return null;
+        }
+        List<String> categories = PackageCategory.normalizeCreatorCategories(List.of(rawCategories.split(",")));
+        return String.join(", ", categories);
+    }
 
     private BrandCampaignReactionResponse toReactionResponse(BrandCampaignReaction reaction) {
         UUID orderId = orderRepository.findFirstByServicePackageName("brand-campaign-" + reaction.getId())

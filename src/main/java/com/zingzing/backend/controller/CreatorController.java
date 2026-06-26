@@ -336,6 +336,15 @@ public class CreatorController {
         return ResponseEntity.ok(Map.of("success", true, "data", row));
     }
 
+    @DeleteMapping("/me/social-accounts/{platform}")
+    public ResponseEntity<Map<String, Object>> deleteSocialAccount(
+            @AuthenticationPrincipal AuthenticatedUser authUser,
+            @PathVariable String platform
+    ) {
+        creatorService.deleteSocialAccount(authUser.userId(), authUser.role(), platform);
+        return ResponseEntity.ok(Map.of("success", true));
+    }
+
     @PatchMapping("/me/preferences")
     public ResponseEntity<Map<String, Object>> updatePreferences(
             @AuthenticationPrincipal AuthenticatedUser authUser,

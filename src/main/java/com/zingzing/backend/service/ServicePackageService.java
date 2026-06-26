@@ -65,6 +65,7 @@ public class ServicePackageService {
         this.packageAnalyticsTrackingService = packageAnalyticsTrackingService;
     }
 
+    @Transactional
     public ServicePackageResponse createPackage(UUID userId, UserRole role, ServicePackageCreateRequest request) {
         if (!role.isCreator() && !role.isAdmin()) {
             throw new ApiException(HttpStatus.FORBIDDEN, "Only creators can create packages!");
@@ -74,6 +75,8 @@ public class ServicePackageService {
 
         Creator creator = creatorRepository.findById(userId)
                 .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST, "Creator profile not found for this user"));
+        PackageStatus targetStatus = request.status() == null ? PackageStatus.DRAFT : request.status();
+        validatePublishable(targetStatus, request.category());
 
         String packageName = request.name().trim();
         if (servicePackageRepository.existsByCreatorAndNameIgnoreCase(creator, packageName)) {
@@ -102,7 +105,7 @@ public class ServicePackageService {
                 .deliverables(request.deliverables())
                 .deliveryDays(request.deliveryDays())
                 .revisions(request.revisions() == null ? 1 : request.revisions())
-                .status(request.status() == null ? PackageStatus.DRAFT : request.status())
+                .status(targetStatus)
                 .visibility(request.visibility() == null || request.visibility().isBlank() ? "public" : request.visibility())
                 .responseTime(request.responseTime())
                 .featured(request.isFeatured() != null && request.isFeatured())
@@ -113,6 +116,7 @@ public class ServicePackageService {
                 .build();
 
         clearIncompatiblePricingFields(servicePackage);
+        syncCreatorCategoryForPublishedPackage(creator, servicePackage.getStatus(), servicePackage.getCategory());
 
         return servicePackageMapper.toResponse(servicePackageRepository.save(servicePackage));
     }
@@ -170,6 +174,8 @@ public class ServicePackageService {
         if (request.status() != null) pkg.setStatus(request.status());
 
         clearIncompatiblePricingFields(pkg);
+        validatePublishable(pkg.getStatus(), pkg.getCategory());
+        syncCreatorCategoryForPublishedPackage(pkg.getCreator(), pkg.getStatus(), pkg.getCategory());
 
         return servicePackageMapper.toResponse(servicePackageRepository.save(pkg));
     }
@@ -196,7 +202,9 @@ public class ServicePackageService {
                     "Cannot transition from " + pkg.getStatus() + " to " + newStatus);
         }
 
+        validatePublishable(newStatus, pkg.getCategory());
         pkg.setStatus(newStatus);
+        syncCreatorCategoryForPublishedPackage(pkg.getCreator(), pkg.getStatus(), pkg.getCategory());
         return servicePackageMapper.toResponse(servicePackageRepository.save(pkg));
     }
 
@@ -386,6 +394,37 @@ public class ServicePackageService {
                 && (request.estimatedBarterValue() == null || request.estimatedBarterValue() <= 0)) {
             throw new ApiException(HttpStatus.BAD_REQUEST,
                     "estimatedBarterValue is required and must be greater than 0 for barter and hybrid deals");
+        }
+    }
+
+    private void validatePublishable(PackageStatus status, PackageCategory category) {
+        if (!requiresPublishReadyCategory(status)) {
+            return;
+        }
+        if (category == null || category == PackageCategory.QUICK_DEAL) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Select a package category before publishing");
+        }
+    }
+
+    private boolean requiresPublishReadyCategory(PackageStatus status) {
+        return status == PackageStatus.ACTIVE || status == PackageStatus.UNDER_REVIEW;
+    }
+
+    private void syncCreatorCategoryForPublishedPackage(Creator creator, PackageStatus status, PackageCategory category) {
+        if (!requiresPublishReadyCategory(status) || creator == null || category == null || category == PackageCategory.QUICK_DEAL) {
+            return;
+        }
+
+        List<String> normalizedCategories = PackageCategory.normalizeCreatorCategories(creator.getCategories());
+        String categoryValue = category.name();
+        if (!normalizedCategories.contains(categoryValue)) {
+            normalizedCategories = new java.util.ArrayList<>(normalizedCategories);
+            normalizedCategories.add(categoryValue);
+            creator.setCategories(normalizedCategories);
+            creatorRepository.save(creator);
+        } else if (!normalizedCategories.equals(creator.getCategories())) {
+            creator.setCategories(normalizedCategories);
+            creatorRepository.save(creator);
         }
     }
 

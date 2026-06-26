@@ -1,5 +1,6 @@
 package com.zingzing.backend.controller;
 
+import com.zingzing.backend.entity.enums.PackageCategory;
 import com.zingzing.backend.repository.CreatorRepository;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -22,25 +23,8 @@ public class MetadataController {
     @GetMapping({"/creators/metadata", "/creators/filters", "/metadata/creators"})
     public ResponseEntity<Map<String, Object>> creatorFilterMetadata() {
         Map<String, Object> metadata = Map.of(
-                "categories", List.of(
-                        "Food",
-                        "Fashion",
-                        "Beauty",
-                        "Tech",
-                        "Gaming",
-                        "Travel",
-                        "Fitness",
-                        "Health",
-                        "Lifestyle",
-                        "Comedy",
-                        "Entertainment",
-                        "Education",
-                        "Parenting",
-                        "Automotive",
-                        "Cooking",
-                        "Vlogging",
-                        "Reviews"
-                ),
+                "categories", categoryValues(),
+                "categoryOptions", categoryOptions(),
                 "cities", List.of("Karachi", "Lahore", "Islamabad", "Rawalpindi", "Faisalabad", "Multan", "Peshawar"),
                 "platforms", List.of("instagram", "tiktok", "youtube", "facebook"),
                 "dealTypes", List.of(
@@ -76,15 +60,27 @@ public class MetadataController {
 
     @GetMapping("/metadata/search-filters")
     public ResponseEntity<Map<String, Object>> searchFilters() {
-        List<String> categories = creatorRepository.findDistinctCategories();
         List<String> languages  = creatorRepository.findDistinctLanguages();
         return ResponseEntity.ok(Map.of(
                 "success", true,
                 "data", Map.of(
-                        "categories", categories,
+                        "categories", categoryValues(),
+                        "categoryOptions", categoryOptions(),
                         "languages", languages
                 )
         ));
+    }
+
+    private List<String> categoryValues() {
+        return PackageCategory.PUBLIC_CATEGORIES.stream()
+                .map(PackageCategory::name)
+                .toList();
+    }
+
+    private List<Map<String, Object>> categoryOptions() {
+        return PackageCategory.PUBLIC_CATEGORIES.stream()
+                .map(category -> option(category.name(), category.label()))
+                .toList();
     }
 
     private Map<String, Object> option(String value, String label) {

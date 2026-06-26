@@ -11,6 +11,7 @@ import com.zingzing.backend.entity.User;
 import com.zingzing.backend.entity.enums.AvailabilityStatus;
 import com.zingzing.backend.entity.enums.CreatorBadgeLevel;
 import com.zingzing.backend.entity.enums.CreatorPayoutSchedule;
+import com.zingzing.backend.entity.enums.PackageCategory;
 import com.zingzing.backend.entity.enums.PayoutMethodType;
 import com.zingzing.backend.entity.enums.UserRole;
 import com.zingzing.backend.exception.ApiException;
@@ -153,10 +154,11 @@ public class CreatorService {
         int safePage = Math.max(page, 0);
         int safeLimit = Math.clamp(limit, 1, 100);
         Pageable pageable = PageRequest.of(safePage, safeLimit);
+        List<String> normalizedCategories = categories == null ? null : PackageCategory.normalizeCreatorCategories(categories);
 
         Page<Creator> result = creatorRepository.search(
                 search, toJsonArray(cities),
-                toJsonArray(categories),
+                toJsonArray(normalizedCategories == null || normalizedCategories.isEmpty() ? null : normalizedCategories),
                 toJsonArray(languages),
                 minFollowers, maxFollowers, minRating,
                 minPrice, maxPrice, minReviews,
@@ -266,7 +268,11 @@ public class CreatorService {
             creator.setLanguages(request.languages());
         }
         if (request.categories() != null) {
-            creator.setCategories(request.categories());
+            List<String> normalizedCategories = PackageCategory.normalizeCreatorCategories(request.categories());
+            if (normalizedCategories.isEmpty()) {
+                throw new ApiException(HttpStatus.BAD_REQUEST, "Select at least one content category for your public profile");
+            }
+            creator.setCategories(normalizedCategories);
         }
         saveSocialAccountsFromUrls(creator,
                 request.instagramUrl(), request.tiktokUrl(),
@@ -377,6 +383,13 @@ public class CreatorService {
         if (req.avgViews() != null) account.setAvgViews(req.avgViews());
         if (req.engagementRate() != null) account.setEngagementRate(req.engagementRate());
         return socialAccountRepository.save(account);
+    }
+
+    @Transactional
+    public void deleteSocialAccount(UUID userId, UserRole role, String platform) {
+        if (!role.isCreator()) throw new ApiException(HttpStatus.FORBIDDEN, "Only creators can update social accounts");
+        String normalizedPlatform = normalizeSocialPlatform(platform);
+        socialAccountRepository.deleteByCreatorIdAndPlatform(userId, normalizedPlatform);
     }
 
     private String normalizeSocialPlatform(String platform) {

@@ -194,7 +194,7 @@ create table packages (
     title varchar(150) not null,
     description varchar(2000),
     platform varchar(50) not null constraint ck_packages_platform check (platform in ('YOUTUBE', 'INSTAGRAM', 'TIKTOK', 'FACEBOOK')),
-    category varchar(50) constraint ck_packages_category check (category in ('FASHION_BEAUTY', 'FOOD_BEVERAGE', 'TECHNOLOGY_GADGETS', 'FITNESS_HEALTH', 'TRAVEL_LIFESTYLE', 'ENTERTAINMENT_COMEDY', 'EDUCATION_CAREER', 'BUSINESS_FINANCE', 'HOME_DECOR', 'GAMING', 'PARENTING_FAMILY', 'SPORTS', 'AUTOMOTIVE', 'RELIGIOUS_SPIRITUAL', 'GENERAL', 'QUICK_DEAL')),
+    category varchar(50) constraint ck_packages_category check (category in ('FOOD', 'FASHION', 'BEAUTY', 'TECH', 'FITNESS', 'HEALTH', 'TRAVEL', 'LIFESTYLE', 'GAMING', 'EDUCATION', 'ENTERTAINMENT', 'BUSINESS_FINANCE', 'HOME_DECOR', 'PARENTING_FAMILY', 'SPORTS', 'AUTOMOTIVE', 'RELIGIOUS_SPIRITUAL', 'GENERAL', 'QUICK_DEAL')),
     pricing_type varchar(30) not null default 'PAID',
     deal_type varchar(30),
     barter_details varchar(1000),

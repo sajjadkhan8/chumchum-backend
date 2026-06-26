@@ -5,6 +5,7 @@ import com.zingzing.backend.dto.brand.BrandResponse;
 import com.zingzing.backend.dto.brand.BrandUpdateRequest;
 import com.zingzing.backend.entity.Brand;
 import com.zingzing.backend.entity.User;
+import com.zingzing.backend.entity.enums.PackageCategory;
 import com.zingzing.backend.entity.enums.UserRole;
 import com.zingzing.backend.exception.ApiException;
 import com.zingzing.backend.mapper.BrandMapper;
@@ -98,7 +99,7 @@ public class BrandService {
         if (request.description() != null) brand.setDescription(request.description());
         if (request.logoUrl()     != null) brand.setLogoUrl(request.logoUrl());
         if (request.monthlyBudget() != null) brand.setMonthlyBudget(request.monthlyBudget());
-        if (request.preferredCreatorCategories() != null) brand.setPreferredCreatorCategories(request.preferredCreatorCategories());
+        if (request.preferredCreatorCategories() != null) brand.setPreferredCreatorCategories(normalizeCategoryCsv(request.preferredCreatorCategories()));
         if (request.targetCities() != null) brand.setTargetCities(request.targetCities());
         if (request.targetPlatforms() != null) brand.setTargetPlatforms(request.targetPlatforms());
         if (request.campaignBudgetRange() != null) brand.setCampaignBudgetRange(request.campaignBudgetRange());
@@ -119,6 +120,14 @@ public class BrandService {
     private Brand findBrand(UUID brandId) {
         return brandRepository.findById(brandId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Brand profile not found"));
+    }
+
+    private String normalizeCategoryCsv(String rawCategories) {
+        if (rawCategories == null || rawCategories.isBlank()) {
+            return "";
+        }
+        List<String> categories = PackageCategory.normalizeCreatorCategories(List.of(rawCategories.split(",")));
+        return String.join(", ", categories);
     }
 
     private void validateOwnerOrAdmin(UUID actorUserId, UserRole actorRole, UUID resourceUserId) {
