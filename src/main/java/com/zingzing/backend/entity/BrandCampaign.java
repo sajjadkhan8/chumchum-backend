@@ -72,10 +72,6 @@ public class BrandCampaign extends BaseEntity {
     @Column(name = "categories", length = 400)
     private String categories;
 
-    @Column(name = "niches", length = 400)
-    private String niches;
-
-
     @Column(name = "reference_urls", columnDefinition = "text")
     private String referenceUrls;
 

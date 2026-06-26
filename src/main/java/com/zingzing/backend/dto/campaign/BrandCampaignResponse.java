@@ -24,7 +24,6 @@ public record BrandCampaignResponse(
          String targetPlatforms,
          String campaignGoal,
          String categories,
-         String niches,
          String referenceUrls,
          String keyMessage,
          String dosAndDonts,

@@ -659,7 +659,6 @@ create table brand_campaigns (
     content_formats varchar(300),
     target_platforms varchar(300),
     categories varchar(400),
-    niches varchar(400),
     reference_urls text,
     cover_image_url varchar(600),
     visibility varchar(20) not null default 'public',

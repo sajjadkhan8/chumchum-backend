@@ -127,7 +127,6 @@ public class BrandCampaignService {
                  .targetPlatforms(request.targetPlatforms())
                  .campaignGoal(trimToNull(request.campaignGoal()))
                  .categories(normalizeCategoryCsv(request.categories()))
-                 .niches(request.niches())
                  .referenceUrls(request.referenceUrls())
                  .keyMessage(trimToNull(request.keyMessage()))
                  .dosAndDonts(trimToNull(request.dosAndDonts()))
@@ -216,7 +215,6 @@ public class BrandCampaignService {
          if (request.targetPlatforms() != null) campaign.setTargetPlatforms(request.targetPlatforms());
          if (request.campaignGoal() != null) campaign.setCampaignGoal(trimToNull(request.campaignGoal()));
          if (request.categories() != null) campaign.setCategories(normalizeCategoryCsv(request.categories()));
-         if (request.niches() != null) campaign.setNiches(request.niches());
          if (request.referenceUrls() != null) campaign.setReferenceUrls(request.referenceUrls());
          if (request.keyMessage() != null) campaign.setKeyMessage(trimToNull(request.keyMessage()));
          if (request.dosAndDonts() != null) campaign.setDosAndDonts(trimToNull(request.dosAndDonts()));
@@ -869,7 +867,6 @@ public class BrandCampaignService {
                  campaign.getTargetPlatforms(),
                  campaign.getCampaignGoal(),
                  campaign.getCategories(),
-                 campaign.getNiches(),
                  campaign.getReferenceUrls(),
                  campaign.getKeyMessage(),
                  campaign.getDosAndDonts(),
