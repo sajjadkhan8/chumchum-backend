@@ -12,7 +12,7 @@ public record BrandCreateRequest(
         UUID userId,
         @NotBlank @Size(max = 150) String companyName,
         @Size(max = 255) String website,
-        @Size(max = 100) String industry,
+        @Size(max = 50) String category,
         @Size(max = 1000) String description
 ) {
 }

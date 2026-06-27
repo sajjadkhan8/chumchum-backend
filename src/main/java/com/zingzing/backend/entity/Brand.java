@@ -32,8 +32,8 @@ public class Brand extends User {
     @Column(length = 255)
     private String website;
 
-    @Column(length = 100)
-    private String industry;
+    @Column(length = 50)
+    private String category;
 
     @Column(length = 1000)
     private String description;
@@ -43,15 +43,6 @@ public class Brand extends User {
 
     @Column(name = "preferred_creator_categories", length = 500)
     private String preferredCreatorCategories;
-
-    @Column(name = "target_cities", length = 500)
-    private String targetCities;
-
-    @Column(name = "target_platforms", length = 500)
-    private String targetPlatforms;
-
-    @Column(name = "campaign_budget_range", length = 150)
-    private String campaignBudgetRange;
 
     @Column(name = "business_verification_status", length = 50)
     private String businessVerificationStatus;

@@ -33,11 +33,18 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/brands")
 public class BrandController {
+
+    private static final Set<String> REQUIRED_VERIFICATION_DOCUMENT_TYPES = Set.of(
+            "tax_id",
+            "business_registration",
+            "bank_details"
+    );
 
     private final BrandService brandService;
     private final BrandRepository brandRepository;
@@ -187,8 +194,12 @@ public class BrandController {
         requireBrand(authUser);
         Brand brand = brandRepository.findById(authUser.userId())
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Brand profile not found"));
-        if (verificationDocumentRepository.findByBrandIdOrderByUploadedAtDesc(brand.getId()).isEmpty()) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Upload at least one verification document before submitting");
+        Set<String> uploadedTypes = verificationDocumentRepository.findByBrandIdOrderByUploadedAtDesc(brand.getId())
+                .stream()
+                .map(doc -> doc.getType() == null ? "" : doc.getType().trim().toLowerCase())
+                .collect(java.util.stream.Collectors.toSet());
+        if (!uploadedTypes.containsAll(REQUIRED_VERIFICATION_DOCUMENT_TYPES)) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Upload all required verification documents before submitting");
         }
         brand.setBusinessVerificationStatus(BrandVerificationStatuses.UNDER_REVIEW);
         brandRepository.save(brand);

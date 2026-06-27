@@ -11,7 +11,6 @@ import com.zingzing.backend.exception.ApiException;
 import com.zingzing.backend.mapper.BrandMapper;
 import com.zingzing.backend.repository.BrandRepository;
 import com.zingzing.backend.repository.UserRepository;
-import com.zingzing.backend.util.BrandVerificationStatuses;
 import jakarta.transaction.Transactional;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
@@ -55,9 +54,9 @@ public class BrandService {
                 request.companyName(),
                 null,   // logoUrl
                 request.website(),
-                request.industry(),
+                normalizeBrandCategory(request.category()),
                 request.description(),
-                null, null, null, null, null, null, null, null, null, null, null, null
+                null, null, null, null, null, null, null, null, null
         );
 
         if (rows != 1) {
@@ -95,17 +94,11 @@ public class BrandService {
 
         if (request.companyName() != null && !request.companyName().isBlank()) brand.setName(request.companyName());
         if (request.website()     != null) brand.setWebsite(request.website());
-        if (request.industry()    != null) brand.setIndustry(request.industry());
+        if (request.category()    != null) brand.setCategory(normalizeBrandCategory(request.category()));
         if (request.description() != null) brand.setDescription(request.description());
         if (request.logoUrl()     != null) brand.setLogoUrl(request.logoUrl());
         if (request.monthlyBudget() != null) brand.setMonthlyBudget(request.monthlyBudget());
         if (request.preferredCreatorCategories() != null) brand.setPreferredCreatorCategories(normalizeCategoryCsv(request.preferredCreatorCategories()));
-        if (request.targetCities() != null) brand.setTargetCities(request.targetCities());
-        if (request.targetPlatforms() != null) brand.setTargetPlatforms(request.targetPlatforms());
-        if (request.campaignBudgetRange() != null) brand.setCampaignBudgetRange(request.campaignBudgetRange());
-        if (request.businessVerificationStatus() != null) {
-            brand.setBusinessVerificationStatus(BrandVerificationStatuses.normalize(request.businessVerificationStatus()));
-        }
         if (request.verificationContactEmail() != null) brand.setVerificationContactEmail(request.verificationContactEmail());
         if (request.verificationPhoneNumber() != null) brand.setVerificationPhoneNumber(request.verificationPhoneNumber());
         if (request.city()         != null) brand.setCity(request.city());
@@ -128,6 +121,19 @@ public class BrandService {
         }
         List<String> categories = PackageCategory.normalizeCreatorCategories(List.of(rawCategories.split(",")));
         return String.join(", ", categories);
+    }
+
+    private String normalizeBrandCategory(String rawCategory) {
+        if (rawCategory == null) {
+            return null;
+        }
+        if (rawCategory.isBlank()) {
+            return "";
+        }
+        return PackageCategory.normalize(rawCategory)
+                .filter(PackageCategory.PUBLIC_CATEGORIES::contains)
+                .map(PackageCategory::name)
+                .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST, "Unsupported brand category"));
     }
 
     private void validateOwnerOrAdmin(UUID actorUserId, UserRole actorRole, UUID resourceUserId) {

@@ -63,7 +63,7 @@ public class UserMapper {
         return new BrandProfilePayload(
                 brand.getName(),   // was getCompanyName()
                 brand.getWebsite(),
-                brand.getIndustry(),
+                brand.getCategory(),
                 brand.getDescription(),
                 brand.getBusinessVerificationStatus(),
                 brand.getVerificationContactEmail(),

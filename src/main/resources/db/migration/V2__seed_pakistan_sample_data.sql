@@ -67,11 +67,11 @@ values
     ('a1f8db5c-6a4b-4d76-a001-0fd5f9c10105', 'usman.shahid', 'Food vlogger covering street food and family dining spots across KPK and Islamabad.', 'AVAILABLE', 'within_12_hours', 25000, 120000, 371000, 89000, 6.10, false, true, true, 4.50, 41, 104, '["paid", "barter", "hybrid"]'::jsonb, 18000, '["Urdu", "Pashto", "English"]'::jsonb, '["FOOD", "TRAVEL"]'::jsonb)
 on conflict (id) do nothing;
 
-insert into brands (id, name, logo_url, website, industry, description, monthly_budget)
+insert into brands (id, name, logo_url, website, category, description, monthly_budget)
 values
-    ('b7e2aa31-47f1-4c8d-b101-1a8cb4f20101', 'Nishat Linen', 'https://images.chumchum.pk/brands/logos/nishat.png', 'https://nishatlinen.com', 'Apparel', 'Leading Pakistani apparel brand focused on seasonal collections and digital-first campaigns.', 4500000),
-    ('b7e2aa31-47f1-4c8d-b101-1a8cb4f20102', 'J.', 'https://images.chumchum.pk/brands/logos/jdot.png', 'https://junaidjamshed.com', 'Fashion & Fragrance', 'National lifestyle brand running creator-led launches for fragrances and festive wear.', 3200000),
-    ('b7e2aa31-47f1-4c8d-b101-1a8cb4f20103', 'Foodpanda Pakistan', 'https://images.chumchum.pk/brands/logos/foodpanda.png', 'https://www.foodpanda.pk', 'Food Delivery', 'Delivery platform focusing on city-specific conversion campaigns and repeat orders.', 6000000)
+    ('b7e2aa31-47f1-4c8d-b101-1a8cb4f20101', 'Nishat Linen', 'https://images.chumchum.pk/brands/logos/nishat.png', 'https://nishatlinen.com', 'FASHION', 'Leading Pakistani apparel brand focused on seasonal collections and digital-first campaigns.', 4500000),
+    ('b7e2aa31-47f1-4c8d-b101-1a8cb4f20102', 'J.', 'https://images.chumchum.pk/brands/logos/jdot.png', 'https://junaidjamshed.com', 'FASHION', 'National lifestyle brand running creator-led launches for fragrances and festive wear.', 3200000),
+    ('b7e2aa31-47f1-4c8d-b101-1a8cb4f20103', 'Foodpanda Pakistan', 'https://images.chumchum.pk/brands/logos/foodpanda.png', 'https://www.foodpanda.pk', 'FOOD', 'Delivery platform focusing on city-specific conversion campaigns and repeat orders.', 6000000)
 on conflict (id) do nothing;
 
 insert into packages (
@@ -645,14 +645,14 @@ values
     ('e1000000-0000-4000-8000-000000000080', '10000000-0000-4000-8000-000000000020', 'facebook',  'hassanimrancomedy',    'https://www.facebook.com/hassanimrancomedy',     0, 0, 0, false)
 on conflict (id) do nothing;
 
-insert into brands (id, name, logo_url, website, industry, description, monthly_budget)
+insert into brands (id, name, logo_url, website, category, description, monthly_budget)
 values
-    ('20000000-0000-4000-8000-000000000001', 'Khaadi', 'https://images.chumchum.pk/brands/logos/khaadi.png', 'https://www.khaadi.com', 'Apparel', 'Fashion retail brand running monthly seasonal creator activations.', 3800000),
-    ('20000000-0000-4000-8000-000000000002', 'Gul Ahmed', 'https://images.chumchum.pk/brands/logos/gulahmed.png', 'https://www.gulahmedshop.com', 'Apparel', 'Textile and fashion brand investing in broad creator funnels.', 3500000),
-    ('20000000-0000-4000-8000-000000000003', 'Servis', 'https://images.chumchum.pk/brands/logos/servis.png', 'https://www.servis.com', 'Footwear', 'Footwear campaigns focused on youth categories and launches.', 2100000),
-    ('20000000-0000-4000-8000-000000000004', 'Daraz Pakistan', 'https://images.chumchum.pk/brands/logos/daraz.png', 'https://www.daraz.pk', 'E-commerce', 'Marketplace campaigns around sale cycles and category pushes.', 7000000),
-    ('20000000-0000-4000-8000-000000000005', 'PakWheels', 'https://images.chumchum.pk/brands/logos/pakwheels.png', 'https://www.pakwheels.com', 'Automotive Marketplace', 'Automotive platform using creator-led trust and lead generation.', 2500000),
-    ('20000000-0000-4000-8000-000000000006', 'Jubilee Life', 'https://images.chumchum.pk/brands/logos/jubilee-life.png', 'https://jubileelife.com', 'Insurance', 'Insurance provider running trust-building educational campaigns.', 2400000),
+    ('20000000-0000-4000-8000-000000000001', 'Khaadi', 'https://images.chumchum.pk/brands/logos/khaadi.png', 'https://www.khaadi.com', 'FASHION', 'Fashion retail brand running monthly seasonal creator activations.', 3800000),
+    ('20000000-0000-4000-8000-000000000002', 'Gul Ahmed', 'https://images.chumchum.pk/brands/logos/gulahmed.png', 'https://www.gulahmedshop.com', 'FASHION', 'Textile and fashion brand investing in broad creator funnels.', 3500000),
+    ('20000000-0000-4000-8000-000000000003', 'Servis', 'https://images.chumchum.pk/brands/logos/servis.png', 'https://www.servis.com', 'FASHION', 'Footwear campaigns focused on youth categories and launches.', 2100000),
+    ('20000000-0000-4000-8000-000000000004', 'Daraz Pakistan', 'https://images.chumchum.pk/brands/logos/daraz.png', 'https://www.daraz.pk', 'GENERAL', 'Marketplace campaigns around sale cycles and category pushes.', 7000000),
+    ('20000000-0000-4000-8000-000000000005', 'PakWheels', 'https://images.chumchum.pk/brands/logos/pakwheels.png', 'https://www.pakwheels.com', 'AUTOMOTIVE', 'Automotive platform using creator-led trust and lead generation.', 2500000),
+    ('20000000-0000-4000-8000-000000000006', 'Jubilee Life', 'https://images.chumchum.pk/brands/logos/jubilee-life.png', 'https://jubileelife.com', 'BUSINESS_FINANCE', 'Insurance provider running trust-building educational campaigns.', 2400000),
     ('20000000-0000-4000-8000-000000000007', 'Nestle Pakistan', 'https://images.chumchum.pk/brands/logos/nestle-pk.png', 'https://www.nestle.pk', 'FMCG', 'FMCG campaigns for family and wellness product lines.', 5200000),
     ('20000000-0000-4000-8000-000000000008', 'Tapal Tea', 'https://images.chumchum.pk/brands/logos/tapal.png', 'https://www.tapal.com', 'Beverages', 'Seasonal tea culture and recipe-led creator collaborations.', 1800000),
     ('20000000-0000-4000-8000-000000000009', 'Bank Alfalah', 'https://images.chumchum.pk/brands/logos/bank-alfalah.png', 'https://www.bankalfalah.com', 'Banking', 'Retail bank promoting digital products via finance creators.', 2900000),
@@ -727,9 +727,9 @@ values
     ('f1000000-0000-4000-8000-000000000004', '31000000-0000-4000-8000-000000000002', 'facebook',  'saraislamabadcity',   'https://www.facebook.com/saraislamabadcity',    0, 0, 0, false)
 on conflict (id) do nothing;
 
-insert into brands (id, name, logo_url, website, industry, description, monthly_budget)
+insert into brands (id, name, logo_url, website, category, description, monthly_budget)
 values
-    ('31000000-0000-4000-8000-000000000001', 'Imtiaz', 'https://images.chumchum.pk/brands/logos/imtiaz.png', 'https://imtiaz.com.pk', 'Retail Hypermarket', 'National retail chain running city-specific campaigns for store launches and high-frequency grocery categories.', 6800000)
+    ('31000000-0000-4000-8000-000000000001', 'Imtiaz', 'https://images.chumchum.pk/brands/logos/imtiaz.png', 'https://imtiaz.com.pk', 'FOOD', 'National retail chain running city-specific campaigns for store launches and high-frequency grocery categories.', 6800000)
 on conflict (id) do nothing;
 
 insert into packages (
