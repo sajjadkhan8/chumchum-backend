@@ -165,7 +165,7 @@ public class SafepayClient {
         try {
             JsonNode response = restClient.get()
                     .uri("/reporter/api/v1/payments/{token}", trackerToken)
-                    .header("Authorization", "Bearer " + props.getSecretKey())
+                    .header("x-sfpy-merchant-secret", props.getSecretKey())
                     .retrieve()
                     .body(JsonNode.class);
 
