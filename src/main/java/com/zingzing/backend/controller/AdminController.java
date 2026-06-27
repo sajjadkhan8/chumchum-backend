@@ -341,7 +341,7 @@ public class AdminController {
         } catch (Exception ex) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Invalid status: " + request.status());
         }
-        var response = orderService.updateStatus(id, status, authUser.userId(), authUser.role());
+        var response = orderService.updateStatus(id, status, authUser.userId(), authUser.role(), null);
         adminOperationsService.log(authUser.userId(), "ORDER_STATUS_CHANGED", "order", id.toString(), "status=" + status.name().toLowerCase());
         return ok(response);
     }

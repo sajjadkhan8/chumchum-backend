@@ -252,7 +252,7 @@ public class OrderService {
     }
 
     @Transactional
-    public OrderResponse updateStatus(UUID orderId, OrderStatus newStatus, UUID userId, UserRole role) {
+    public OrderResponse updateStatus(UUID orderId, OrderStatus newStatus, UUID userId, UserRole role, String message) {
         Order order = findOrder(orderId);
         requireParticipant(order, userId, role);
 
@@ -275,8 +275,14 @@ public class OrderService {
             }
             case CANCELLED -> {
                 if (role.isAdmin()) break;
-                if (role.isBrand() && order.getStatus() != OrderStatus.PENDING) {
-                    throw new ApiException(HttpStatus.BAD_REQUEST, "Brand can only cancel PENDING orders");
+                if (!role.isBrand() && !role.isCreator()) {
+                    throw new ApiException(HttpStatus.FORBIDDEN, "Only participants can cancel orders");
+                }
+                if (order.getStatus() != OrderStatus.PENDING) {
+                    throw new ApiException(HttpStatus.BAD_REQUEST,
+                            role.isCreator()
+                                    ? "Creators can only decline PENDING orders"
+                                    : "Brand can only cancel PENDING orders");
                 }
             }
             default -> { /* permit admin */ }
@@ -305,7 +311,7 @@ public class OrderService {
         if (newStatus == OrderStatus.CANCELLED) {
             refundEscrowIfApplicable(saved);
         }
-        notifyStatusChange(saved, newStatus);
+        notifyStatusChange(saved, newStatus, message);
         return orderMapper.toResponse(saved);
     }
 
@@ -504,8 +510,11 @@ public class OrderService {
                 deliverable.getSubmittedAt(), deliverable.getRevisionNote(), deliverable.getCreatedAt());
     }
 
-    private void notifyStatusChange(Order order, OrderStatus newStatus) {
+    private void notifyStatusChange(Order order, OrderStatus newStatus, String message) {
         String body = "Order " + order.getOrderNumber() + " is now " + newStatus.name().toLowerCase().replace('_', ' ');
+        if (newStatus == OrderStatus.CANCELLED && message != null && !message.isBlank()) {
+            body = body + ". Note: " + message.trim();
+        }
         boolean notifyBoth = newStatus == OrderStatus.COMPLETED || newStatus == OrderStatus.CANCELLED;
         if (notifyBoth) {
             notificationService.send(order.getCreator().getId(), "order_status", "Order status updated", body, "order", order.getId());

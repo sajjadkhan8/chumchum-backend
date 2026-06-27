@@ -107,7 +107,7 @@ public class OrderController {
             @Valid @RequestBody UpdateOrderStatusRequest request,
             @AuthenticationPrincipal AuthenticatedUser authUser) {
         return ResponseEntity.ok(orderService.updateStatus(orderId,
-                OrderStatus.valueOf(request.status().toUpperCase()), authUser.userId(), authUser.role()));
+                OrderStatus.valueOf(request.status().toUpperCase()), authUser.userId(), authUser.role(), request.message()));
     }
 
     @PatchMapping("/{orderId}/barter-confirm")
