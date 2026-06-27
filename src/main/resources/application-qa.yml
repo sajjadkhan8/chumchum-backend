@@ -187,11 +187,13 @@ platform:
 safepay:
   enabled: ${SAFEPAY_ENABLED:true}
   environment: ${SAFEPAY_ENVIRONMENT:sandbox}
-  api-key: ${SAFEPAY_API_KEY:sec_66d2a8c6-8bfe-482d-ad8e-9698c16381ca}
-  secret-key: ${SAFEPAY_SECRET_KEY:7a86e128d6beb3bf32fde35aae82b3b0112a168d90d6478b7e2b3d440743ecdc}
-  hmac-key: ${SAFEPAY_HMAC_KEY:8aece5a35b38c03d0adb49e609ee9818c92d2d473410087393abb583828210e9}
+  api-key: ${SAFEPAY_API_KEY:sec_94cb41af-ea44-4cdd-b2f6-a826b3ea6865}
+  secret-key: ${SAFEPAY_SECRET_KEY:68fd9b2299c9962f14f6cfb2d73d3baa1210174db0299d5c444e72b828c295d8}
+  hmac-key: ${SAFEPAY_HMAC_KEY:318b9c2c160e457f8383ab3909c4ec6c09c90cef0641f33a839c67bf2f323b95}
   intent: ${SAFEPAY_INTENT:CYBERSOURCE}
   entry-mode: ${SAFEPAY_ENTRY_MODE:flex}
   sandbox-base-url: ${SAFEPAY_SANDBOX_BASE_URL:https://sandbox.api.getsafepay.com}
   production-base-url: ${SAFEPAY_PRODUCTION_BASE_URL:https://api.getsafepay.com}
+  sandbox-checkout-url: ${SAFEPAY_SANDBOX_CHECKOUT_URL:https://sandbox.api.getsafepay.com/embedded/}
+  production-checkout-url: ${SAFEPAY_PRODUCTION_CHECKOUT_URL:https://getsafepay.com/embedded/}
   webhook-tolerance-seconds: ${SAFEPAY_WEBHOOK_TOLERANCE_SECONDS:300}

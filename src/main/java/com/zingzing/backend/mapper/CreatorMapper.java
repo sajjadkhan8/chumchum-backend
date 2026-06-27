@@ -83,8 +83,6 @@ public class CreatorMapper {
                 creator.getCompletedDeals(),
                 completionRate,
                 repeatClients,
-                creator.isAcceptsBarter(),
-                creator.isAcceptsHybridDeals(),
                 creator.getMinimumBudget(),
                 creator.getLanguages(),
                 creator.getCategories(),
@@ -104,7 +102,7 @@ public class CreatorMapper {
                 (int) activeOrders,
                 creator.getCreatedAt(),
                 creator.getUpdatedAt(),
-                creator.getDealTypes(),
+                creator.getCollaborationPreferences(),
                 creator.getBarterTypes()
         );
     }

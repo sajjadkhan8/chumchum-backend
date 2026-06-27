@@ -94,7 +94,7 @@ public class CreatorController {
             @RequestParam(required = false) Integer minReviews,
             @RequestParam(required = false) CreatorBadgeLevel badgeLevel,
             @RequestParam(required = false) AvailabilityStatus availabilityStatus,
-            @RequestParam(required = false) Boolean acceptsBarter,
+            @RequestParam(required = false) List<String> collaborationPreferences,
             @RequestParam(required = false) Boolean isTrending,
             @RequestParam(required = false) Boolean isFastResponder,
             @RequestParam(defaultValue = "false") Boolean ambassadorOnly,
@@ -112,7 +112,7 @@ public class CreatorController {
         CreatorService.CreatorSearchResult r = creatorService.search(
                 search, cities, categories, languages,
                 minFollowers, maxFollowers, minRating, minPrice, maxPrice, minReviews,
-                badgeLevel, availabilityStatus, acceptsBarter, isTrending, isFastResponder,
+                badgeLevel, availabilityStatus, collaborationPreferences, isTrending, isFastResponder,
                 ambassadorOnly, platform, minEngagementRate,
                 minCompletionRate, maxRateCardReel, maxRateCardStory, maxRateCardPost, maxRateCardVideo,
                 page, limit, sortBy);

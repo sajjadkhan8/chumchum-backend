@@ -840,7 +840,7 @@ smsNotifications:      BOOLEAN default false
 | `platforms` | string[] | `instagram`, `tiktok`, `youtube`, `facebook`, `snapchat` |
 | `cities` | string[] | KSA cities |
 | `dealTypes` | string[] | `paid`, `barter`, `hybrid` |
-| `barterTypes` | string[] | `food`, `hotel`, `salon`, `events`, `products` |
+| `barterTypes` | string[] | Same canonical values as public profile categories, e.g. `FOOD`, `BEAUTY`, `TRAVEL`, `ENTERTAINMENT` |
 | `minFollowers` | integer | |
 | `maxFollowers` | integer | |
 | `minRating` | float | |
@@ -877,7 +877,7 @@ smsNotifications:      BOOLEAN default false
         "totalFollowers": 245000,
         "avgEngagementRate": 6.2,
         "dealTypes": ["paid", "barter"],
-        "barterTypes": ["products", "hotel"],
+        "barterTypes": ["BEAUTY", "TRAVEL"],
         "minPrice": 15000,
         "maxPrice": 85000,
         "responseTime": "Within 2 hours",
@@ -970,7 +970,7 @@ smsNotifications:      BOOLEAN default false
     "totalFollowers": 245000,
     "avgEngagementRate": 6.2,
     "dealTypes": ["paid", "barter"],
-    "barterTypes": ["products", "hotel"],
+    "barterTypes": ["BEAUTY", "TRAVEL"],
     "minPrice": 15000,
     "maxPrice": 85000,
     "responseTime": "Within 2 hours",

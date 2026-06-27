@@ -65,12 +65,6 @@ public class Creator extends User {
     @Column(name = "completed_deals", nullable = false)
     private int completedDeals = 0;
 
-    @Column(name = "accepts_barter", nullable = false)
-    private boolean acceptsBarter = true;
-
-    @Column(name = "accepts_hybrid_deals", nullable = false)
-    private boolean acceptsHybridDeals = true;
-
     @Column(name = "minimum_budget")
     private Integer minimumBudget;
 
@@ -95,8 +89,8 @@ public class Creator extends User {
     private List<String> categories = new ArrayList<>();
 
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "deal_types", columnDefinition = "jsonb")
-    private List<String> dealTypes = new ArrayList<>();
+    @Column(name = "collaboration_preferences", columnDefinition = "jsonb")
+    private List<String> collaborationPreferences = new ArrayList<>(List.of("paid"));
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "barter_types", columnDefinition = "jsonb")

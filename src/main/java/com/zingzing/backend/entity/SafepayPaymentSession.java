@@ -28,7 +28,6 @@ import java.util.UUID;
 public class SafepayPaymentSession extends BaseEntity {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
     private UUID id;
 
     /** Safepay tracker token ("track_..."). Unique per checkout attempt. */

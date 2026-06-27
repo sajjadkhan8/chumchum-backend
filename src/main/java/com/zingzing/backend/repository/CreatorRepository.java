@@ -19,7 +19,21 @@ public interface CreatorRepository extends JpaRepository<Creator, UUID> {
 
     List<Creator> findByIsTrendingTrue(Pageable pageable);
 
-    List<Creator> findByAcceptsBarterTrue(Pageable pageable);
+    @Query(value = """
+            select u.*,
+                   c.bio, c.cover_image_url, c.website, c.availability_status,
+                   c.is_filer, c.response_time, c.min_price, c.max_price,
+                   c.is_verified, c.verification_status, c.badge_level, c.is_trending, c.is_fast_responder,
+                   c.completed_deals, c.minimum_budget, c.languages, c.categories, c.collaboration_preferences, c.barter_types,
+                   c.followers, c.avg_views, c.engagement_rate, c.rating, c.total_reviews,
+                   c.rate_card_reel, c.rate_card_story, c.rate_card_post, c.rate_card_video
+            from core.creators c
+            join core.users u on u.id = c.id
+            where u.is_active = true
+              and c.collaboration_preferences @> '["barter"]'::jsonb
+            order by u.created_at desc
+            """, nativeQuery = true)
+    List<Creator> findByBarterCollaborationPreference(Pageable pageable);
 
     List<Creator> findByIsFastResponderTrue(Pageable pageable);
 
@@ -60,8 +74,7 @@ public interface CreatorRepository extends JpaRepository<Creator, UUID> {
                    c.bio, c.cover_image_url, c.website, c.availability_status,
                    c.is_filer, c.response_time, c.min_price, c.max_price,
                    c.is_verified, c.verification_status, c.badge_level, c.is_trending, c.is_fast_responder,
-                   c.completed_deals, c.accepts_barter, c.accepts_hybrid_deals,
-                   c.minimum_budget, c.languages, c.categories, c.deal_types, c.barter_types,
+                   c.completed_deals, c.minimum_budget, c.languages, c.categories, c.collaboration_preferences, c.barter_types,
                    c.followers, c.avg_views, c.engagement_rate, c.rating, c.total_reviews,
                    c.rate_card_reel, c.rate_card_story, c.rate_card_post, c.rate_card_video
             from core.creators c
@@ -88,7 +101,9 @@ public interface CreatorRepository extends JpaRepository<Creator, UUID> {
               and (:minReviews is null or c.total_reviews >= :minReviews)
               and (:badgeLevel is null or c.badge_level = :badgeLevel)
               and (:availabilityStatus is null or c.availability_status = :availabilityStatus)
-              and (:acceptsBarter is null or c.accepts_barter = :acceptsBarter)
+              and (:collaborationPreferences is null or exists (
+                   select 1 from jsonb_array_elements_text((:collaborationPreferences)::jsonb) v
+                   where c.collaboration_preferences @> jsonb_build_array(v)))
               and (:isTrending is null or c.is_trending = :isTrending)
               and (:isFastResponder is null or c.is_fast_responder = :isFastResponder)
               and (:isVerified is null or c.is_verified = :isVerified)
@@ -140,7 +155,9 @@ public interface CreatorRepository extends JpaRepository<Creator, UUID> {
               and (:minReviews is null or c.total_reviews >= :minReviews)
               and (:badgeLevel is null or c.badge_level = :badgeLevel)
               and (:availabilityStatus is null or c.availability_status = :availabilityStatus)
-              and (:acceptsBarter is null or c.accepts_barter = :acceptsBarter)
+              and (:collaborationPreferences is null or exists (
+                   select 1 from jsonb_array_elements_text((:collaborationPreferences)::jsonb) v
+                   where c.collaboration_preferences @> jsonb_build_array(v)))
               and (:isTrending is null or c.is_trending = :isTrending)
               and (:isFastResponder is null or c.is_fast_responder = :isFastResponder)
               and (:isVerified is null or c.is_verified = :isVerified)
@@ -174,7 +191,7 @@ public interface CreatorRepository extends JpaRepository<Creator, UUID> {
             @Param("minReviews")         Integer minReviews,
             @Param("badgeLevel")         String badgeLevel,
             @Param("availabilityStatus") String availabilityStatus,
-            @Param("acceptsBarter")      Boolean acceptsBarter,
+            @Param("collaborationPreferences") String collaborationPreferences,
             @Param("isTrending")         Boolean isTrending,
             @Param("isFastResponder")    Boolean isFastResponder,
             @Param("isVerified")         Boolean isVerified,

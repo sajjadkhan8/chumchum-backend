@@ -16,6 +16,8 @@ public interface SafepayPaymentSessionRepository extends JpaRepository<SafepayPa
 
     Optional<SafepayPaymentSession> findByTrackerToken(String trackerToken);
 
+    Optional<SafepayPaymentSession> findByTrackerTokenAndBrandId(String trackerToken, UUID brandId);
+
     Optional<SafepayPaymentSession> findByIdAndBrandId(UUID id, UUID brandId);
 
     List<SafepayPaymentSession> findByBrandIdOrderByCreatedAtDesc(UUID brandId);

@@ -224,5 +224,7 @@ safepay:
   entry-mode: ${SAFEPAY_ENTRY_MODE:flex}
   sandbox-base-url: ${SAFEPAY_SANDBOX_BASE_URL:https://sandbox.api.getsafepay.com}
   production-base-url: ${SAFEPAY_PRODUCTION_BASE_URL:https://api.getsafepay.com}
+  sandbox-checkout-url: ${SAFEPAY_SANDBOX_CHECKOUT_URL:https://sandbox.api.getsafepay.com/embedded/}
+  production-checkout-url: ${SAFEPAY_PRODUCTION_CHECKOUT_URL:https://getsafepay.com/embedded/}
   refund-endpoint: ${SAFEPAY_REFUND_ENDPOINT:}
   webhook-tolerance-seconds: ${SAFEPAY_WEBHOOK_TOLERANCE_SECONDS:300}

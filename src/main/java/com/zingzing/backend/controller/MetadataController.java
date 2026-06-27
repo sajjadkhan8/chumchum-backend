@@ -1,5 +1,6 @@
 package com.zingzing.backend.controller;
 
+import com.zingzing.backend.config.MarketMetadata;
 import com.zingzing.backend.entity.enums.PackageCategory;
 import com.zingzing.backend.repository.CreatorRepository;
 import org.springframework.http.ResponseEntity;
@@ -25,20 +26,14 @@ public class MetadataController {
         Map<String, Object> metadata = Map.of(
                 "categories", categoryValues(),
                 "categoryOptions", categoryOptions(),
-                "cities", List.of("Karachi", "Lahore", "Islamabad", "Rawalpindi", "Faisalabad", "Multan", "Peshawar"),
+                "cities", MarketMetadata.PAKISTAN_CITIES,
                 "platforms", List.of("instagram", "tiktok", "youtube", "facebook"),
-                "dealTypes", List.of(
+                "collaborationPreferences", List.of(
                         option("paid", "Paid"),
                         option("barter", "Barter"),
                         option("hybrid", "Hybrid")
                 ),
-                "barterTypes", List.of(
-                        option("food", "Food & Dining"),
-                        option("hotel", "Hotels & Stays"),
-                        option("salon", "Salon & Spa"),
-                        option("events", "Events & Tickets"),
-                        option("products", "Products")
-                ),
+                "barterTypes", categoryOptions(),
                 "followerRanges", List.of(
                         range(0, 10_000, "Nano (0-10K)"),
                         range(10_000, 50_000, "Micro (10K-50K)"),

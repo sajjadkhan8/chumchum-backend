@@ -103,8 +103,6 @@ create table creators (
     total_reviews int not null default 0,
     completed_deals integer not null default 0,
     badge_level varchar(30) not null default 'NONE',
-    accepts_barter boolean not null default true,
-    accepts_hybrid_deals boolean not null default true,
     minimum_budget integer,
     languages jsonb not null default '[]'::jsonb,
     categories jsonb not null default '[]'::jsonb,
@@ -112,7 +110,7 @@ create table creators (
     rate_card_story integer,
     rate_card_post integer,
     rate_card_video integer,
-    deal_types  jsonb,
+    collaboration_preferences jsonb not null default '["paid"]'::jsonb,
     barter_types jsonb
 );
 
@@ -927,7 +925,7 @@ create index idx_creators_engagement_rate_desc on core.creators(engagement_rate 
     where engagement_rate is not null;
 create index idx_creators_availability_status on core.creators(availability_status)
     where availability_status is not null;
-create index idx_creators_accepts_barter on core.creators(accepts_barter);
+create index idx_creators_collaboration_preferences on core.creators using gin (collaboration_preferences);
 create index idx_creators_is_verified on core.creators(is_verified);
 create index idx_creators_total_reviews_desc on core.creators(total_reviews desc);
 create index idx_creators_min_price on core.creators(min_price)

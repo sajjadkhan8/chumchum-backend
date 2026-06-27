@@ -222,7 +222,7 @@ public class SafepayClient {
     /**
      * Builds the hosted checkout URL to which the brand should be redirected.
      *
-     * URL format: {checkoutBaseUrl}?env={env}&tracker={token}&tbt={authToken}&source=hosted
+     * URL format: {checkoutBaseUrl}?environment={env}&tracker={token}&tbt={authToken}&source=hosted
      *             &redirect_url={successUrl}&cancel_url={cancelUrl}
      *
      * Safepay appends ?tracker={trackerToken} to the redirect_url on success.
@@ -231,7 +231,7 @@ public class SafepayClient {
                                     String redirectUrl, String cancelUrl) {
         String env = props.isProduction() ? "production" : "sandbox";
         return props.getCheckoutBaseUrl()
-                + "?env=" + encode(env)
+                + "?environment=" + encode(env)
                 + "&tracker=" + encode(trackerToken)
                 + "&tbt=" + encode(authToken)
                 + "&source=hosted"

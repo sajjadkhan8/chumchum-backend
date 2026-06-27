@@ -16,6 +16,7 @@ import org.springframework.stereotype.Component;
  *   SAFEPAY_ENABLED       - true (default) or false (disables all Safepay endpoints)
  *   SAFEPAY_INTENT        - Payment intent: "CYBERSOURCE" (default) or "MPGS"
  *   SAFEPAY_ENTRY_MODE    - Payment entry mode for tracker creation: "flex" (default)
+ *   SAFEPAY_SANDBOX_CHECKOUT_URL / SAFEPAY_PRODUCTION_CHECKOUT_URL - hosted checkout URLs
  *
  * Switch to production by setting SAFEPAY_ENVIRONMENT=production and using live dashboard keys.
  */
@@ -52,6 +53,8 @@ public class SafepayProperties {
 
     private String sandboxBaseUrl = "https://sandbox.api.getsafepay.com";
     private String productionBaseUrl = "https://api.getsafepay.com";
+    private String sandboxCheckoutUrl = "https://sandbox.api.getsafepay.com/embedded/";
+    private String productionCheckoutUrl = "https://getsafepay.com/embedded/";
     private String refundEndpoint = "";
 
     /** How many seconds of clock skew are tolerated when validating webhook timestamps. */
@@ -64,7 +67,7 @@ public class SafepayProperties {
     }
 
     public String getCheckoutBaseUrl() {
-        return getBaseUrl() + "/checkout";
+        return isProduction() ? productionCheckoutUrl : sandboxCheckoutUrl;
     }
 
     public boolean isProduction() {
@@ -103,6 +106,12 @@ public class SafepayProperties {
 
     public String getProductionBaseUrl() { return productionBaseUrl; }
     public void setProductionBaseUrl(String productionBaseUrl) { this.productionBaseUrl = productionBaseUrl; }
+
+    public String getSandboxCheckoutUrl() { return sandboxCheckoutUrl; }
+    public void setSandboxCheckoutUrl(String sandboxCheckoutUrl) { this.sandboxCheckoutUrl = sandboxCheckoutUrl; }
+
+    public String getProductionCheckoutUrl() { return productionCheckoutUrl; }
+    public void setProductionCheckoutUrl(String productionCheckoutUrl) { this.productionCheckoutUrl = productionCheckoutUrl; }
 
     public String getRefundEndpoint() { return refundEndpoint; }
     public void setRefundEndpoint(String refundEndpoint) { this.refundEndpoint = refundEndpoint; }

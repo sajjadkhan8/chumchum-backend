@@ -267,10 +267,24 @@ public class SafepayService {
      * Returns the current status of a session owned by the given brand.
      * Used by the frontend to poll for payment confirmation after redirect.
      */
-    @Transactional(readOnly = true)
+    @Transactional
     public SessionStatusResponse getSessionStatus(UUID sessionId, UUID brandId) {
+        return getSessionStatus(sessionId, brandId, null);
+    }
+
+    /**
+     * Returns the current status of a session and, when Safepay redirected back
+     * with a tracker token, reconciles successful payments that have not reached
+     * the webhook yet. This keeps localhost/test mode usable because Safepay
+     * cannot call a developer machine's webhook without a public tunnel.
+     */
+    @Transactional
+    public SessionStatusResponse getSessionStatus(UUID sessionId, UUID brandId, String trackerToken) {
         SafepayPaymentSession session = sessionRepository.findByIdAndBrandId(sessionId, brandId)
+                .or(() -> findOwnedSessionByTracker(trackerToken, brandId))
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Payment session not found"));
+
+        reconcileSafepayStatus(session, trackerToken);
 
         return toStatusResponse(session);
     }
@@ -355,6 +369,47 @@ public class SafepayService {
                     return new ApiException(HttpStatus.NOT_FOUND,
                             "Payment session not found for tracker: " + trackerToken);
                 });
+    }
+
+    private java.util.Optional<SafepayPaymentSession> findOwnedSessionByTracker(String trackerToken, UUID brandId) {
+        if (trackerToken == null || trackerToken.isBlank()) {
+            return java.util.Optional.empty();
+        }
+        return sessionRepository.findByTrackerTokenAndBrandId(trackerToken, brandId);
+    }
+
+    private void reconcileSafepayStatus(SafepayPaymentSession session, String trackerToken) {
+        if (session.getStatus() != SafepayPaymentStatus.INITIATED) {
+            return;
+        }
+
+        String tracker = trackerToken == null || trackerToken.isBlank()
+                ? session.getTrackerToken()
+                : trackerToken;
+
+        if (!session.getTrackerToken().equals(tracker)) {
+            log.warn("Safepay: status poll tracker mismatch sessionId={} expected={} received={}",
+                    session.getId(), session.getTrackerToken(), tracker);
+            return;
+        }
+
+        try {
+            SafepayClient.PaymentStatus paymentStatus = safepayClient.fetchPaymentStatus(tracker);
+            if (Boolean.TRUE.equals(paymentStatus.isSuccess()) || STATE_COMPLETED.equals(paymentStatus.state())) {
+                session.setStatus(SafepayPaymentStatus.COMPLETED);
+                session.setSafepayPaymentRef(tracker);
+                session.setCompletedAt(Instant.now());
+                sessionRepository.save(session);
+                applyBusinessEffect(session);
+                paymentAuditService.log(session.getBrand().getId(), session.getBrand(),
+                        "SAFEPAY_PAYMENT_RECONCILED", "safepay_payment_session",
+                        session.getId().toString(),
+                        "tracker=" + tracker + " amount=" + session.getAmountPkr());
+            }
+        } catch (SafepayApiException ex) {
+            log.warn("Safepay: could not reconcile status for sessionId={} tracker={}",
+                    session.getId(), tracker, ex);
+        }
     }
 
     private SessionStatusResponse toStatusResponse(SafepayPaymentSession session) {

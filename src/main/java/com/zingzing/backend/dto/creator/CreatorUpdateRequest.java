@@ -23,8 +23,6 @@ public record CreatorUpdateRequest(
         @Size(max = 50) String responseTime,
         @Min(0) Integer minPrice,
         @Min(0) Integer maxPrice,
-        Boolean acceptsBarter,
-        Boolean acceptsHybridDeals,
         @Min(0) Integer minimumBudget,
         List<String> languages,
         List<String> categories,
@@ -37,7 +35,7 @@ public record CreatorUpdateRequest(
         @Min(0) Integer rateCardStory,
         @Min(0) Integer rateCardPost,
         @Min(0) Integer rateCardVideo,
-        List<String> dealTypes,
+        List<String> collaborationPreferences,
         List<String> barterTypes
 ) {
 }

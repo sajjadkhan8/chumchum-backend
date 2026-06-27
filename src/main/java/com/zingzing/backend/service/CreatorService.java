@@ -38,6 +38,7 @@ public class CreatorService {
     private static final Set<String> SUPPORTED_SOCIAL_PLATFORMS = Set.of(
             "instagram", "youtube", "tiktok", "facebook", "snapchat"
     );
+    private static final Set<String> SUPPORTED_COLLABORATION_PREFERENCES = Set.of("paid", "barter", "hybrid");
 
     private final CreatorRepository creatorRepository;
     private final UserRepository userRepository;
@@ -129,6 +130,22 @@ public class CreatorService {
         return sb.toString();
     }
 
+    private List<String> normalizeCollaborationPreferences(List<String> preferences, boolean requireValue, boolean includePaidByDefault) {
+        if (preferences == null) return requireValue ? List.of("paid") : null;
+        LinkedHashSet<String> normalized = new LinkedHashSet<>();
+        if (includePaidByDefault) normalized.add("paid");
+        for (String preference : preferences) {
+            if (preference == null || preference.isBlank()) continue;
+            String value = preference.trim().toLowerCase(Locale.ROOT);
+            if (!SUPPORTED_COLLABORATION_PREFERENCES.contains(value)) {
+                throw new ApiException(HttpStatus.BAD_REQUEST, "Unsupported collaboration preference: " + preference);
+            }
+            normalized.add(value);
+        }
+        if (requireValue && normalized.isEmpty()) normalized.add("paid");
+        return new ArrayList<>(normalized);
+    }
+
     public CreatorSearchResult search(
             String search, List<String> cities,
             List<String> categories, List<String> languages,
@@ -136,7 +153,7 @@ public class CreatorService {
             BigDecimal minRating, Integer minPrice, Integer maxPrice,
             Integer minReviews,
             CreatorBadgeLevel badgeLevel, AvailabilityStatus availabilityStatus,
-            Boolean acceptsBarter, Boolean isTrending, Boolean isFastResponder,
+            List<String> collaborationPreferences, Boolean isTrending, Boolean isFastResponder,
             Boolean ambassadorOnly, String platform, BigDecimal minEngagementRate,
             Integer minCompletionRate,
             Integer maxRateCardReel, Integer maxRateCardStory,
@@ -164,7 +181,7 @@ public class CreatorService {
                 minPrice, maxPrice, minReviews,
                 badgeLevel != null ? badgeLevel.name() : null,
                 availabilityStatus != null ? availabilityStatus.name() : null,
-                acceptsBarter, isTrending, isFastResponder,
+                toJsonArray(normalizeCollaborationPreferences(collaborationPreferences, false, false)), isTrending, isFastResponder,
                 isVerified, minEngagementRate,
                 platform == null || platform.isBlank() ? null : platform.trim().toLowerCase(),
                 minCompletionRate,
@@ -255,12 +272,6 @@ public class CreatorService {
         if (request.maxPrice() != null) {
             creator.setMaxPrice(request.maxPrice());
         }
-        if (request.acceptsBarter() != null) {
-            creator.setAcceptsBarter(request.acceptsBarter());
-        }
-        if (request.acceptsHybridDeals() != null) {
-            creator.setAcceptsHybridDeals(request.acceptsHybridDeals());
-        }
         if (request.minimumBudget() != null) {
             creator.setMinimumBudget(request.minimumBudget());
         }
@@ -281,7 +292,9 @@ public class CreatorService {
         if (request.rateCardStory() != null) creator.setRateCardStory(request.rateCardStory());
         if (request.rateCardPost() != null) creator.setRateCardPost(request.rateCardPost());
         if (request.rateCardVideo() != null) creator.setRateCardVideo(request.rateCardVideo());
-        if (request.dealTypes() != null) creator.setDealTypes(request.dealTypes());
+        if (request.collaborationPreferences() != null) {
+            creator.setCollaborationPreferences(normalizeCollaborationPreferences(request.collaborationPreferences(), true, true));
+        }
         if (request.barterTypes() != null) creator.setBarterTypes(request.barterTypes());
 
         return creatorMapper.toResponse(creatorRepository.save(creator));
@@ -403,15 +416,16 @@ public class CreatorService {
     // ---- Preferences ----
 
     public record PreferencesRequest(
-            Boolean acceptsBarter, Boolean acceptsHybridDeals,
+            List<String> collaborationPreferences,
             Integer minimumBudget) {}
 
     @Transactional
     public CreatorResponse updatePreferences(UUID userId, UserRole role, PreferencesRequest req) {
         if (!role.isCreator()) throw new ApiException(HttpStatus.FORBIDDEN, "Only creators can update preferences");
         Creator creator = findCreator(userId);
-        if (req.acceptsBarter() != null) creator.setAcceptsBarter(req.acceptsBarter());
-        if (req.acceptsHybridDeals() != null) creator.setAcceptsHybridDeals(req.acceptsHybridDeals());
+        if (req.collaborationPreferences() != null) {
+            creator.setCollaborationPreferences(normalizeCollaborationPreferences(req.collaborationPreferences(), true, true));
+        }
         if (req.minimumBudget() != null) creator.setMinimumBudget(req.minimumBudget());
         return creatorMapper.toResponse(creatorRepository.save(creator));
     }
@@ -569,7 +583,7 @@ public class CreatorService {
 
     public List<CreatorResponse> getBarterFriendly(int limit) {
         Pageable pageable = cappedPageable(0, limit, "createdAt");
-        return creatorRepository.findByAcceptsBarterTrue(pageable).stream()
+        return creatorRepository.findByBarterCollaborationPreference(pageable).stream()
                 .map(creatorMapper::toPublicResponse)
                 .toList();
     }

@@ -71,11 +71,12 @@ public class SafepayController {
     @GetMapping("/session/{sessionId}")
     public ResponseEntity<Map<String, Object>> getSessionStatus(
             @AuthenticationPrincipal AuthenticatedUser authUser,
-            @PathVariable UUID sessionId
+            @PathVariable UUID sessionId,
+            @RequestParam(required = false) String tracker
     ) {
         requireBrandRole(authUser);
         SafepayService.SessionStatusResponse status =
-                safepayService.getSessionStatus(sessionId, authUser.userId());
+                safepayService.getSessionStatus(sessionId, authUser.userId(), tracker);
         return ResponseEntity.ok(Map.of("success", true, "data", status));
     }
 

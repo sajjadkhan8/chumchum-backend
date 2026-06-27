@@ -35,8 +35,6 @@ public record CreatorResponse(
         int completedDeals,
         int completionRate,
         int repeatClients,
-        boolean acceptsBarter,
-        boolean acceptsHybridDeals,
         Integer minimumBudget,
         List<String> languages,
         List<String> categories,
@@ -56,7 +54,7 @@ public record CreatorResponse(
         int activeOrderCount,
         Instant createdAt,
         Instant updatedAt,
-        List<String> dealTypes,
+        List<String> collaborationPreferences,
         List<String> barterTypes
 ) {
 }
