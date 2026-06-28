@@ -12,6 +12,7 @@ import com.zingzing.backend.entity.enums.AvailabilityStatus;
 import com.zingzing.backend.entity.enums.CreatorBadgeLevel;
 import com.zingzing.backend.entity.enums.CreatorPayoutSchedule;
 import com.zingzing.backend.entity.enums.PackageCategory;
+import com.zingzing.backend.entity.enums.PackagePlatform;
 import com.zingzing.backend.entity.enums.PayoutMethodType;
 import com.zingzing.backend.entity.enums.UserRole;
 import com.zingzing.backend.exception.ApiException;
@@ -35,9 +36,9 @@ import java.util.*;
 @Service
 public class CreatorService {
 
-    private static final Set<String> SUPPORTED_SOCIAL_PLATFORMS = Set.of(
-            "instagram", "youtube", "tiktok", "facebook", "snapchat"
-    );
+    private static final Set<String> SUPPORTED_SOCIAL_PLATFORMS = Arrays.stream(PackagePlatform.values())
+            .map(p -> p.name().toLowerCase(Locale.ROOT))
+            .collect(java.util.stream.Collectors.toSet());
     private static final Set<String> SUPPORTED_COLLABORATION_PREFERENCES = Set.of("paid", "barter", "hybrid");
 
     private final CreatorRepository creatorRepository;
@@ -102,7 +103,7 @@ public class CreatorService {
 
         saveSocialAccountsFromUrls(created,
                 request.instagramUrl(), request.tiktokUrl(),
-                request.youtubeUrl(), request.facebookUrl());
+                request.youtubeUrl(), request.facebookUrl(), request.snapchatUrl());
 
         return creatorMapper.toResponse(created);
     }
@@ -287,7 +288,7 @@ public class CreatorService {
         }
         saveSocialAccountsFromUrls(creator,
                 request.instagramUrl(), request.tiktokUrl(),
-                request.youtubeUrl(), request.facebookUrl());
+                request.youtubeUrl(), request.facebookUrl(), request.snapchatUrl());
         if (request.rateCardReel() != null) creator.setRateCardReel(request.rateCardReel());
         if (request.rateCardStory() != null) creator.setRateCardStory(request.rateCardStory());
         if (request.rateCardPost() != null) creator.setRateCardPost(request.rateCardPost());
@@ -304,15 +305,16 @@ public class CreatorService {
 
     private void saveSocialAccountsFromUrls(Creator creator,
                                              String instagramUrl, String tiktokUrl,
-                                             String youtubeUrl, String facebookUrl) {
+                                             String youtubeUrl, String facebookUrl, String snapchatUrl) {
         Set<String> existing = socialAccountRepository.findByCreatorId(creator.getId()).stream()
                 .map(sa -> sa.getPlatform().toLowerCase(Locale.ROOT))
                 .collect(java.util.stream.Collectors.toSet());
         List<SocialAccount> toSave = new ArrayList<>();
-        addFromUrl(toSave, existing, creator, "instagram", instagramUrl);
-        addFromUrl(toSave, existing, creator, "tiktok",    tiktokUrl);
-        addFromUrl(toSave, existing, creator, "youtube",   youtubeUrl);
-        addFromUrl(toSave, existing, creator, "facebook",  facebookUrl);
+        addFromUrl(toSave, existing, creator, PackagePlatform.INSTAGRAM.name().toLowerCase(Locale.ROOT), instagramUrl);
+        addFromUrl(toSave, existing, creator, PackagePlatform.TIKTOK.name().toLowerCase(Locale.ROOT), tiktokUrl);
+        addFromUrl(toSave, existing, creator, PackagePlatform.YOUTUBE.name().toLowerCase(Locale.ROOT), youtubeUrl);
+        addFromUrl(toSave, existing, creator, PackagePlatform.FACEBOOK.name().toLowerCase(Locale.ROOT), facebookUrl);
+        addFromUrl(toSave, existing, creator, PackagePlatform.SNAPCHAT.name().toLowerCase(Locale.ROOT), snapchatUrl);
         if (!toSave.isEmpty()) socialAccountRepository.saveAll(toSave);
     }
 

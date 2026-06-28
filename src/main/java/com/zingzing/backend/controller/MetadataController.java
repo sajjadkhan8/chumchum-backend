@@ -2,12 +2,14 @@ package com.zingzing.backend.controller;
 
 import com.zingzing.backend.config.MarketMetadata;
 import com.zingzing.backend.entity.enums.PackageCategory;
+import com.zingzing.backend.entity.enums.PackagePlatform;
 import com.zingzing.backend.repository.CreatorRepository;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -27,7 +29,7 @@ public class MetadataController {
                 "categories", categoryValues(),
                 "categoryOptions", categoryOptions(),
                 "cities", MarketMetadata.PAKISTAN_CITIES,
-                "platforms", List.of("instagram", "tiktok", "youtube", "facebook"),
+                "platforms", platformValues(),
                 "collaborationPreferences", List.of(
                         option("paid", "Paid"),
                         option("barter", "Barter"),
@@ -69,6 +71,13 @@ public class MetadataController {
     private List<String> categoryValues() {
         return PackageCategory.PUBLIC_CATEGORIES.stream()
                 .map(PackageCategory::name)
+                .toList();
+    }
+
+    private List<String> platformValues() {
+        return Arrays.stream(PackagePlatform.values())
+                .map(PackagePlatform::name)
+                .map(String::toLowerCase)
                 .toList();
     }
 

@@ -30,6 +30,7 @@ public record CreatorUpdateRequest(
         @Size(max = 255) String instagramUrl,
         @Size(max = 255) String youtubeUrl,
         @Size(max = 255) String facebookUrl,
+        @Size(max = 255) String snapchatUrl,
         Boolean isFiler,
         @Min(0) Integer rateCardReel,
         @Min(0) Integer rateCardStory,
