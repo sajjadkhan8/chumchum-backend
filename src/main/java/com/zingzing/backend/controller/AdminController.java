@@ -165,9 +165,7 @@ public class AdminController {
     public record CreatorBadgeRequest(@NotNull String badgeLevel) {}
 
     public record BrandVerificationRequest(
-            @Size(max = 50) String status,
-            @Size(max = 255) String contactEmail,
-            @Size(max = 50) String phoneNumber
+            @Size(max = 50) String status
     ) {}
 
     public record BrandVerificationDocumentReviewRequest(
@@ -177,9 +175,7 @@ public class AdminController {
 
     public record BrandVerificationDecisionRequest(
             @NotNull @NotBlank @Size(max = 30) String decision,
-            @Size(max = 500) String reason,
-            @Size(max = 255) String contactEmail,
-            @Size(max = 50) String phoneNumber
+            @Size(max = 500) String reason
     ) {}
 
     public record OrderStatusRequest(@NotNull String status) {}
@@ -520,8 +516,6 @@ public class AdminController {
         requireAdmin(authUser);
         Brand brand = findBrand(id);
         if (request.status() != null) brand.setBusinessVerificationStatus(BrandVerificationStatuses.normalize(request.status()));
-        if (request.contactEmail() != null) brand.setVerificationContactEmail(request.contactEmail());
-        if (request.phoneNumber() != null) brand.setVerificationPhoneNumber(request.phoneNumber());
         Brand saved = brandRepository.save(brand);
         logBrandVerificationEvent(brand, null, authUser.userId(), "STATUS_UPDATED", "status=" + saved.getBusinessVerificationStatus());
         adminOperationsService.log(authUser.userId(), "BRAND_VERIFICATION_CHANGED", "brand", id.toString(), "status=" + saved.getBusinessVerificationStatus());
@@ -605,8 +599,6 @@ public class AdminController {
         if ("verified".equals(decision) && !hasAllRequiredApprovedDocuments(brandId)) {
             throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY, "Approve tax, registration, and bank documents before verifying this brand");
         }
-        if (request.contactEmail() != null) brand.setVerificationContactEmail(request.contactEmail());
-        if (request.phoneNumber() != null) brand.setVerificationPhoneNumber(request.phoneNumber());
         brand.setBusinessVerificationStatus(decision);
         Brand saved = brandRepository.save(brand);
         logBrandVerificationEvent(brand, null, authUser.userId(), "FINAL_DECISION_" + decision.toUpperCase(), request.reason());

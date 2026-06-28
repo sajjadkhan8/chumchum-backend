@@ -47,12 +47,6 @@ public class Brand extends User {
     @Column(name = "business_verification_status", length = 50)
     private String businessVerificationStatus;
 
-    @Column(name = "verification_contact_email", length = 255)
-    private String verificationContactEmail;
-
-    @Column(name = "verification_phone_number", length = 50)
-    private String verificationPhoneNumber;
-
     @Enumerated(EnumType.STRING)
     @Column(name = "plan_tier", nullable = false, length = 20)
     private BrandPlanTier planTier = BrandPlanTier.STARTER;
@@ -68,12 +62,6 @@ public class Brand extends User {
 
     @Column(name = "contact_name", length = 100)
     private String contactName;
-
-    @Column(name = "contact_email", length = 120)
-    private String contactEmail;
-
-    @Column(name = "contact_phone", length = 30)
-    private String contactPhone;
 
     public String getDisplayName() {
         return name != null && !name.isBlank() ? name : super.getName();

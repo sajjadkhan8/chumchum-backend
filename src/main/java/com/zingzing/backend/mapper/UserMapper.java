@@ -65,9 +65,7 @@ public class UserMapper {
                 brand.getWebsite(),
                 brand.getCategory(),
                 brand.getDescription(),
-                brand.getBusinessVerificationStatus(),
-                brand.getVerificationContactEmail(),
-                brand.getVerificationPhoneNumber()
+                brand.getBusinessVerificationStatus()
         );
     }
 }

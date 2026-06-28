@@ -36,15 +36,13 @@ public interface BrandRepository extends JpaRepository<Brand, UUID> {
             INSERT INTO core.brands (
                 id, name, logo_url, website, category, description,
                 monthly_budget, preferred_creator_categories,
-                business_verification_status, verification_contact_email,
-                verification_phone_number,
-                company_size, contact_name, contact_email, contact_phone
+                business_verification_status,
+                company_size, contact_name
             ) VALUES (
                 :id, :name, :logoUrl, :website, :category, :description,
                 :monthlyBudget, :preferredCreatorCategories,
-                :businessVerificationStatus, :verificationContactEmail,
-                :verificationPhoneNumber,
-                :companySize, :contactName, :contactEmail, :contactPhone
+                :businessVerificationStatus,
+                :companySize, :contactName
             )
             """, nativeQuery = true)
     int insertProfile(
@@ -57,12 +55,8 @@ public interface BrandRepository extends JpaRepository<Brand, UUID> {
             @Param("monthlyBudget") Integer monthlyBudget,
             @Param("preferredCreatorCategories") String preferredCreatorCategories,
             @Param("businessVerificationStatus") String businessVerificationStatus,
-            @Param("verificationContactEmail") String verificationContactEmail,
-            @Param("verificationPhoneNumber") String verificationPhoneNumber,
             @Param("companySize") String companySize,
-            @Param("contactName") String contactName,
-            @Param("contactEmail") String contactEmail,
-            @Param("contactPhone") String contactPhone
+            @Param("contactName") String contactName
     );
 
     @Query("select count(b) from Brand b where lower(replace(coalesce(b.businessVerificationStatus, ''), ' ', '_')) in ('pending', 'under_review')")

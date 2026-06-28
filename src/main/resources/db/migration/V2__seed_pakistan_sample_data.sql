@@ -653,12 +653,12 @@ values
     ('20000000-0000-4000-8000-000000000004', 'Daraz Pakistan', 'https://images.chumchum.pk/brands/logos/daraz.png', 'https://www.daraz.pk', 'GENERAL', 'Marketplace campaigns around sale cycles and category pushes.', 7000000),
     ('20000000-0000-4000-8000-000000000005', 'PakWheels', 'https://images.chumchum.pk/brands/logos/pakwheels.png', 'https://www.pakwheels.com', 'AUTOMOTIVE', 'Automotive platform using creator-led trust and lead generation.', 2500000),
     ('20000000-0000-4000-8000-000000000006', 'Jubilee Life', 'https://images.chumchum.pk/brands/logos/jubilee-life.png', 'https://jubileelife.com', 'BUSINESS_FINANCE', 'Insurance provider running trust-building educational campaigns.', 2400000),
-    ('20000000-0000-4000-8000-000000000007', 'Nestle Pakistan', 'https://images.chumchum.pk/brands/logos/nestle-pk.png', 'https://www.nestle.pk', 'FMCG', 'FMCG campaigns for family and wellness product lines.', 5200000),
-    ('20000000-0000-4000-8000-000000000008', 'Tapal Tea', 'https://images.chumchum.pk/brands/logos/tapal.png', 'https://www.tapal.com', 'Beverages', 'Seasonal tea culture and recipe-led creator collaborations.', 1800000),
-    ('20000000-0000-4000-8000-000000000009', 'Bank Alfalah', 'https://images.chumchum.pk/brands/logos/bank-alfalah.png', 'https://www.bankalfalah.com', 'Banking', 'Retail bank promoting digital products via finance creators.', 2900000),
-    ('20000000-0000-4000-8000-000000000010', 'Careem Food', 'https://images.chumchum.pk/brands/logos/careem-food.png', 'https://www.careem.com', 'Food Delivery', 'Localized city-level campaign execution with conversion goals.', 4100000),
-    ('20000000-0000-4000-8000-000000000011', 'Cheezious', 'https://images.chumchum.pk/brands/logos/cheezious.png', 'https://www.cheezious.com', 'Restaurants', 'QSR brand focused on youth-heavy video and reel campaigns.', 2300000),
-    ('20000000-0000-4000-8000-000000000012', 'Jazz', 'https://images.chumchum.pk/brands/logos/jazz.png', 'https://www.jazz.com.pk', 'Telecom', 'Telecom brand scaling creator-led bundles and data offers.', 5600000)
+    ('20000000-0000-4000-8000-000000000007', 'Nestle Pakistan', 'https://images.chumchum.pk/brands/logos/nestle-pk.png', 'https://www.nestle.pk', 'FOOD', 'FMCG campaigns for family and wellness product lines.', 5200000),
+    ('20000000-0000-4000-8000-000000000008', 'Tapal Tea', 'https://images.chumchum.pk/brands/logos/tapal.png', 'https://www.tapal.com', 'FOOD', 'Seasonal tea culture and recipe-led creator collaborations.', 1800000),
+    ('20000000-0000-4000-8000-000000000009', 'Bank Alfalah', 'https://images.chumchum.pk/brands/logos/bank-alfalah.png', 'https://www.bankalfalah.com', 'BUSINESS_FINANCE', 'Retail bank promoting digital products via finance creators.', 2900000),
+    ('20000000-0000-4000-8000-000000000010', 'Careem Food', 'https://images.chumchum.pk/brands/logos/careem-food.png', 'https://www.careem.com', 'FOOD', 'Localized city-level campaign execution with conversion goals.', 4100000),
+    ('20000000-0000-4000-8000-000000000011', 'Cheezious', 'https://images.chumchum.pk/brands/logos/cheezious.png', 'https://www.cheezious.com', 'FOOD', 'QSR brand focused on youth-heavy video and reel campaigns.', 2300000),
+    ('20000000-0000-4000-8000-000000000012', 'Jazz', 'https://images.chumchum.pk/brands/logos/jazz.png', 'https://www.jazz.com.pk', 'TECH', 'Telecom brand scaling creator-led bundles and data offers.', 5600000)
 on conflict (id) do nothing;
 
 insert into notification_preferences (

@@ -124,15 +124,11 @@ create table brands (
     monthly_budget integer,
     preferred_creator_categories varchar(500),
     business_verification_status varchar(50),
-    verification_contact_email varchar(255),
-    verification_phone_number varchar(50),
     plan_tier varchar(20) not null default 'STARTER',
     brand_rating numeric(3,2) not null default 0,
     brand_total_reviews integer not null default 0,
     company_size varchar(50),
-    contact_name varchar(100),
-    contact_email varchar(120),
-    contact_phone varchar(30)
+    contact_name varchar(100)
 );
 
 create table creator_payout_preferences (

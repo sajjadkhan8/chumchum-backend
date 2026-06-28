@@ -56,7 +56,7 @@ public class BrandService {
                 request.website(),
                 normalizeBrandCategory(request.category()),
                 request.description(),
-                null, null, null, null, null, null, null, null, null
+                null, null, null, null, null
         );
 
         if (rows != 1) {
@@ -99,13 +99,9 @@ public class BrandService {
         if (request.logoUrl()     != null) brand.setLogoUrl(request.logoUrl());
         if (request.monthlyBudget() != null) brand.setMonthlyBudget(request.monthlyBudget());
         if (request.preferredCreatorCategories() != null) brand.setPreferredCreatorCategories(normalizeCategoryCsv(request.preferredCreatorCategories()));
-        if (request.verificationContactEmail() != null) brand.setVerificationContactEmail(request.verificationContactEmail());
-        if (request.verificationPhoneNumber() != null) brand.setVerificationPhoneNumber(request.verificationPhoneNumber());
         if (request.city()         != null) brand.setCity(request.city());
         if (request.companySize()  != null) brand.setCompanySize(request.companySize());
         if (request.contactName()  != null) brand.setContactName(request.contactName());
-        if (request.contactEmail() != null) brand.setContactEmail(request.contactEmail());
-        if (request.contactPhone() != null) brand.setContactPhone(request.contactPhone());
 
         return brandMapper.toResponse(brandRepository.save(brand));
     }

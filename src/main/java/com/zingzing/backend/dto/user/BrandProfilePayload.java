@@ -8,8 +8,6 @@ public record BrandProfilePayload(
         String website,
         String category,
         @Size(max = 1000) String description,
-        String businessVerificationStatus,
-        String verificationContactEmail,
-        String verificationPhoneNumber
+        String businessVerificationStatus
 ) {
 }
