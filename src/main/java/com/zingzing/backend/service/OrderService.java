@@ -2,6 +2,7 @@ package com.zingzing.backend.service;
 
 import com.zingzing.backend.dto.order.OrderResponse;
 import com.zingzing.backend.dto.order.DeliverableResponse;
+import com.zingzing.backend.config.CommerceProperties;
 import com.zingzing.backend.entity.Brand;
 import com.zingzing.backend.entity.Creator;
 import com.zingzing.backend.entity.Deliverable;
@@ -71,6 +72,7 @@ public class OrderService {
     private final AffiliateService affiliateService;
     private final BrandWalletRepository brandWalletRepository;
     private final PackageAnalyticsTrackingService packageAnalyticsTrackingService;
+    private final CommerceProperties commerceProperties;
     private final double feeRate;
 
     public OrderService(OrderRepository orderRepository,
@@ -85,6 +87,7 @@ public class OrderService {
                         AffiliateService affiliateService,
                         BrandWalletRepository brandWalletRepository,
                         PackageAnalyticsTrackingService packageAnalyticsTrackingService,
+                        CommerceProperties commerceProperties,
                         @Value("${platform.fee-rate:0.10}") double feeRate) {
         this.orderRepository = orderRepository;
         this.servicePackageRepository = servicePackageRepository;
@@ -98,6 +101,7 @@ public class OrderService {
         this.affiliateService = affiliateService;
         this.brandWalletRepository = brandWalletRepository;
         this.packageAnalyticsTrackingService = packageAnalyticsTrackingService;
+        this.commerceProperties = commerceProperties;
         this.feeRate = feeRate;
     }
 
@@ -135,7 +139,7 @@ public class OrderService {
             result.put("checkoutRequired", false);
             return result;
         }
-        int topUpAmount = (int) Math.max(amountPkr - balance, 1000L);
+        int topUpAmount = (int) Math.max(amountPkr - balance, commerceProperties.getMinimumCashAmountPkr());
         SafepayService.CheckoutSessionResponse session =
                 safepayService.initiateWalletTopUp(brandId, topUpAmount);
         result.put("walletSufficient", false);

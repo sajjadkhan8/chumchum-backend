@@ -1,6 +1,7 @@
 package com.zingzing.backend.service;
 
 import com.zingzing.backend.config.SafepayProperties;
+import com.zingzing.backend.config.CommerceProperties;
 import com.zingzing.backend.entity.Brand;
 import com.zingzing.backend.entity.BrandWallet;
 import com.zingzing.backend.entity.SafepayPaymentSession;
@@ -59,6 +60,7 @@ public class SafepayService {
     private final BrandRepository brandRepository;
     private final BrandWalletRepository brandWalletRepository;
     private final PaymentAuditService paymentAuditService;
+    private final CommerceProperties commerceProperties;
 
     @Value("${app.frontend-base-url:http://localhost:3000}")
     private String frontendBaseUrl;
@@ -69,7 +71,8 @@ public class SafepayService {
             SafepayPaymentSessionRepository sessionRepository,
             BrandRepository brandRepository,
             BrandWalletRepository brandWalletRepository,
-            PaymentAuditService paymentAuditService
+            PaymentAuditService paymentAuditService,
+            CommerceProperties commerceProperties
     ) {
         this.props = props;
         this.safepayClient = safepayClient;
@@ -77,6 +80,7 @@ public class SafepayService {
         this.brandRepository = brandRepository;
         this.brandWalletRepository = brandWalletRepository;
         this.paymentAuditService = paymentAuditService;
+        this.commerceProperties = commerceProperties;
     }
 
     // ─── Response records ─────────────────────────────────────────────────────
@@ -108,7 +112,7 @@ public class SafepayService {
      * after the payment.succeeded webhook is received and HMAC-verified.
      *
      * @param brandId    authenticated brand's UUID
-     * @param amountPkr  top-up amount in whole PKR (minimum 1000)
+     * @param amountPkr  top-up amount in whole PKR (minimum configured by app.commerce.minimum-cash-amount-pkr)
      * @return CheckoutSessionResponse with the Safepay checkout URL
      */
     @Transactional
@@ -116,8 +120,9 @@ public class SafepayService {
         if (!props.isEnabled()) {
             throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "Online payments are currently unavailable");
         }
-        if (amountPkr < 1000) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Minimum top-up amount is PKR 1,000");
+        int minimumCashAmount = commerceProperties.getMinimumCashAmountPkr();
+        if (amountPkr < minimumCashAmount) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Minimum top-up amount is PKR " + String.format("%,d", minimumCashAmount));
         }
         if (amountPkr > 10_000_000) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Maximum single top-up amount is PKR 10,000,000");

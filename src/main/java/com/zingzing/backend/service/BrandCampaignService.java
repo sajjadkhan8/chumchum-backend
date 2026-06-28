@@ -1,6 +1,7 @@
 package com.zingzing.backend.service;
 
 import com.zingzing.backend.dto.campaign.BrandCampaignCreateRequest;
+import com.zingzing.backend.config.CommerceProperties;
 import com.zingzing.backend.dto.campaign.BrandCampaignReactionActionRequest;
 import com.zingzing.backend.dto.campaign.BrandCampaignReactionCreateRequest;
 import com.zingzing.backend.dto.campaign.BrandCampaignReactionResponse;
@@ -63,6 +64,7 @@ public class BrandCampaignService {
     private final OrderRepository orderRepository;
     private final OrderService orderService;
     private final CampaignAlertRuleRepository campaignAlertRuleRepository;
+    private final CommerceProperties commerceProperties;
 
     public BrandCampaignService(BrandCampaignRepository brandCampaignRepository,
                              BrandCampaignReactionRepository brandCampaignReactionRepository,
@@ -72,7 +74,8 @@ public class BrandCampaignService {
                              ServicePackageRepository servicePackageRepository,
                              OrderRepository orderRepository,
                              OrderService orderService,
-                             CampaignAlertRuleRepository campaignAlertRuleRepository) {
+                             CampaignAlertRuleRepository campaignAlertRuleRepository,
+                             CommerceProperties commerceProperties) {
         this.brandCampaignRepository = brandCampaignRepository;
         this.brandCampaignReactionRepository = brandCampaignReactionRepository;
         this.brandRepository = brandRepository;
@@ -82,6 +85,7 @@ public class BrandCampaignService {
         this.orderRepository = orderRepository;
         this.orderService = orderService;
         this.campaignAlertRuleRepository = campaignAlertRuleRepository;
+        this.commerceProperties = commerceProperties;
     }
 
     // ── Brand: create / update ────────────────────────────────────────────────
@@ -90,7 +94,7 @@ public class BrandCampaignService {
     public BrandCampaignResponse createCampaign(UUID brandId, UserRole role, BrandCampaignCreateRequest request) {
         requireBrand(role);
         String budgetType = normalizeBudgetType(request.budgetType());
-        validateBudgetForType(budgetType, request.budgetMin(), request.budgetMax());
+        validateBudgetForType(budgetType, request.budgetMin(), request.budgetMax(), request.minProposedPrice());
         validateTimelineWindow(request.deadlineDate(), request.contentSubmissionDeadline(), request.goLiveDate());
         String locationMode = normalizeLocationTargetingMode(request.locationTargetingMode());
         String targetCities = normalizeLocationList(request.targetCities());
@@ -175,7 +179,8 @@ public class BrandCampaignService {
                 : campaign.getBudgetType();
         Integer nextMin = request.budgetMin() != null ? request.budgetMin() : campaign.getBudgetMin();
         Integer nextMax = request.budgetMax() != null ? request.budgetMax() : campaign.getBudgetMax();
-        validateBudgetForType(nextBudgetType, nextMin, nextMax);
+        Integer nextMinProposedPrice = request.minProposedPrice() != null ? request.minProposedPrice() : campaign.getMinProposedPrice();
+        validateBudgetForType(nextBudgetType, nextMin, nextMax, nextMinProposedPrice);
         LocalDate nextDeadline = request.deadlineDate() != null ? request.deadlineDate() : campaign.getDeadlineDate();
         LocalDate nextContentSubmissionDeadline = request.contentSubmissionDeadline() != null
                 ? request.contentSubmissionDeadline()
@@ -627,12 +632,21 @@ public class BrandCampaignService {
         if (!role.isCreator()) throw new ApiException(HttpStatus.FORBIDDEN, "Only creators can perform this action");
     }
 
-    private void validateBudgetForType(String budgetType, Integer min, Integer max) {
+    private void validateBudgetForType(String budgetType, Integer min, Integer max, Integer minProposedPrice) {
         // Barter-only campaigns don't need a monetary budget
         if ("barter_only".equals(budgetType)) return;
         if (min == null || max == null || min < 0 || max < 0 || min > max) {
             throw new ApiException(HttpStatus.BAD_REQUEST,
                     "budgetMin and budgetMax must be valid and budgetMin <= budgetMax");
+        }
+        int minimumCashAmount = commerceProperties.getMinimumCashAmountPkr();
+        if (min < minimumCashAmount || max < minimumCashAmount) {
+            throw new ApiException(HttpStatus.BAD_REQUEST,
+                    "budgetMin and budgetMax must be at least PKR " + String.format("%,d", minimumCashAmount));
+        }
+        if (minProposedPrice != null && minProposedPrice < minimumCashAmount) {
+            throw new ApiException(HttpStatus.BAD_REQUEST,
+                    "minProposedPrice must be at least PKR " + String.format("%,d", minimumCashAmount));
         }
     }
 

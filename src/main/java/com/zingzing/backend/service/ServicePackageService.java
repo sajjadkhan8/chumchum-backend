@@ -1,6 +1,7 @@
 package com.zingzing.backend.service;
 
 import com.zingzing.backend.dto.servicepackage.ServicePackageCreateRequest;
+import com.zingzing.backend.config.CommerceProperties;
 import com.zingzing.backend.entity.PackageAnalytics;
 import com.zingzing.backend.dto.servicepackage.ServicePackageResponse;
 import com.zingzing.backend.entity.ServicePackage;
@@ -38,6 +39,7 @@ public class ServicePackageService {
     private final ServicePackageMapper servicePackageMapper;
     private final PackageAnalyticsRepository packageAnalyticsRepository;
     private final PackageAnalyticsTrackingService packageAnalyticsTrackingService;
+    private final CommerceProperties commerceProperties;
 
     private static final Map<PackageStatus, Set<PackageStatus>> STATUS_TRANSITIONS = Map.of(
             PackageStatus.DRAFT,        EnumSet.of(PackageStatus.ACTIVE, PackageStatus.ARCHIVED),
@@ -55,13 +57,15 @@ public class ServicePackageService {
             CreatorRepository creatorRepository,
             ServicePackageMapper servicePackageMapper,
             PackageAnalyticsRepository packageAnalyticsRepository,
-            PackageAnalyticsTrackingService packageAnalyticsTrackingService
+            PackageAnalyticsTrackingService packageAnalyticsTrackingService,
+            CommerceProperties commerceProperties
     ) {
         this.servicePackageRepository = servicePackageRepository;
         this.creatorRepository = creatorRepository;
         this.servicePackageMapper = servicePackageMapper;
         this.packageAnalyticsRepository = packageAnalyticsRepository;
         this.packageAnalyticsTrackingService = packageAnalyticsTrackingService;
+        this.commerceProperties = commerceProperties;
     }
 
     @Transactional
@@ -374,6 +378,17 @@ public class ServicePackageService {
         if ((dealType == DealType.PAID || dealType == DealType.HYBRID)
                 && (request.price() == null || request.price() <= 0)) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "price is required when dealType is PAID/HYBRID");
+        }
+        int minimumCashAmount = commerceProperties.getMinimumCashAmountPkr();
+        if ((dealType == DealType.PAID || dealType == DealType.HYBRID)
+                && request.price() != null
+                && request.price() < minimumCashAmount) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "price must be at least PKR " + String.format("%,d", minimumCashAmount));
+        }
+        if (dealType == DealType.HYBRID
+                && request.hybridCashAmount() != null
+                && request.hybridCashAmount() < minimumCashAmount) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "hybridCashAmount must be at least PKR " + String.format("%,d", minimumCashAmount));
         }
 
     }

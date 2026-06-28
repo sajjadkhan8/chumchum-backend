@@ -110,6 +110,8 @@ app:
   storage:
     driver: ${STORAGE_DRIVER:local}
   frontend-base-url: ${FRONTEND_BASE_URL:http://localhost:3000}
+  commerce:
+    minimum-cash-amount-pkr: ${COMMERCE_MINIMUM_CASH_AMOUNT_PKR:500}
   email:
     log-content: ${EMAIL_LOG_CONTENT:false}
     from-address: ${SMTP_FROM_ADDRESS:noreply@zingzing.pk}
