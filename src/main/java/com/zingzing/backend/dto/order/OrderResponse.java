@@ -19,6 +19,7 @@ public record OrderResponse(
         Integer amount,
         String barterDetails,
         String message,
+        String cancellationNote,
         String status,
         int progress,
         OffsetDateTime deadlineDate,

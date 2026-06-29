@@ -67,6 +67,7 @@ public class MessageService {
         if (request.content() == null || request.content().isBlank()) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Message content is required");
         }
+        touchPresence(userId);
         Conversation conversation = findConversationForUpdate(conversationId);
         validateParticipant(userId, conversation);
         validateNotBlocked(conversation);
@@ -95,6 +96,7 @@ public class MessageService {
                     "Too many offer messages sent. Please wait before sending another.");
         }
         Conversation conversation = findConversationForUpdate(conversationId);
+        touchPresence(userId);
         validateParticipant(userId, conversation);
         validateNotBlocked(conversation);
         User sender = findUser(userId);
@@ -134,9 +136,11 @@ public class MessageService {
         return messageMapper.toResponse(savedMessage);
     }
 
+    @Transactional
     public List<MessageResponse> getMessages(UUID conversationId, UUID userId) {
         Conversation conversation = findConversation(conversationId);
         validateParticipant(userId, conversation);
+        touchPresence(userId);
         Instant clearedAt = clearedAtFor(userId, conversation);
         List<Message> messages = clearedAt == null
                 ? messageRepository.findByConversationIdOrderByCreatedAtAsc(conversationId)
@@ -153,6 +157,7 @@ public class MessageService {
                     "You are sending attachments too quickly. Please wait a moment.");
         }
         Conversation conversation = findConversationForUpdate(conversationId);
+        touchPresence(userId);
         validateParticipant(userId, conversation);
         validateNotBlocked(conversation);
         User sender = findUser(userId);
@@ -184,6 +189,7 @@ public class MessageService {
     public void markRead(UUID conversationId, UUID userId, UserRole role) {
         Conversation conversation = findConversation(conversationId);
         validateParticipant(userId, conversation);
+        touchPresence(userId);
         if (role.isCreator()) {
             conversationRepository.markReadForCreator(conversationId);
         } else {
@@ -199,6 +205,7 @@ public class MessageService {
         }
         Conversation conversation = findConversationForUpdate(conversationId);
         validateParticipant(userId, conversation);
+        touchPresence(userId);
         if (role.isCreator()) {
             conversation.setClearedAtCreator(Instant.now());
             conversation.setUnreadCountCreator(0);
@@ -217,6 +224,7 @@ public class MessageService {
         }
         Conversation conversation = findConversationForUpdate(conversationId);
         validateParticipant(userId, conversation);
+        touchPresence(userId);
         if (role.isCreator()) {
             conversation.setBlockedAtCreator(Instant.now());
             conversation.setUnreadCountCreator(0);
@@ -235,6 +243,7 @@ public class MessageService {
         }
         Conversation conversation = findConversationForUpdate(conversationId);
         validateParticipant(userId, conversation);
+        touchPresence(userId);
         if (role.isCreator()) {
             conversation.setBlockedAtCreator(null);
         } else {
@@ -316,6 +325,10 @@ public class MessageService {
     private User findUser(UUID id) {
         return userRepository.findById(id)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "User not found"));
+    }
+
+    private void touchPresence(UUID userId) {
+        userRepository.updateLastSeenAt(userId, Instant.now());
     }
 
     private String sanitizeOriginalFilename(String originalFilename) {

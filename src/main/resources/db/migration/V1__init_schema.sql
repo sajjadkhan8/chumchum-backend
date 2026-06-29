@@ -25,6 +25,7 @@ create table users (
     terms_version varchar(20),
     totp_secret varchar(64),
     mfa_enabled boolean not null default false,
+    last_seen_at timestamptz,
     created_at timestamptz not null default now(),
     updated_at timestamptz not null default now()
 );
@@ -224,6 +225,7 @@ create table orders (
     amount integer,
     barter_details text,
     message text,
+    cancellation_note text,
     status varchar(30) not null default 'PENDING',
     progress integer not null default 0,
     delivery_date date,
@@ -377,6 +379,8 @@ create table conversations (
     id uuid primary key,
     creator_id uuid not null references creators(id) on delete cascade,
     brand_id uuid not null references brands(id) on delete cascade,
+    context_type varchar(30) not null default 'GENERAL',
+    context_id uuid,
     unread_count_creator integer not null default 0,
     unread_count_brand integer not null default 0,
     last_message varchar(2000),
@@ -387,8 +391,7 @@ create table conversations (
     blocked_at_creator timestamptz,
     blocked_at_brand timestamptz,
     created_at timestamptz not null,
-    updated_at timestamptz not null,
-    constraint uk_conversation_pair unique (creator_id, brand_id)
+    updated_at timestamptz not null
 );
 
 create table messages (
@@ -831,6 +834,12 @@ create index idx_orders_brand_status on orders (brand_id, status);
 create unique index uk_orders_idempotency_key on orders (idempotency_key) where idempotency_key is not null;
 create index idx_conversations_creator on conversations (creator_id, updated_at desc);
 create index idx_conversations_brand on conversations (brand_id, updated_at desc);
+create unique index uk_conversation_general_pair
+    on conversations (creator_id, brand_id)
+    where context_type = 'GENERAL' and context_id is null;
+create unique index uk_conversation_context
+    on conversations (context_type, context_id)
+    where context_id is not null;
 create index idx_messages_conversation_created on messages (conversation_id, created_at);
 create index idx_users_deleted_at on users (deleted_at) where deleted_at is not null;
 create index idx_auth_refresh_tokens_user on auth_refresh_tokens(user_id);
@@ -934,6 +943,7 @@ create index idx_creators_rate_card_post on core.creators(rate_card_post)
 create index idx_creators_rate_card_video on core.creators(rate_card_video)
     where rate_card_video is not null;
 create index idx_users_role_active_created on core.users(role, is_active, created_at desc);
+create index idx_users_last_seen on core.users(last_seen_at desc) where last_seen_at is not null;
 create index idx_brands_verification_status on core.brands(lower(replace(coalesce(business_verification_status, ''), ' ', '_')));
 create index idx_brands_plan_tier on core.brands(plan_tier);
 create index idx_ambassador_applications_status_created on core.ambassador_applications(status, created_at desc);

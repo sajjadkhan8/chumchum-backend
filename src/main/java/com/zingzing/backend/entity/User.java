@@ -105,6 +105,9 @@ public class User extends BaseEntity {
     @Builder.Default
     private boolean mfaEnabled = false;
 
+    @Column(name = "last_seen_at")
+    private Instant lastSeenAt;
+
     @PrePersist
     @PreUpdate
     void normalize() {

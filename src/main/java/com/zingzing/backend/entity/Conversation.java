@@ -12,8 +12,7 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "conversations",
-        uniqueConstraints = @UniqueConstraint(name = "uk_conversation_pair", columnNames = {"creator_id", "brand_id"}))
+@Table(name = "conversations")
 public class Conversation extends BaseEntity {
 
     @Id
@@ -26,6 +25,14 @@ public class Conversation extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "brand_id", nullable = false)
     private Brand brand;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "context_type", length = 30, nullable = false)
+    @Builder.Default
+    private ContextType contextType = ContextType.GENERAL;
+
+    @Column(name = "context_id")
+    private UUID contextId;
 
     @Column(name = "unread_count_creator", nullable = false)
     @Builder.Default
@@ -56,4 +63,13 @@ public class Conversation extends BaseEntity {
 
     @Column(name = "blocked_at_brand")
     private Instant blockedAtBrand;
+
+    public enum ContextType {
+        GENERAL,
+        ORDER,
+        DISPUTE,
+        CAMPAIGN,
+        OFFER,
+        PAYMENT
+    }
 }

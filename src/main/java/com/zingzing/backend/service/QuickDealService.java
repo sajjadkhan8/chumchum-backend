@@ -80,12 +80,15 @@ public class QuickDealService {
         Brand brand = brandRepository.findById(senderId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Brand profile not found"));
 
-        Conversation conversation = conversationRepository.findByCreatorIdAndBrandId(creator.getId(), brand.getId())
+        Conversation conversation = conversationRepository
+                .findByCreatorIdAndBrandIdAndContextTypeAndContextIdIsNull(
+                        creator.getId(), brand.getId(), Conversation.ContextType.GENERAL)
                 .map(existing -> conversationRepository.findByIdForUpdate(existing.getId()).orElse(existing))
                 .orElseGet(() -> conversationRepository.save(Conversation.builder()
                         .id(UUID.randomUUID())
                         .creator(creator)
                         .brand(brand)
+                        .contextType(Conversation.ContextType.GENERAL)
                         .build()));
 
         if (conversation.getBlockedAtCreator() != null || conversation.getBlockedAtBrand() != null) {

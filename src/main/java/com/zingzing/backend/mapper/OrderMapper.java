@@ -44,7 +44,7 @@ public class OrderMapper {
                 .toList();
 
         UUID conversationId = conversationRepository
-                .findByCreatorIdAndBrandId(order.getCreator().getId(), order.getBrand().getId())
+                .findByContextTypeAndContextId(com.zingzing.backend.entity.Conversation.ContextType.ORDER, order.getId())
                 .map(c -> c.getId())
                 .orElse(null);
 
@@ -69,6 +69,7 @@ public class OrderMapper {
                 order.getAmount(),
                 order.getBarterDetails(),
                 order.getMessage(),
+                order.getCancellationNote(),
                 order.getStatus() != null ? order.getStatus().name().toLowerCase() : "pending",
                 order.getProgress(),
                 order.getDeadlineDate(),

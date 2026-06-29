@@ -1,6 +1,7 @@
 package com.zingzing.backend.repository;
 
 import com.zingzing.backend.entity.Conversation;
+import com.zingzing.backend.entity.Conversation.ContextType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
@@ -29,7 +30,10 @@ public interface ConversationRepository extends JpaRepository<Conversation, UUID
     Page<Conversation> findByBrandIdOrderByUpdatedAtDesc(UUID brandId, Pageable pageable);
 
     @EntityGraph(attributePaths = {"creator", "brand"})
-    Optional<Conversation> findByCreatorIdAndBrandId(UUID creatorId, UUID brandId);
+    Optional<Conversation> findByCreatorIdAndBrandIdAndContextTypeAndContextIdIsNull(UUID creatorId, UUID brandId, ContextType contextType);
+
+    @EntityGraph(attributePaths = {"creator", "brand"})
+    Optional<Conversation> findByContextTypeAndContextId(ContextType contextType, UUID contextId);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select c from Conversation c where c.id = :id")

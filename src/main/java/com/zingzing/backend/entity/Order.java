@@ -53,6 +53,9 @@ public class Order extends BaseEntity {
     @Column(columnDefinition = "text")
     private String message;
 
+    @Column(name = "cancellation_note", columnDefinition = "text")
+    private String cancellationNote;
+
     @Enumerated(EnumType.STRING)
     @Column(length = 30, nullable = false)
     @Builder.Default

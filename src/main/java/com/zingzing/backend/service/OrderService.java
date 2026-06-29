@@ -299,6 +299,9 @@ public class OrderService {
         }
 
         validateDeliverableTransition(order, newStatus);
+        if (newStatus == OrderStatus.CANCELLED && message != null && !message.isBlank()) {
+            order.setCancellationNote(message.trim());
+        }
         order.setStatus(newStatus);
         if (newStatus == OrderStatus.IN_PROGRESS && order.getProgress() == 0) {
             order.setProgress(5);
