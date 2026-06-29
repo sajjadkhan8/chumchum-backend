@@ -446,7 +446,7 @@ create table deliverables (
     order_id uuid not null references orders(id) on delete cascade,
     name varchar(200),
     status varchar(30) not null default 'PENDING',
-    file_url varchar(500),
+    file_url varchar(1000),
     submitted_at timestamptz,
     revision_note varchar(1000),
     created_at timestamptz not null default now(),

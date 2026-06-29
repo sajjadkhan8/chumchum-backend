@@ -111,6 +111,18 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
     @Query("select coalesce(sum(o.amount), 0) from Order o where o.amount is not null")
     long sumTotalGmv();
 
+    @Query("""
+            select o.amount from Order o
+            where o.creator.id = :creatorId
+              and o.status in (
+                com.zingzing.backend.entity.enums.OrderStatus.DELIVERED,
+                com.zingzing.backend.entity.enums.OrderStatus.REVIEW)
+              and o.dealType <> com.zingzing.backend.entity.enums.DealType.BARTER
+              and o.amount is not null
+              and o.amount > 0
+            """)
+    List<Integer> findAwaitingApprovalPaidAmountsByCreatorId(@Param("creatorId") UUID creatorId);
+
     @Query("select count(o) from Order o where o.creator.id = :creatorId and o.status = :status")
     long countByCreatorIdAndStatus(@Param("creatorId") UUID creatorId, @Param("status") OrderStatus status);
 

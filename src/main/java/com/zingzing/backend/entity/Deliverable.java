@@ -44,7 +44,7 @@ public class Deliverable extends BaseEntity {
     @Builder.Default
     private DeliverableStatus status = DeliverableStatus.PENDING;
 
-    @Column(length = 500, name = "file_url")
+    @Column(length = 1000, name = "file_url")
     private String fileUrl;
 
     @Column(name = "submitted_at")

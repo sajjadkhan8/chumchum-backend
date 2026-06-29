@@ -31,6 +31,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.EnumSet;
@@ -332,12 +334,9 @@ public class OrderService {
         if (order.getStatus() != OrderStatus.IN_PROGRESS && order.getStatus() != OrderStatus.REVISION) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Deliverables can only be submitted while work is in progress or revision");
         }
-        if (fileUrl == null || fileUrl.isBlank()) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "fileUrl is required");
-        }
-        String requiredPrefix = "/api/v1/files/deliverables/" + orderId + "/" + deliverableId + "/";
-        if (!fileUrl.startsWith(requiredPrefix) || fileUrl.substring(requiredPrefix.length()).contains("/")) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Upload the file for this deliverable before submitting it");
+        String submittedUrl = normalizeDeliverableUrl(orderId, deliverableId, fileUrl);
+        if (submittedUrl == null) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Upload a file or paste a live post link before submitting");
         }
 
         Deliverable deliverable = findOrderDeliverable(orderId, deliverableId);
@@ -346,7 +345,7 @@ public class OrderService {
             throw new ApiException(HttpStatus.BAD_REQUEST, "This deliverable is not awaiting a submission");
         }
 
-        deliverable.setFileUrl(fileUrl.trim());
+        deliverable.setFileUrl(submittedUrl);
         deliverable.setStatus(Deliverable.DeliverableStatus.REVIEW);
         deliverable.setSubmittedAt(OffsetDateTime.now());
         Deliverable saved = deliverableRepository.save(deliverable);
@@ -362,6 +361,40 @@ public class OrderService {
         notificationService.send(order.getBrand().getId(), "deliverable_submitted", "Deliverable submitted",
                 detail, "order", order.getId());
         return toDeliverableResponse(saved);
+    }
+
+    private String normalizeDeliverableUrl(UUID orderId, UUID deliverableId, String rawUrl) {
+        if (rawUrl == null || rawUrl.isBlank()) {
+            return null;
+        }
+        String value = rawUrl.trim();
+        if (value.length() > 1000) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Deliverable link is too long");
+        }
+
+        String requiredPrefix = "/api/v1/files/deliverables/" + orderId + "/" + deliverableId + "/";
+        if (value.startsWith(requiredPrefix)) {
+            if (value.substring(requiredPrefix.length()).contains("/")) {
+                throw new ApiException(HttpStatus.BAD_REQUEST, "Upload the file for this deliverable before submitting it");
+            }
+            return value;
+        }
+
+        if (value.startsWith("/api/v1/files/deliverables/")) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Upload the file for this deliverable before submitting it");
+        }
+
+        try {
+            URI uri = new URI(value);
+            String scheme = uri.getScheme();
+            String host = uri.getHost();
+            if (!"https".equalsIgnoreCase(scheme) || host == null || host.isBlank() || uri.getUserInfo() != null) {
+                throw new ApiException(HttpStatus.BAD_REQUEST, "Paste a valid https post link");
+            }
+            return uri.toString();
+        } catch (URISyntaxException ex) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Paste a valid https post link");
+        }
     }
 
     @Transactional

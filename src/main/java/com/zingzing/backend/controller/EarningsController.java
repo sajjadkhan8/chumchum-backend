@@ -35,6 +35,10 @@ public class EarningsController {
         data.put("pendingBalance", summary.pendingBalance());
         data.put("totalWithdrawn", summary.totalWithdrawn());
         data.put("platformFees", summary.platformFees());
+        data.put("awaitingApprovalGross", summary.awaitingApprovalGross());
+        data.put("awaitingApprovalNet", summary.awaitingApprovalNet());
+        data.put("awaitingApprovalFees", summary.awaitingApprovalFees());
+        data.put("awaitingApprovalCount", summary.awaitingApprovalCount());
         return ResponseEntity.ok(Map.of("success", true, "data", data));
     }
 

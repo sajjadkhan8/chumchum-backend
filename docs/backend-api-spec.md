@@ -1455,10 +1455,10 @@ CANCELLED   → (terminal)
 
 **Auth:** Authenticated (Creator)
 
-**Content-Type:** `multipart/form-data`
+**Content-Type:** `application/json`
 
-**Form Fields:**
-- `file` (file, required if attachment)
+**Body:**
+- `fileUrl` (string, required): protected ChumChum upload URL or external `https://` post link
 - `note` (string, optional)
 
 **Response:** Updated deliverable with `fileUrl`
