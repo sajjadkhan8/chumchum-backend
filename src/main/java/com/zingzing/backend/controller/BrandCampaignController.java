@@ -2,6 +2,7 @@ package com.zingzing.backend.controller;
 
 import com.zingzing.backend.config.security.AuthenticatedUser;
 import com.zingzing.backend.dto.campaign.BrandCampaignCreateRequest;
+import com.zingzing.backend.dto.campaign.BrandCampaignQuotaResponse;
 import com.zingzing.backend.dto.campaign.BrandCampaignReactionActionRequest;
 import com.zingzing.backend.dto.campaign.BrandCampaignReactionCreateRequest;
 import com.zingzing.backend.dto.campaign.BrandCampaignReactionResponse;
@@ -73,6 +74,13 @@ public class BrandCampaignController {
         return ResponseEntity.ok(brandCampaignService.listBrandCampaigns(authUser.userId(), authUser.role(), page, size, status));
     }
 
+    @GetMapping("/api/v1/brand/campaigns/quota")
+    public ResponseEntity<BrandCampaignQuotaResponse> getBrandCampaignQuota(
+            @AuthenticationPrincipal AuthenticatedUser authUser
+    ) {
+        return ResponseEntity.ok(brandCampaignService.getBrandCampaignQuota(authUser.userId(), authUser.role()));
+    }
+
     @GetMapping("/api/v1/brand/campaigns/{campaignId}")
     public ResponseEntity<BrandCampaignResponse> getBrandCampaign(
             @PathVariable UUID campaignId,
@@ -114,14 +122,13 @@ public class BrandCampaignController {
             @RequestParam(required = false) String city,
             @RequestParam(required = false) String offerType,
             @RequestParam(required = false) String platform,
-            @RequestParam(required = false) String campaignGoal,
             @RequestParam(required = false) Integer budgetMin,
             @RequestParam(required = false) Integer budgetMax,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size
     ) {
         return ResponseEntity.ok(brandCampaignService.listCreatorFeed(
-                authUser.role(), search, city, offerType, platform, campaignGoal, budgetMin, budgetMax, page, size));
+                authUser.role(), search, city, offerType, platform, budgetMin, budgetMax, page, size));
     }
 
     @GetMapping("/api/v1/creator/campaigns/{campaignId}")

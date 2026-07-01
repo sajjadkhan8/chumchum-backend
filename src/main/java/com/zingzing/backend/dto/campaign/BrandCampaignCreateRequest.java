@@ -22,7 +22,6 @@ public record BrandCampaignCreateRequest(
          @Size(max = 2000) String deliverables,
          @Size(max = 300) String contentFormats,
          @Size(max = 300) String targetPlatforms,
-         @Size(max = 150) String campaignGoal,
          @Size(max = 400) String categories,
          String referenceUrls,
          @Size(max = 4000) String keyMessage,

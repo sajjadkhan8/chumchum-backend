@@ -22,7 +22,6 @@ public record BrandCampaignResponse(
          String deliverables,
          String contentFormats,
          String targetPlatforms,
-         String campaignGoal,
          String categories,
          String referenceUrls,
          String keyMessage,

@@ -652,7 +652,6 @@ create table brand_campaigns (
     reference_urls text,
     cover_image_url varchar(600),
     visibility varchar(20) not null default 'public',
-    campaign_goal varchar(150),
     budget_type varchar(30),
     payment_structure varchar(30),
     barter_product_desc text,

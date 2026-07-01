@@ -34,8 +34,6 @@ public interface BrandCampaignRepository extends JpaRepository<BrandCampaign, UU
               and (cast(:type as string) is null or lower(o.offerType) = lower(cast(:type as string)))
               and (cast(:platform as string) is null
                    or lower(coalesce(o.targetPlatforms, '')) like concat('%', lower(cast(:platform as string)), '%'))
-              and (cast(:campaignGoal as string) is null
-                   or lower(coalesce(o.campaignGoal, '')) like concat('%', lower(cast(:campaignGoal as string)), '%'))
               and (:budgetMin is null or o.budgetMax >= :budgetMin)
               and (:budgetMax is null or o.budgetMin <= :budgetMax)
               and (o.deadlineDate is null or o.deadlineDate >= :today)
@@ -45,7 +43,6 @@ public interface BrandCampaignRepository extends JpaRepository<BrandCampaign, UU
                                                  @Param("city") String city,
                                                  @Param("type") String type,
                                                  @Param("platform") String platform,
-                                                  @Param("campaignGoal") String campaignGoal,
                                                  @Param("budgetMin") Integer budgetMin,
                                                  @Param("budgetMax") Integer budgetMax,
                                                  @Param("today") LocalDate today,
@@ -57,7 +54,7 @@ public interface BrandCampaignRepository extends JpaRepository<BrandCampaign, UU
 
     long countByBrandIdAndStatus(UUID brandId, BrandCampaignStatus status);
 
-    long countByBrandIdAndCreatedAtAfter(UUID brandId, Instant since);
+    long countByBrandIdAndCreatedAtGreaterThanEqualAndCreatedAtLessThan(UUID brandId, Instant start, Instant end);
 
     List<BrandCampaign> findByStatus(BrandCampaignStatus status);
 }

@@ -6,6 +6,7 @@ import com.zingzing.backend.dto.campaign.BrandCampaignReactionActionRequest;
 import com.zingzing.backend.dto.campaign.BrandCampaignReactionCreateRequest;
 import com.zingzing.backend.dto.campaign.BrandCampaignReactionResponse;
 import com.zingzing.backend.dto.campaign.BrandCampaignReactionUpdateRequest;
+import com.zingzing.backend.dto.campaign.BrandCampaignQuotaResponse;
 import com.zingzing.backend.dto.campaign.BrandCampaignResponse;
 import com.zingzing.backend.dto.campaign.BrandCampaignStatusUpdateRequest;
 import com.zingzing.backend.dto.campaign.BrandCampaignUpdateRequest;
@@ -54,6 +55,9 @@ import java.util.UUID;
 public class BrandCampaignService {
 
     private static final int MAX_PAGE_SIZE = 50;
+    private static final int STARTER_MONTHLY_CAMPAIGN_LIMIT = 5;
+    private static final int GROWTH_MONTHLY_CAMPAIGN_LIMIT = 50;
+    private static final String MONTHLY_CREATION_SCOPE = "monthly_creation";
 
     private final BrandCampaignRepository brandCampaignRepository;
     private final BrandCampaignReactionRepository brandCampaignReactionRepository;
@@ -104,13 +108,10 @@ public class BrandCampaignService {
         Brand brand = brandRepository.findById(brandId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Brand profile not found"));
 
-        if (brand.getPlanTier() == BrandPlanTier.STARTER) {
-            Instant startOfMonth = YearMonth.now(ZoneOffset.UTC).atDay(1).atStartOfDay().toInstant(ZoneOffset.UTC);
-            long campaignsThisMonth = brandCampaignRepository.countByBrandIdAndCreatedAtAfter(brandId, startOfMonth);
-            if (campaignsThisMonth >= 5) {
-                throw new ApiException(HttpStatus.PAYMENT_REQUIRED,
-                        "Starter plan allows 5 campaigns per month. Upgrade to Growth or Enterprise for unlimited campaigns.");
-            }
+        BrandCampaignQuotaResponse quota = buildCampaignQuota(brand);
+        if (!quota.unlimited() && quota.limit() != null && quota.used() >= quota.limit()) {
+            throw new ApiException(HttpStatus.PAYMENT_REQUIRED,
+                    "Your plan's monthly campaign creation allowance is used. Upgrade to create more campaigns this month.");
         }
 
         BrandCampaign campaign = BrandCampaign.builder()
@@ -129,7 +130,6 @@ public class BrandCampaignService {
                  .deliverables(request.deliverables())
                  .contentFormats(request.contentFormats())
                  .targetPlatforms(request.targetPlatforms())
-                 .campaignGoal(trimToNull(request.campaignGoal()))
                  .categories(normalizeCategoryCsv(request.categories()))
                  .referenceUrls(request.referenceUrls())
                  .keyMessage(trimToNull(request.keyMessage()))
@@ -218,7 +218,6 @@ public class BrandCampaignService {
          if (request.deliverables() != null) campaign.setDeliverables(request.deliverables());
          if (request.contentFormats() != null) campaign.setContentFormats(request.contentFormats());
          if (request.targetPlatforms() != null) campaign.setTargetPlatforms(request.targetPlatforms());
-         if (request.campaignGoal() != null) campaign.setCampaignGoal(trimToNull(request.campaignGoal()));
          if (request.categories() != null) campaign.setCategories(normalizeCategoryCsv(request.categories()));
          if (request.referenceUrls() != null) campaign.setReferenceUrls(request.referenceUrls());
          if (request.keyMessage() != null) campaign.setKeyMessage(trimToNull(request.keyMessage()));
@@ -298,6 +297,14 @@ public class BrandCampaignService {
     // ── Brand: listing ────────────────────────────────────────────────────────
 
     @Transactional(readOnly = true)
+    public BrandCampaignQuotaResponse getBrandCampaignQuota(UUID brandId, UserRole role) {
+        requireBrand(role);
+        Brand brand = brandRepository.findById(brandId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Brand profile not found"));
+        return buildCampaignQuota(brand);
+    }
+
+    @Transactional(readOnly = true)
     public PageResponse<BrandCampaignResponse> listBrandCampaigns(UUID brandId, UserRole role, int page, int size, String status) {
         requireBrand(role);
         if (status != null && !status.isBlank()) {
@@ -317,6 +324,35 @@ public class BrandCampaignService {
     public BrandCampaignResponse getBrandCampaign(UUID campaignId, UUID brandId, UserRole role) {
         requireBrand(role);
         return toCampaignResponse(getOwnedCampaign(campaignId, brandId));
+    }
+
+    private BrandCampaignQuotaResponse buildCampaignQuota(Brand brand) {
+        YearMonth currentMonth = YearMonth.now(ZoneOffset.UTC);
+        Instant periodStart = currentMonth.atDay(1).atStartOfDay().toInstant(ZoneOffset.UTC);
+        Instant periodEnd = currentMonth.plusMonths(1).atDay(1).atStartOfDay().toInstant(ZoneOffset.UTC);
+        long used = brandCampaignRepository.countByBrandIdAndCreatedAtGreaterThanEqualAndCreatedAtLessThan(
+                brand.getId(), periodStart, periodEnd);
+        Integer limit = monthlyCampaignLimit(brand.getPlanTier());
+        boolean unlimited = limit == null;
+        long remaining = unlimited ? 0 : Math.max(limit - used, 0);
+        return new BrandCampaignQuotaResponse(
+                brand.getPlanTier().name(),
+                MONTHLY_CREATION_SCOPE,
+                used,
+                limit,
+                remaining,
+                unlimited,
+                periodStart,
+                periodEnd
+        );
+    }
+
+    private Integer monthlyCampaignLimit(BrandPlanTier planTier) {
+        return switch (planTier) {
+            case STARTER -> STARTER_MONTHLY_CAMPAIGN_LIMIT;
+            case GROWTH -> GROWTH_MONTHLY_CAMPAIGN_LIMIT;
+            case ENTERPRISE -> null;
+        };
     }
 
     // ── Brand: reaction inbox ─────────────────────────────────────────────────
@@ -394,14 +430,14 @@ public class BrandCampaignService {
 
     @Transactional(readOnly = true)
     public PageResponse<BrandCampaignResponse> listCreatorFeed(UserRole role,
-                                                             String search, String city, String offerType, String platform, String campaignGoal,
+                                                             String search, String city, String offerType, String platform,
                                                              Integer budgetMin, Integer budgetMax,
                                                              int page, int size) {
         requireCreator(role);
         return PageResponse.from(
                 brandCampaignRepository.findPublishedForCreatorFeed(
                         trimToNull(search), trimToNull(city), trimToNull(offerType),
-                        trimToNull(platform), trimToNull(campaignGoal),
+                        trimToNull(platform),
                         budgetMin, budgetMax, LocalDate.now(), safePage(page, size))
                         .map(this::toCampaignResponse)
         );
@@ -876,7 +912,6 @@ public class BrandCampaignService {
                  campaign.getDeliverables(),
                  campaign.getContentFormats(),
                  campaign.getTargetPlatforms(),
-                 campaign.getCampaignGoal(),
                  campaign.getCategories(),
                  campaign.getReferenceUrls(),
                  campaign.getKeyMessage(),
